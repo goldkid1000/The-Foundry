@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.12.65",
+    "date": "2026-10-18",
+    "notes": [
+      "3 new videos (Gaz spliced-riven Kuva Grattler build, Kengineer riven overhaul guide, NobuWasTaken Taubound guide). No new hotfix since 44.1.2 + 2.1."
+    ],
+    "notify": false
+  },
+  {
     "version": "2.12.64",
     "date": "2026-10-17",
     "notes": [

@@ -772,5 +772,32 @@
   "description": "Sevagoth Prime AOE nuke build: min-max range/strength setup, invisibility variant, Kubrow companion, Paris Prime Incarnon + Epitaph Prime + Praedos loadout.",
   "item": "Sevagoth Prime",
   "type": "build"
+ },
+ {
+  "id": "VdKIdRKZo9o",
+  "title": "Warframe: Breaking Elite Missions With NEW Spliced Riven Mods",
+  "channel": "Gaz TTV",
+  "category": "Builds",
+  "description": "Kuva Grattler build with a spliced infinite-ammo riven: how to splice the riven, element choice, mod setup, and Steel Path / EDA-ETA performance.",
+  "item": "Kuva Grattler",
+  "type": "build"
+ },
+ {
+  "id": "OpFzrW500vQ",
+  "title": "Rivens OVERHAULED - Changes, Strategies, and Oversights? | Warframe",
+  "channel": "TheKengineer",
+  "category": "Builds",
+  "description": "Full riven overhaul guide: stat locking, the splicing process, rerolling, breakpoint stats, ammo-efficiency breakpoints, plus a free breakpoint calculator.",
+  "item": "Riven Splicer",
+  "type": "guide"
+ },
+ {
+  "id": "LoFwhplov_Q",
+  "title": "Warframe Epoch Operation: Taubound | Guide | Iceblade of Narin",
+  "channel": "NobuWasTaken",
+  "category": "Farming",
+  "description": "Taubound event guide: Moonflesh farming tips, tactical alerts, rewards, reward priorities, and a Tau Prologue overview.",
+  "item": "Taubound",
+  "type": "guide"
  }
  ]
