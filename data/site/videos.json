@@ -763,5 +763,14 @@
   "description": "Gaz reviews Eskhatos Ki'Teer's full inventory for the Oct 16 visit; Scare-o Ki'Teer returns every weekend through October.",
   "item": "Baro Ki'Teer",
   "type": "guide"
+ },
+ {
+  "id": "8zIAIxyV_Ks",
+  "title": "Sevagoth Prime 2026: My Favorite AOE Nuke Warframe Build Loadout",
+  "channel": "Gaz TTV",
+  "category": "Builds",
+  "description": "Sevagoth Prime AOE nuke build: min-max range/strength setup, invisibility variant, Kubrow companion, Paris Prime Incarnon + Epitaph Prime + Praedos loadout.",
+  "item": "Sevagoth Prime",
+  "type": "build"
  }
-]
+ ]
