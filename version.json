@@ -1,6 +1,8 @@
 {
- "version": "2.12.72",
- "updated": "2026-10-19",
- "notes": "Joy-of-use rework: Vaulty no longer gets in the way on phones \u2014 on \u2264600px he parks as a small 44px bubble bottom-right above the tab bar, with a \u00d7 that minimizes him to a tiny pulsing dot (state remembered). Tapping him still opens chat.",
- "notify": true
+  "version": "2.12.73",
+  "updated": "2026-10-19",
+  "notes": [
+    "Vaulty is now a circular face bubble on mobile \u2014 parked mid-right edge, never in the way. Tap for chat, \u00d7 to minimize to a dot (remembers your choice)."
+  ],
+  "notify": true
 }

@@ -132,6 +132,60 @@
       '</svg>';
   }
 
+  /* ===== v2.12.73: mobile face bubble — head-only SVG for the circular button ===== */
+  function faceSVG() {
+    return '<svg viewBox="8 -8 48 58" width="56" height="56" aria-hidden="true">' +
+      '<defs>' +
+      '<radialGradient id="tmfhg" cx="38%" cy="30%" r="75%">' +
+      '<stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#eef0f3"/>' +
+      '<stop offset="100%" stop-color="#c9cdd4"/></radialGradient>' +
+      '<linearGradient id="tmfgd" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#ffe9a3"/><stop offset="55%" stop-color="#ffd54a"/>' +
+      '<stop offset="100%" stop-color="#d4a017"/></linearGradient>' +
+      '<radialGradient id="tmffg" cx="50%" cy="35%" r="70%">' +
+      '<stop offset="0%" stop-color="#2e2e38"/><stop offset="100%" stop-color="#101014"/></radialGradient>' +
+      '</defs>' +
+      /* helmet */
+      '<ellipse cx="32" cy="25" rx="17.5" ry="18.5" fill="url(#tmfhg)" stroke="#8a8f98" stroke-width="1.5"/>' +
+      '<path d="M19.5 17 C22.5 10.5, 29 7.5, 35.5 8" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.95" stroke-linecap="round"/>' +
+      '<path d="M46.5 21 C48.5 27.5, 47.5 35, 43 40.5" stroke="#aeb4bd" stroke-width="2.4" fill="none" opacity="0.7" stroke-linecap="round"/>' +
+      '<path d="M17.5 21 C15.5 27.5, 16.5 35, 21 40.5" stroke="#aeb4bd" stroke-width="2.4" fill="none" opacity="0.7" stroke-linecap="round"/>' +
+      '<path d="M16.5 32 C22 36.5, 42 36.5, 47.5 32" stroke="url(#tmfgd)" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+      /* gold crest */
+      '<path d="M32 -1 Q26.5 4.5, 27 10.5 L37 10.5 Q37.5 4.5, 32 -1 Z" fill="url(#tmfgd)" stroke="#d4a017" stroke-width="1"/>' +
+      '<circle cx="32" cy="3.2" r="2.2" fill="url(#tmfgd)" stroke="#d4a017" stroke-width="0.8"/>' +
+      '<circle cx="32" cy="3.2" r="0.9" fill="#fff3c4"/>' +
+      /* dark face opening + gold ring */
+      '<ellipse cx="32" cy="28.5" rx="10" ry="11.5" fill="url(#tmffg)"/>' +
+      '<ellipse cx="32" cy="28.5" rx="11.6" ry="13.1" fill="none" stroke="url(#tmfgd)" stroke-width="3"/>' +
+      /* glowing eyes */
+      '<ellipse cx="27.6" cy="28" rx="4" ry="5" fill="#00e5ff"/>' +
+      '<ellipse cx="36.4" cy="28" rx="4" ry="5" fill="#00e5ff"/>' +
+      '<circle cx="29" cy="25.8" r="1.5" fill="#ffffff" opacity="0.95"/>' +
+      '<circle cx="37.8" cy="25.8" r="1.5" fill="#ffffff" opacity="0.95"/>' +
+      /* blush + smile */
+      '<ellipse cx="23.6" cy="34.5" rx="2.8" ry="1.8" fill="#ff9db0" opacity="0.6"/>' +
+      '<ellipse cx="40.4" cy="34.5" rx="2.8" ry="1.8" fill="#ff9db0" opacity="0.6"/>' +
+      '<path d="M29 37.5 Q32 39.8 35 37.5" stroke="#ffd54a" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.95"/>' +
+      /* chin guard */
+      '<ellipse cx="32" cy="44.5" rx="5.4" ry="3.2" fill="url(#tmfgd)" stroke="#d4a017" stroke-width="0.8"/>' +
+      '</svg>';
+  }
+  /* v2.12.73: mobile face-bubble mode — circular button replaces the shimeji */
+  function isMobileFaceMode() {
+    try { return window.matchMedia('(max-width: 600px)').matches; } catch (e) { return false; }
+  }
+  var FACE_MIN_KEY = 'tv-vaulty-min';
+  function faceMinimized() {
+    try { return localStorage.getItem(FACE_MIN_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setFaceMinimized(min) {
+    try { localStorage.setItem(FACE_MIN_KEY, min ? '1' : '0'); } catch (e) {}
+    if (els.facebtn) els.facebtn.hidden = !!min;
+    if (els.facemin) els.facemin.hidden = !!min;
+    if (els.facedot) els.facedot.hidden = !min;
+  }
+
   var VAULTY = 'Vaulty';
   var TIPS = {
     'index': "Hiya, I'm Vaulty! 👋 Your tiny Vault keeper. Tap me anytime — I give great advice and terrible jokes.",
@@ -243,6 +297,48 @@
     els.text = wrap.querySelector('#tv-mentor-text');
     els.badge = wrap.querySelector('#tv-mentor-badge');
     els.count = wrap.querySelector('#tv-mentor-count');
+    /* v2.12.73: mobile face bubble — circular button with Vaulty's face */
+    var facebtn = document.createElement('button');
+    facebtn.id = 'tv-facebtn';
+    facebtn.className = 'tv-facebtn';
+    facebtn.type = 'button';
+    facebtn.setAttribute('aria-label', 'Open Vault Guide AI chat');
+    facebtn.title = 'Ask Vaulty';
+    facebtn.innerHTML = faceSVG();
+    wrap.appendChild(facebtn);
+    els.facebtn = facebtn;
+    var facemin = document.createElement('button');
+    facemin.id = 'tv-facemin';
+    facemin.className = 'tv-facemin';
+    facemin.type = 'button';
+    facemin.setAttribute('aria-label', 'Minimize Vaulty');
+    facemin.textContent = '\u00d7';
+    wrap.appendChild(facemin);
+    els.facemin = facemin;
+    var facedot = document.createElement('button');
+    facedot.id = 'tv-facedot';
+    facedot.className = 'tv-facedot';
+    facedot.type = 'button';
+    facedot.setAttribute('aria-label', 'Show Vaulty');
+    facedot.innerHTML = '<span></span>';
+    facedot.hidden = true;
+    wrap.appendChild(facedot);
+    els.facedot = facedot;
+    /* face tap opens the AI chat (same as tapping Vaulty on desktop) */
+    facebtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openAI();
+    });
+    facemin.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setFaceMinimized(true);
+    });
+    facedot.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setFaceMinimized(false);
+    });
+    /* restore minimized state */
+    if (faceMinimized()) setFaceMinimized(true);
 
     function openAI() {
       squash();
@@ -322,6 +418,7 @@
 
   /* walk across the screen, then say something */
   function walkAcross(msg) {
+    if (isMobileFaceMode()) { if (msg) say(msg, { duration: 6000 }); return; } /* v2.12.73 */
     if (reducedMotion || !els.wrap) return;
     build();
     els.wrap.classList.add('visible');
@@ -443,6 +540,7 @@
 
   function pointAt(selector, text, opts) {
     opts = opts || {};
+    if (isMobileFaceMode()) { say(text, opts); return; } /* v2.12.73: face bubble stays parked */
     var target = document.querySelector(selector);
     build();
     if (target) {
@@ -658,6 +756,7 @@
   };
 
   function shimejiInit() {
+    if (isMobileFaceMode()) return; /* v2.12.73: face bubble replaces shimeji on mobile */
     if (reducedMotion || !els.wrap) return;
     els.wrap.classList.add('shimeji');
     /* home spot: left edge, vertically centered — comfortable, out of the way */
@@ -966,6 +1065,7 @@
         if (old && old.parentNode) old.parentNode.removeChild(old);
       } catch (e) {}
       els.wrap = null; els.char = null; els.bubble = null;
+      els.facebtn = null; els.facemin = null; els.facedot = null;
       els.text = null; els.badge = null; els.count = null;
       bodyAnimStarted = false;
       try { init(); } catch (e) {}

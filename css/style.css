@@ -2258,61 +2258,81 @@ footer, .site-footer{
       celebratory update popup, playful empty states.
    ================================================================ */
 
-/* ---------- 1. Vaulty mobile parking (≤600px) ---------- */
+/* ---------- 1. Vaulty mobile face bubble (≤600px) — v2.12.73 ----------
+   The full shimeji character is replaced by a circular chat bubble with
+   Vaulty's face, parked mid-right edge. Desktop is untouched. */
+.tv-facebtn, .tv-facemin, .tv-facedot { display: none; }
 @media (max-width: 600px) {
-  /* park bottom-right, above the tab bar, clear of CTAs */
+  /* park: right edge, vertically centered, clear of tab bar + CTAs */
   #tv-mentor {
-    left: auto;
-    right: 12px;
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-    z-index: 60; /* above tabbar (50), far below update popup (10000) */
+    left: auto; right: 10px;
+    top: 50%; bottom: auto;
+    transform: translateY(-50%);
+    z-index: 60; /* above tab bar (50), far below update popup (10000) */
+    align-items: flex-end;
   }
-  /* collapsed: small bubble, ≤48px wide */
-  #tv-mentor .tv-mentor-char > svg {
-    width: 44px !important;
-    height: 52px !important;
+  #tv-mentor.visible { transform: translateY(-50%); }
+  #tv-mentor.entering { animation: tv-face-enter .5s ease; }
+  @keyframes tv-face-enter {
+    0% { opacity: 0; transform: translateY(-50%) scale(.6); }
+    100% { opacity: 1; transform: translateY(-50%) scale(1); }
   }
-  /* speech bubble tail points from the right side now */
-  #tv-mentor .tv-mentor-bubble::after { left: auto; right: 30px; }
-  #tv-mentor .tv-mentor-bubble { max-width: 200px; }
-
-  /* minimize button: visible × on the bubble, 44px tap target */
-  #tv-mentor-min {
-    position: absolute; top: -10px; right: -10px;
+  /* full character hidden on mobile — the face bubble replaces him */
+  #tv-mentor-char { display: none !important; }
+  /* circular face button, 56px */
+  .tv-facebtn {
+    display: block; width: 56px; height: 56px; padding: 0;
+    border-radius: 50%; overflow: hidden;
+    background: radial-gradient(circle at 35% 30%, #1a2433, #0b1220 70%);
+    border: 2px solid rgba(34, 211, 238, .65);
+    box-shadow: 0 0 14px rgba(34, 211, 238, .45), 0 4px 14px rgba(0, 0, 0, .5);
+    cursor: pointer; line-height: 0; position: relative;
+  }
+  .tv-facebtn:active { transform: scale(.92); }
+  .tv-facebtn svg { width: 100%; height: 100%; display: block; }
+  .tv-facebtn[hidden] { display: none !important; }
+  /* minimize × — 44px tap target riding the bubble's top-right */
+  .tv-facemin {
+    position: absolute; top: -16px; right: -8px;
     width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(10, 16, 24, .92);
+    background: rgba(10, 16, 24, .94);
     border: 1px solid var(--border, #2a3542);
-    border-radius: 50%;
-    color: #9fb3c8; font-size: 22px; line-height: 1;
-    cursor: pointer; z-index: 2;
+    border-radius: 50%; color: #9fb3c8;
+    font-size: 24px; line-height: 1; cursor: pointer; z-index: 2;
     box-shadow: 0 2px 10px rgba(0, 0, 0, .5);
   }
-  #tv-mentor-min:active { color: #fff; border-color: var(--accent, #22d3ee); }
-
-  /* minimized: character + bubble + × hide, tiny dot remains */
-  #tv-mentor.tv-minimized .tv-mentor-char,
-  #tv-mentor.tv-minimized .tv-mentor-bubble,
-  #tv-mentor.tv-minimized #tv-mentor-min { display: none !important; }
-  #tv-mentor-dot { display: none; }
-  #tv-mentor.tv-minimized #tv-mentor-dot {
-    display: flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px; /* generous tap area */
-    background: none; border: none; cursor: pointer; padding: 0;
+  .tv-facemin:active { color: #fff; border-color: var(--accent, #22d3ee); }
+  .tv-facemin[hidden] { display: none !important; }
+  /* minimized dot — smaller than the bubble, same parking spot */
+  .tv-facedot {
+    display: block; width: 44px; height: 44px; padding: 0;
+    background: none; border: none; cursor: pointer;
   }
-  #tv-mentor-dot span {
-    width: 15px; height: 15px; border-radius: 50%;
+  .tv-facedot[hidden] { display: none !important; }
+  .tv-facedot span {
+    display: block; width: 16px; height: 16px; margin: auto;
+    border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #7df9ff, #22d3ee 60%, #0e7490);
     box-shadow: 0 0 10px rgba(34, 211, 238, .8);
-    animation: tv-dot-pulse 2.4s ease-in-out infinite;
+    animation: tv-face-pulse 2.4s ease-in-out infinite;
   }
-  @keyframes tv-dot-pulse {
+  @keyframes tv-face-pulse {
     0%, 100% { transform: scale(1); opacity: .85; }
     50% { transform: scale(1.25); opacity: 1; }
   }
+  /* online-count badge becomes a compact pill above the bubble */
+  .tv-mentor-badge {
+    margin: 0 0 6px; padding: 3px 8px; font-size: 10px;
+    animation: none;
+  }
+  /* speech bubble anchors above the face button, right-aligned */
+  .tv-mentor-bubble { max-width: 220px; margin-bottom: 10px; }
+  .tv-mentor-bubble::after { left: auto; right: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #tv-mentor-dot span { animation: none; }
+  .tv-facedot span { animation: none; }
+  #tv-mentor.entering { animation: none; }
 }
 
 /* ---------- 2a. time-of-day greeting pill (homepage hero) ---------- */
