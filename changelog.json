@@ -1,5 +1,12 @@
 [
   {
+    "v": "2.13.5",
+    "date": "Oct 19, 2026",
+    "notes": [
+      "Mobile fit pass: chat bubble + Vaulty level across from each other; 44px touch targets; zero horizontal scroll; consistent mobile spacing."
+    ]
+  },
+  {
     "v": "2.13.4",
     "date": "Oct 19, 2026",
     "notes": [

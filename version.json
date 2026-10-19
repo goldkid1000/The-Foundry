@@ -1,10 +1,9 @@
 {
-  "version": "2.13.4",
+  "version": "2.13.5",
   "updated": "2026-10-19",
   "notify": true,
   "notes": [
-    "Vaulty moved to the LEFT edge, level with the blue chat bubble on the right.",
-    "Killed the white \u00d7 pill and white square ghosts near Vaulty \u2014 the speech bubble never shows on mobile now.",
-    "Fixed stale cache-busters on all scripts so updates actually reach your phone."
+    "Full mobile fit pass \u2014 no horizontal scrolling, 44px touch targets, clean spacing on every page.",
+    "Chat bubble and Vaulty now sit level across from each other (Vaulty left, chat right)."
   ]
 }

@@ -1150,7 +1150,7 @@ a.card:active { transform: scale(.98); }
 }
 body.tv-chat-lock { overflow: hidden; }
 @media (max-width: 768px) {
-  #tv-chat-fab { right: 12px; bottom: 152px; }
+  #tv-chat-fab { right: 12px; bottom: 84px; } /* v2.13.5: level with Vaulty (left, bottom:84px) */
 }
 @media (min-width: 769px) {
   #tv-chat-backdrop { display: none; }
@@ -2570,4 +2570,27 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
   .logo{animation:none}
   .tv-tip::before{animation:none}
   #tv-update-popup.show .tv-upd-card{animation:none}
+}
+
+/* ================= v2.13.5: full mobile fit pass (≤600px) =================
+   Belt-and-braces: no horizontal scroll, 44px touch targets, clean rhythm. */
+@media (max-width: 600px) {
+  html, body { overflow-x: clip; }
+  img, video, iframe, svg { max-width: 100%; height: auto; }
+  /* touch targets: minimum 44px */
+  .btn.small { min-height: 44px; display: inline-flex; align-items: center; }
+  .vai-chip { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 16px; }
+  #vai-close { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  /* cards and grids never overflow */
+  .card, .build-card, .guide-card, .video-card { min-width: 0; overflow-wrap: break-word; }
+  /* long text (URLs, build names) wraps instead of spilling */
+  a, p, h1, h2, h3, h4, li, td, th { overflow-wrap: break-word; word-break: break-word; }
+  /* consistent mobile rhythm */
+  main { padding-left: 16px; padding-right: 16px; }
+  section { margin-bottom: 24px; }
+  /* hero fits 390px */
+  .tv-hero h1 { font-size: 1.45rem; line-height: 1.25; }
+  /* tab bar: 5 tabs fit, labels never truncate */
+  #tabbar a { font-size: .66rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #tabbar a .ti { font-size: 1.25rem; }
 }
