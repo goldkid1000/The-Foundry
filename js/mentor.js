@@ -287,6 +287,27 @@
     els.text = wrap.querySelector('#tv-mentor-text');
     els.badge = wrap.querySelector('#tv-mentor-badge');
     els.count = wrap.querySelector('#tv-mentor-count');
+    /* v2.14.2: JS-level ghost kill — inline styles beat stale cached stylesheets.
+       On mobile the speech bubble + close button must never render, period. */
+    var ghostKill = function () {
+      try {
+        if (window.matchMedia('(max-width: 600px)').matches) {
+          if (els.bubble) els.bubble.style.display = 'none';
+          var cb = wrap.querySelector('#tv-mentor-close');
+          if (cb) cb.style.display = 'none';
+        } else {
+          if (els.bubble) els.bubble.style.display = '';
+          var cb2 = wrap.querySelector('#tv-mentor-close');
+          if (cb2) cb2.style.display = '';
+        }
+      } catch (e) {}
+    };
+    ghostKill();
+    /* re-hide on resize / orientation change (belt-and-suspenders) */
+    try {
+      window.addEventListener('resize', ghostKill);
+      window.addEventListener('orientationchange', ghostKill);
+    } catch (e) {}
     /* v2.12.73: mobile face bubble — circular button with Vaulty's face */
     var facebtn = document.createElement('button');
     facebtn.id = 'tv-facebtn';
@@ -493,11 +514,12 @@
   function say(text, opts) {
     opts = opts || {};
     build();
+    /* v2.14.2: never show speech bubble on mobile — return BEFORE touching
+       bubble.hidden or any bubble state. Face bubble only on phones. */
+    if (isMobileFaceMode()) { return; }
     session.lastTip = Date.now();
     els.text.textContent = text;
     setChar('idle');
-    /* v2.13.4: never show speech bubble on mobile — face bubble only */
-    if (isMobileFaceMode()) { return; }
     els.bubble.hidden = false;
     els.wrap.classList.add('visible');
     els.wrap.classList.remove('pointing');

@@ -1,5 +1,5 @@
 {
-  "version": "2.14.1",
+  "version": "2.14.2",
   "updated": "2026-10-19",
   "notes": "Fixed the update popup looping: the running build's version stamp was stuck at 2.13.0 while 2.13.1 was published, so it kept prompting forever. Vaulty is his own AI bubble again \u2014 the face-on-the-blue-chat-bubble merge is reverted; the blue chat button is back to its generic icon. Vaulty no longer shows the Tenno-online pill (for now).",
   "notify": true

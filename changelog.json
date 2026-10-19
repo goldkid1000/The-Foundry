@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.14.2",
+    "date": "2026-10-19",
+    "notify": true,
+    "notes": [
+      "White ghost elements (speech bubble + close button) killed for good on mobile."
+    ]
+  },
+  {
     "version": "2.14.1",
     "date": "2026-10-19",
     "notes": [

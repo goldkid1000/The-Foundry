@@ -1,8 +1,8 @@
 {
-  "version": "2.14.1",
+  "version": "2.14.2",
   "updated": "2026-10-19",
   "notify": true,
   "notes": [
-    "Report form now live \u2014 send bugs and ideas with screenshots, straight from the app."
+    "White ghost elements (speech bubble + close button) killed for good on mobile."
   ]
 }
