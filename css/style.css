@@ -1795,3 +1795,21 @@ html.tv-no-anim-early *,html.tv-no-anim-early *::before,html.tv-no-anim-early *:
 .tv-cd-ended{border-top-color:var(--faint);opacity:.85}
 @media(max-width:560px){.tv-cd-unit{min-width:56px}.tv-cd-num{font-size:1.25rem}}
 @media(prefers-reduced-motion:reduce){.tv-cd-card{transition:none}}
+
+/* ---------- mobile fit (phones): 44px tap targets + overflow fixes ---------- */
+@media (max-width:600px){
+  /* 44px tap targets */
+  #tv-menu-btn{width:44px;height:44px}
+  .tv-whatsnew-pill{min-height:44px}
+  .tv-whatsnew-close{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  #vai-close{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  footer .frow a{display:inline-flex;align-items:center;min-height:44px;padding:0 8px}
+  /* settings toggle: invisible 44px hit area around the small switch */
+  .tv-toggle::after{content:"";position:absolute;top:50%;left:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
+  /* trading copy rows wrap instead of overflowing */
+  .copy-box{flex-wrap:wrap;overflow-wrap:anywhere}
+  /* chat inputs can shrink inside their flex rows */
+  #vai-input{min-width:0}
+  .tv-chat-form .tv-chat-text{min-width:0}
+  .tv-chat-form .tv-chat-name{min-width:0}
+}
