@@ -729,6 +729,136 @@ var ENABLER_KNOWLEDGE =
   '<p><b>Xaku — Deny:</b> Armor strip + the Vast Untime that freezes enemies. Armor-stripped + frozen = free one-shots.</p>' +
   '<p class="muted small">Pro move: subsume Roar (Rhino) or Eclipse (Mirage) onto your main frame via the Helminth for damage on any kit.</p>';
 
+
+/* ===== v2.12.68: STEEL PATH GENERAL BUILD KNOWLEDGE =====
+   Answers "build me a general steel path strong build that does lots of
+   damage plus arcanes, auras, exilus" — the full modding doctrine with
+   verified values, plus 4 concrete curated frame builds. */
+
+var STEEL_PATH_GENERAL =
+  '<b>Steel Path builds — the general formula</b>' +
+  '<p>Steel Path enemies have massively scaled health and armor, so builds that slap on the normal star chart fall off. Everything that works here follows the same layers:</p>' +
+  '<p><b>1. Base damage first.</b> Serration / Hornet Strike / Point Blank / Pressure Point — the foundation every gun and melee build starts on.</p>' +
+  '<p><b>2. Crit.</b> Point Strike + Vital Sense (or Primed versions). Crits are the delivery system for the real damage.</p>' +
+  '<p><b>3. Hunter Munitions.</b> Crits inflict armor-ignoring Slash bleeds — the core Steel Path damage engine. Ask <i>"one-shot formula"</i> for the full theory.</p>' +
+  '<p><b>4. Viral.</b> Toxin + Cold 60/60 mods — Viral multiplies damage to enemy health.</p>' +
+  '<p><b>5. Faction damage.</b> Primed Bane mods (+55% vs a faction) are the biggest single-slot Steel Path multiplier. Swap per mission: Grineer / Corpus / Infested / Murmur.</p>' +
+  '<p><b>6. Galvanized on kill.</b> Galvanized Chamber / Shot / Hell stack damage as you kill — in Steel Path you\'re always killing, so they\'re always stacked.</p>' +
+  '<p><b>WEAPON ARCANES</b> <span class="muted small">(farm: Steel Path Acolytes)</span></p>' +
+  '<p><b>Primary Merciless</b> — on kill: +30% damage for 4s, stacking 12x to <b>+360%</b> at max rank, plus +30% reload speed. The default pick for most primaries.</p>' +
+  '<p><b>Primary Deadhead</b> — on headshot kill: +120% damage for 24s, stacking 3x to <b>+360%</b> at max rank, plus +30% weak-point damage and -50% recoil. Better for precision and headshot weapons; the long 24s duration is very forgiving.</p>' +
+  '<p><b>AURA SLOT — pick per mission</b></p>' +
+  '<p><b>Corrosive Projection</b> — enemies lose <b>18%</b> armor at max rank, stacking with your squad. The default Steel Path aura.</p>' +
+  '<p><b>Growing Power</b> — <b>+25%</b> Ability Strength for 6s when your weapons proc status. For ability-damage frames.</p>' +
+  '<p><b>Rifle Amp</b> — <b>+27%</b> rifle damage for the squad. It\'s additive with Serration, so the real gain is smaller than it looks — Corrosive Projection usually wins against armor.</p>' +
+  '<p><b>Steel Charge</b> — <b>+60%</b> melee damage for the squad. For melee builds (also gives the most mod capacity of any aura).</p>' +
+  '<p><b>Brief Respite</b> — converts <b>150%</b> of energy spent on casts into shields at max rank (can overshield). For shield-gating builds.</p>' +
+  '<p><b>Energy Siphon</b> — <b>+0.6</b> energy regen/s for the squad. For energy-hungry frames.</p>' +
+  '<p><b>EXILUS SLOT</b></p>' +
+  '<p><b>Primed Sure Footed</b> — <b>100%</b> knockdown resistance at max rank. Knockdowns get you killed in Steel Path; this ends them.</p>' +
+  '<p><b>Power Drift</b> — <b>+15%</b> Ability Strength and 30% knockdown resistance. The budget damage option.</p>' +
+  '<p><b>Cunning Drift</b> — <b>+15%</b> Ability Range plus slide. For nuke and range frames.</p>' +
+  '<p><b>FRAME ARCANES</b></p>' +
+  '<p><b>Molt Augmented</b> — <b>+60%</b> Ability Strength at 250 kills (Zariman / Thrax farm). The default for almost every frame.</p>' +
+  '<p><b>Arcane Energize</b> — 60% chance for <b>+150</b> energy (you + allies) on energy orb pickup, 15s cooldown. Fixes energy-hungry builds.</p>' +
+  '<p><b>Arcane Grace</b> — 9% chance on health damage: <b>+6%</b> health regen/s for 9s. For health tanks.</p>' +
+  '<p><b>Arcane Guardian</b> — 15% chance on damage: <b>+900</b> armor for 20s. For armor frames.</p>' +
+  '<p><b>SURVIVAL</b> — Adaptation (up to 90% damage resistance) + Rolling Guard (brief invulnerability on dodge) is the standard Steel Path survival package. Shield-gating matters more than raw health at high levels.</p>' +
+  '<p class="muted small">Want a concrete build? Ask <i>"saryn steel path build"</i>, <i>"rhino steel path build"</i>, <i>"revenant steel path build"</i>, or <i>"nova steel path build"</i> — full 8 mods plus aura, exilus, and arcanes.</p>' +
+  '<p><a href="builds.html">Curated build library &rarr;</a></p>';
+
+/* Curated riven-less Steel Path frame builds: 8 mods + aura + exilus + arcanes.
+   Keyed by base frame name (no "prime"). */
+var SP_FRAME_TEMPLATES = {
+  'saryn': {
+    title: 'Saryn — Steel Path nuke',
+    aura: 'Corrosive Projection — enemies lose 18% armor. Saryn has no innate armor strip, so the aura does that job.',
+    exilus: 'Cunning Drift — +15% Ability Range. Bigger spore spread, bigger Miasma.',
+    picks: [
+      ['Blind Rage', 'WHY: +99% Ability Strength. Spore ticks and Miasma scale directly with strength — this is the biggest one.'],
+      ['Transient Fortitude', 'WHY: +55% strength. More nuke damage; the duration hit is covered below.'],
+      ['Umbral Intensify', 'WHY: +44% strength with no downside. Stacks with the set bonus if you run other Umbrals.'],
+      ['Primed Continuity', 'WHY: +55% duration. Spores tick longer, so they spread further before falling off.'],
+      ['Stretch', 'WHY: +45% range. Spores jump to more enemies, Miasma covers the room.'],
+      ['Vitality', 'WHY: +440% health. You need a real health pool for the moments between casts.'],
+      ['Adaptation', 'WHY: Up to 90% damage resistance that stacks as you take hits — the Steel Path survival standard.'],
+      ['Rolling Guard', 'WHY: Brief invulnerability on dodge. Dodges one-shots and refreshes your shield gate.']
+    ],
+    arcanes: 'Molt Augmented (+60% strength at 250 kills) + Arcane Energize (60% chance for +150 energy on orb pickup — you cast constantly).',
+    play: 'Cast Spores on an enemy, then pop them with Toxic Lash-buffed weapon kills to spread the infection. Once the room is seeded, Miasma detonates everything. Keep moving — you are tanky, not immortal.'
+  },
+  'rhino': {
+    title: 'Rhino — Steel Path weapon buffer (Roar)',
+    aura: 'Corrosive Projection — enemies lose 18% armor. Rhino has no armor strip of his own, so the aura covers it.',
+    exilus: 'Power Drift — +15% strength for a bigger Roar and a tougher Iron Skin.',
+    picks: [
+      ['Blind Rage', 'WHY: +99% Ability Strength. Bigger Roar buff, tougher Iron Skin.'],
+      ['Transient Fortitude', 'WHY: +55% strength. Roar is the whole point of this build — feed it.'],
+      ['Umbral Intensify', 'WHY: +44% strength, no downside.'],
+      ['Augur Secrets', 'WHY: +24% strength plus shield-gate synergy from the Augur set.'],
+      ['Primed Continuity', 'WHY: +55% duration. Longer Roar uptime, longer Iron Skin.'],
+      ['Stretch', 'WHY: +45% range. Roar reaches the whole squad, Stomp covers more ground.'],
+      ['Vitality', 'WHY: +440% health. Backup for when Iron Skin is down.'],
+      ['Adaptation', 'WHY: Up to 90% damage resistance — keeps you alive while you reposition.']
+    ],
+    arcanes: 'Molt Augmented (+60% strength at 250 kills) + Arcane Energize (Roar is hungry — this keeps it fed).',
+    play: 'Iron Skin up, Roar up, then your weapons do the talking — Roar is a multiplicative damage buff for the whole squad. Stomp for breathing room. Recast Roar the moment it drops; never let the buff lapse mid-fight.'
+  },
+  'revenant': {
+    title: 'Revenant — Steel Path endurance (Mesmer Skin)',
+    aura: 'Brief Respite — converts 150% of energy spent into shields at max rank. You cast constantly, so your shield gate stays fed.',
+    exilus: 'Cunning Drift — +15% Ability Range for Reave and Danse Macabre.',
+    picks: [
+      ['Blind Rage', 'WHY: +99% Ability Strength. Mesmer Skin charges and Reave damage both scale with strength.'],
+      ['Transient Fortitude', 'WHY: +55% strength. More charges, harder Reave.'],
+      ['Umbral Intensify', 'WHY: +44% strength, no downside.'],
+      ['Primed Continuity', 'WHY: +55% duration. Mesmer Skin stays up longer between recasts.'],
+      ['Narrow Minded', 'WHY: +99% duration for -66% range. Mesmer Skin is self-cast, so the range hit barely matters.'],
+      ['Streamline', 'WHY: Ability efficiency. Recasting Mesmer Skin stays cheap.'],
+      ['Vitality', 'WHY: +440% health. For the rare hit that gets through.'],
+      ['Rolling Guard', 'WHY: Brief invulnerability on dodge — your panic button while recasting.']
+    ],
+    arcanes: 'Molt Augmented (+60% strength at 250 kills) + Arcane Energize (keeps the casts flowing).',
+    play: 'Mesmer Skin on — every charge stuns whatever hits you. Reave through packs to drain them while invulnerable. Recast Mesmer Skin BEFORE the charges run out; while it is up you are nearly unkillable.'
+  },
+  'nova': {
+    title: 'Nova — Steel Path nuke / control (Molecular Prime)',
+    aura: 'Corrosive Projection — enemies lose 18% armor. Molecular Prime already doubles their damage taken; the aura stacks on top.',
+    exilus: 'Cunning Drift — +15% Ability Range for a bigger Prime wave.',
+    picks: [
+      ['Blind Rage', 'WHY: +99% Ability Strength. Bigger Molecular Prime explosions.'],
+      ['Transient Fortitude', 'WHY: +55% strength. More boom per primed enemy.'],
+      ['Umbral Intensify', 'WHY: +44% strength, no downside.'],
+      ['Primed Continuity', 'WHY: +55% duration. Longer slow on Slowva.'],
+      ['Narrow Minded', 'WHY: +99% duration for -66% range. Duration is what extends the slow.'],
+      ['Stretch', 'WHY: +45% range. Claws back the range Narrow Minded takes.'],
+      ['Vitality', 'WHY: +440% health. Nova is fragile — this is mandatory.'],
+      ['Rolling Guard', 'WHY: Brief invulnerability on dodge. Your escape button.']
+    ],
+    arcanes: 'Molt Augmented (+60% strength at 250 kills) + Arcane Energize (Prime every room without thinking about energy).',
+    play: 'Cast Molecular Prime — primed enemies take double damage and explode on death, chaining the wave through the room. High duration = Slowva for control. Swap Narrow Minded for Overextended and you get Speedva, which hurries defense and excavation missions.'
+  }
+};
+
+function spFrameBuildAnswer(key) {
+  var t = SP_FRAME_TEMPLATES[key];
+  if (!t) return null;
+  var rows = t.picks.map(function (p, i) {
+    var m = findModExact(p[0]);
+    var farm = m ? modFarmLine(m) : '';
+    return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(p[0]) + '</b>' +
+      '<div class="muted small">' + esc(p[1]) + '</div>' + farm + '</div></div>';
+  }).join('');
+  return '<b>' + esc(t.title) + '</b>' +
+    '<p class="muted small">Riven-less Steel Path build — aura, exilus, and arcanes included. Every mod has a WHY.</p>' +
+    '<p><b>Aura:</b> ' + esc(t.aura) + '</p>' +
+    '<p><b>Exilus:</b> ' + esc(t.exilus) + '</p>' +
+    rows +
+    '<p><b>Arcanes:</b> ' + esc(t.arcanes) + '</p>' +
+    '<p class="muted small"><b>How to play:</b> ' + esc(t.play) + '</p>' +
+    '<p><a href="builds.html">More builds &rarr;</a></p>';
+}
+
 function oneShotTemplateAnswer(key) {
   var t = ONE_SHOT_TEMPLATES[key];
   if (!t) return null;
@@ -863,6 +993,13 @@ function oneShotBuildAnswer(t) {
     if (/\benabler\b/.test(t) || /best frame for (damage|one[\s-]?shot|dps)/.test(t)) {
       return ENABLER_KNOWLEDGE;
     }
+    /* v2.12.68: general Steel Path build questions — "build me a general steel path
+       strong build that does lots of damage plus arcanes, auras, exilus".
+       Only when NO specific item is named; named items keep their own builds. */
+    if (/steel/.test(t) && /\b(build|mod|setup|loadout|guide|strong|damage)\b/.test(t)) {
+      var spItem = findItemInText(D.warframes, t) || findItemInText(D.weapons, t);
+      if (!spItem) return STEEL_PATH_GENERAL;
+    }
     /* curated 8-mod templates for meta one-shot weapons (with WHY for each mod) */
     var templateKeys = Object.keys(ONE_SHOT_TEMPLATES);
     for (var ti = 0; ti < templateKeys.length; ti++) {
@@ -883,6 +1020,13 @@ function oneShotBuildAnswer(t) {
       if (bp.name.length >= 3) {
         var bf = findItemForBuild(bp.name);
         if (bf) {
+          /* v2.12.68: curated Steel Path frame builds (with aura/exilus/arcanes)
+             win over the generic generator for these frames */
+          if (bf.kind === 'warframe' && bp.purpose.steelPath) {
+            var spKey = norm(bf.e.name).replace(/\s+prime$/, '');
+            var spHit = spFrameBuildAnswer(spKey);
+            if (spHit) return spHit;
+          }
           return bf.kind === 'warframe'
             ? genWarframeBuild(bf.e, bp.purpose)
             : genWeaponBuild(bf.e, bp.purpose);
@@ -891,7 +1035,14 @@ function oneShotBuildAnswer(t) {
       /* item name might be embedded without clear build words stripped right —
          try matching any known warframe/weapon name appearing in the question */
       var fw2 = findItemInText(D.warframes, t);
-      if (fw2) return genWarframeBuild(fw2, { steelPath: /steel/.test(t), oneShot: /one/.test(t) });
+      if (fw2) {
+        /* v2.12.68: curated Steel Path frame builds win here too */
+        if (/steel/.test(t)) {
+          var fw2Hit = spFrameBuildAnswer(norm(fw2.name).replace(/\s+prime$/, ''));
+          if (fw2Hit) return fw2Hit;
+        }
+        return genWarframeBuild(fw2, { steelPath: /steel/.test(t), oneShot: /one/.test(t) });
+      }
       var wp2 = findItemInText(D.weapons, t);
       if (wp2) return genWeaponBuild(wp2, { steelPath: /steel/.test(t), oneShot: /one/.test(t) });
       /* no specific item found — recommend instead of dead-ending */
@@ -1119,7 +1270,8 @@ function oneShotBuildAnswer(t) {
     'One-shot formula?',
     'Kuva Zarr build',
     'Where do I farm Argon Crystals?',
-    'How do I sell for platinum?'
+    'How do I sell for platinum?',
+    'Steel Path build guide'
   ];
 
   function init() {

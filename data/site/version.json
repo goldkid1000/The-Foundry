@@ -1,6 +1,6 @@
 {
- "version": "2.12.67",
- "updated": "2026-10-19T03:30:00Z",
- "notes": "2 new videos (Arsenyx Narin weapon-platform + ice-nuke build, Grind Hard Squad 200-plat Arcane Steadfast farm). No new hotfix since 44.1.2 + 2.1. News: PMCF charity streams Oct 19-25, Prime Time #502.",
- "notify": false
+ "version": "2.12.68",
+ "updated": "2026-10-19T03:55:00Z",
+ "notes": "Vault Guide AI: new Steel Path build doctrine — a general Steel Path modding guide (damage layers, weapon arcanes, aura/exilus picks, frame arcanes, survival) plus 4 curated frame builds with full 8 mods, aura, exilus and arcanes (Saryn nuke, Rhino Roar buffer, Revenant endurance, Nova nuke). Ask 'build me a general steel path strong build' for the guide. No new hotfix since 44.1.2 + 2.1.",
+ "notify": true
 }
