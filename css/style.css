@@ -2283,6 +2283,7 @@ footer, .site-footer{
   .tv-facebtn {
     display: block; width: 56px; height: 56px; padding: 0;
     border-radius: 50%; overflow: hidden;
+    background-color: #141110; /* v2.13.2: solid fallback — never white */
     background: radial-gradient(circle at 35% 30%, #1a2433, #0b1220 70%);
     border: 2px solid rgba(34, 211, 238, .65);
     box-shadow: 0 0 14px rgba(34, 211, 238, .45), 0 4px 14px rgba(0, 0, 0, .5);
@@ -2329,15 +2330,8 @@ footer, .site-footer{
   /* speech bubble anchors above the face button, right-aligned */
   .tv-mentor-bubble { max-width: 220px; margin-bottom: 10px; }
   .tv-mentor-bubble::after { left: auto; right: 22px; }
-  /* v2.13.1: the chat bubble WEARS Vaulty's face now — the separate mobile
-     face bubble is retired (belt-and-braces; mentor.js also hides them). */
-  .tv-facebtn, .tv-facemin, .tv-facedot { display: none !important; }
 }
-/* ---------- v2.13.1: Vaulty's face on the chat bubble ---------- */
-/* #tv-chat-fab is built by chat-panel.js; mentor.js swaps its icon for the
-   face SVG and adds .tv-vaulty-fab. Face sized to leave a gradient ring. */
-#tv-chat-fab.tv-vaulty-fab .tv-chat-fab-icon { line-height: 0; }
-#tv-chat-fab.tv-vaulty-fab .tv-chat-fab-icon svg { width: 42px; height: 42px; display: block; }
+/* v2.13.2: Vaulty is his own bubble again — the chat-fab merge is reverted. */
 @media (prefers-reduced-motion: reduce) {
   .tv-facedot span { animation: none; }
   #tv-mentor.entering { animation: none; }
