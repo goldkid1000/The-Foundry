@@ -1064,30 +1064,9 @@ a.card:active { transform: scale(.98); }
   0%, 100% { opacity: 1; }
   50% { opacity: .5; }
 }
-.tv-mentor-bubble {
-  position: relative; max-width: 250px; margin-bottom: 10px;
-  background: #101826; border: 1.5px solid #00e5ff; border-radius: 14px;
-  padding: 12px 32px 12px 14px; color: #e8f4ff; font-size: 14px; line-height: 1.45;
-  box-shadow: 0 6px 24px rgba(0,0,0,.5), 0 0 18px rgba(0,229,255,.15);
-  opacity: 0; transform: translateY(8px) scale(.96);
-  transition: opacity .3s ease, transform .3s ease;
-}
-.tv-mentor-bubble.show { opacity: 1; transform: translateY(0) scale(1); }
-.tv-mentor-bubble::after {
-  content: ''; position: absolute; left: 26px; bottom: -8px;
-  width: 14px; height: 14px; background: #101826;
-  border-right: 1.5px solid #00e5ff; border-bottom: 1.5px solid #00e5ff;
-  transform: rotate(45deg);
-}
-#tv-mentor-close {
-  position: absolute; top: 4px; right: 6px;
-  background: none; border: none; color: #888; font-size: 20px; line-height: 1;
-  cursor: pointer; padding: 4px; min-width: 32px; min-height: 32px;
-}
-#tv-mentor-close:hover { color: #fff; }
+/* v2.15.0: speech bubble + close button DELETED — no bubble, no × anywhere */
 @media (max-width: 640px) {
   #tv-mentor { left: 10px; bottom: 10px; }
-  .tv-mentor-bubble { max-width: 210px; font-size: 13px; }
   .tv-mentor-badge { font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1095,7 +1074,7 @@ a.card:active { transform: scale(.98); }
   .tv-mentor-char.attn, .tv-mentor-char.wave, .tv-mentor-char.dance,
   .tv-mentor-char.squash, .tv-mentor-char.point-anim #tm-arm-r,
   #tv-mentor.entering, .tv-mentor-dot { animation: none !important; }
-  #tv-mentor, .tv-mentor-bubble, #tv-mentor.pointing { transition: none; }
+  #tv-mentor { transition: none; }
 }
 
 /* ---------- Slide-in chat panel ---------- */
@@ -1336,8 +1315,6 @@ body.tv-chat-lock { overflow: hidden; }
   #tv-update-banner{padding:14px 16px;padding-top:max(14px, env(safe-area-inset-top))}
   .tv-update-text{font-size:16px}
 
-  /* ---------- 12. mentor bubble: roomier ---------- */
-  .tv-mentor-bubble{max-width:230px;font-size:14px;line-height:1.5;border-radius:16px}
 }
 
 /* ===== HOLIDAY THEMES ===== */
@@ -1776,8 +1753,7 @@ html.tv-no-anim-early *,html.tv-no-anim-early *::before,html.tv-no-anim-early *:
   .donate-btn{padding:8px 12px;font-size:.85rem}
 }
 
-/* v2.12.21: ensure hidden bubble takes no layout space (fixes badge gap) */
-.tv-mentor-bubble[hidden]{display:none !important}
+/* v2.15.0: bubble system deleted — rules removed */
 /* keep mentor children tightly packed */
 #tv-mentor .tv-mentor-badge{order:-1;margin-bottom:4px}
 
@@ -2299,9 +2275,6 @@ footer, .site-footer{
     margin: 0 0 6px; padding: 3px 8px; font-size: 10px;
     animation: none;
   }
-  /* v2.13.4: speech bubble NEVER shows on mobile — it rendered as
-     white ×/square ghosts. Face bubble is the only mobile UI. */
-  .tv-mentor-bubble, #tv-mentor-bubble, #tv-mentor-close { display: none !important; }
 }
 /* v2.13.2: Vaulty is his own bubble again — the chat-fab merge is reverted. */
 @media (prefers-reduced-motion: reduce) {

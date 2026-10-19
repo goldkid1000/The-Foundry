@@ -1,8 +1,8 @@
-/* Tenno Vault — Vault Mentor. A little Warframe guide character (SVG, CSS animated)
-   that gives first-visit tips and acts as the visual face of the Vault Guide AI.
-   Click the character to open the AI chat. Non-naggy: each tip shows once.
-   Playful: random pop-ups (max 3/session), wave, dance, holiday costumes, live online badge.
-   API: window.TV.mentor.say(text, opts), .pointAt(selector, text, opts), .hide() */
+/* Tenno Vault — Vaulty. v2.15.0 COMPLETE REBUILD.
+   The speech bubble system is GONE — no bubble, no close button, no × anywhere.
+   Mobile: single face bubble button, left edge, level with the chat bubble.
+   Desktop: Vaulty sits still by the chat bubble (no wandering). Tap opens AI chat.
+   Face SVG unchanged. API: window.TV.mentor.hide(), .init() */
 (function () {
   'use strict';
 
@@ -230,7 +230,6 @@
 
   var LS_KEY = 'tv-mentor-seen';
   var els = {};
-  var bubbleTimer = null;
   var reducedMotion = false;
 
   /* session-only playful state (never persisted) */
@@ -273,41 +272,14 @@
     wrap.setAttribute('tabindex', '0');
     wrap.setAttribute('aria-label', 'Open Vault Guide AI chat');
     wrap.title = 'Ask the Vault Guide AI';
+    /* v2.15.0: COMPLETE REBUILD — speech bubble system DELETED. No bubble,
+       no close button, no × anywhere. Wrap holds ONLY: char (desktop),
+       facebtn (mobile). Nothing else can render. */
     wrap.innerHTML =
-      '<div id="tv-mentor-badge" class="tv-mentor-badge" hidden><span class="tv-mentor-dot"></span><span id="tv-mentor-count"></span></div>' +
-      '<div id="tv-mentor-bubble" class="tv-mentor-bubble" hidden>' +
-        '<button id="tv-mentor-close" aria-label="Dismiss">×</button>' +
-        '<span id="tv-mentor-text"></span>' +
-      '</div>' +
       '<div id="tv-mentor-char" class="tv-mentor-char">' + charSVG('idle') + '</div>';
     document.body.appendChild(wrap);
     els.wrap = wrap;
     els.char = wrap.querySelector('#tv-mentor-char');
-    els.bubble = wrap.querySelector('#tv-mentor-bubble');
-    els.text = wrap.querySelector('#tv-mentor-text');
-    els.badge = wrap.querySelector('#tv-mentor-badge');
-    els.count = wrap.querySelector('#tv-mentor-count');
-    /* v2.14.2: JS-level ghost kill — inline styles beat stale cached stylesheets.
-       On mobile the speech bubble + close button must never render, period. */
-    var ghostKill = function () {
-      try {
-        if (window.matchMedia('(max-width: 600px)').matches) {
-          if (els.bubble) els.bubble.style.display = 'none';
-          var cb = wrap.querySelector('#tv-mentor-close');
-          if (cb) cb.style.display = 'none';
-        } else {
-          if (els.bubble) els.bubble.style.display = '';
-          var cb2 = wrap.querySelector('#tv-mentor-close');
-          if (cb2) cb2.style.display = '';
-        }
-      } catch (e) {}
-    };
-    ghostKill();
-    /* re-hide on resize / orientation change (belt-and-suspenders) */
-    try {
-      window.addEventListener('resize', ghostKill);
-      window.addEventListener('orientationchange', ghostKill);
-    } catch (e) {}
     /* v2.12.73: mobile face bubble — circular button with Vaulty's face */
     var facebtn = document.createElement('button');
     facebtn.id = 'tv-facebtn';
@@ -373,11 +345,6 @@
     wrap.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAI(); }
     });
-    wrap.querySelector('#tv-mentor-close').addEventListener('click', function (e) {
-      e.stopPropagation();
-      session.lastDismiss = Date.now();
-      hide();
-    });
   }
 
   /* ---------- one-shot animation helpers ---------- */
@@ -411,7 +378,7 @@
 
   /* walk across the screen, then say something */
   function walkAcross(msg) {
-    if (isMobileFaceMode()) { if (msg) say(msg, { duration: 6000 }); return; } /* v2.12.73 */
+    if (isMobileFaceMode()) { return; } /* v2.12.73: face bubble stays parked */
     if (reducedMotion || !els.wrap) return;
     build();
     els.wrap.classList.add('visible');
@@ -426,9 +393,8 @@
     requestAnimationFrame(function () {
       els.wrap.style.left = (window.innerWidth + 20) + 'px';
     });
-    /* when he reaches the middle, say the message */
+    /* when he reaches the middle, wave (v2.15.0: no speech) */
     setTimeout(function () {
-      if (msg) say(msg, { duration: 6000 });
       wave();
     }, 4000);
     /* clean up after crossing — v2.12.11: restore shimeji home so he doesn't teleport */
@@ -511,54 +477,8 @@
     try { if (window.TV && window.TV._vaultyResync) window.TV._vaultyResync(); } catch (e) {}
   }
 
-  function say(text, opts) {
-    opts = opts || {};
-    build();
-    /* v2.14.2: never show speech bubble on mobile — return BEFORE touching
-       bubble.hidden or any bubble state. Face bubble only on phones. */
-    if (isMobileFaceMode()) { return; }
-    session.lastTip = Date.now();
-    els.text.textContent = text;
-    setChar('idle');
-    els.bubble.hidden = false;
-    els.wrap.classList.add('visible');
-    els.wrap.classList.remove('pointing');
-    attention();
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () { els.bubble.classList.add('show'); });
-    });
-    if (opts.once) markSeen('tip:' + opts.once);
-    clearTimeout(bubbleTimer);
-    if (opts.autoHide !== false) {
-      bubbleTimer = setTimeout(hide, opts.duration || 12000);
-    }
-  }
-
-  function pointAt(selector, text, opts) {
-    opts = opts || {};
-    if (isMobileFaceMode()) { say(text, opts); return; } /* v2.12.73: face bubble stays parked */
-    var target = document.querySelector(selector);
-    build();
-    if (target) {
-      var r = target.getBoundingClientRect();
-      var x = Math.min(Math.max(r.left + r.width / 2 - 30, 8), window.innerWidth - 76);
-      var y = Math.max(r.top - 84, 8);
-      els.wrap.style.left = x + 'px';
-      els.wrap.style.top = y + 'px';
-      els.wrap.style.right = 'auto';
-      els.wrap.style.bottom = 'auto';
-      els.wrap.classList.add('pointing');
-      /* arm extends with a smooth motion */
-      if (els.char) els.char.classList.add('point-anim');
-    }
-    say(text, opts);
-    setChar('point');
-  }
-
   function hide() {
     if (!els.wrap) return;
-    clearTimeout(bubbleTimer);
-    els.bubble.classList.remove('show');
     if (reducedMotion) {
       finishHide();
       return;
@@ -568,8 +488,7 @@
   }
   function finishHide() {
     if (!els.wrap) return;
-    els.wrap.classList.remove('visible', 'pointing', 'exiting');
-    if (els.char) els.char.classList.remove('point-anim');
+    els.wrap.classList.remove('visible', 'exiting');
     els.wrap.style.left = ''; els.wrap.style.top = '';
     els.wrap.style.right = ''; els.wrap.style.bottom = '';
     setChar('idle');
@@ -637,7 +556,7 @@
     /* v2.14.0: Vaulty is stationary — no more walking across the screen.
        He stays parked by the chat bubble; wave or dance in place instead. */
     var doDance = Math.random() < 0.4;
-    say(msg, { duration: 8000 });
+    /* v2.15.0: no speech bubble — just wave/dance in place */
     setTimeout(function () { doDance ? dance() : wave(); }, 400);
     schedulePopup();
   }
@@ -649,11 +568,8 @@
   }
 
   function maybeFirstVisit() {
-    var key = pageKey();
-    var tip = TIPS[key];
-    if (!tip || wasSeen('tip:' + key)) return;
-    /* small delay so the page settles first */
-    setTimeout(function () { say(tip, { once: key, duration: 15000 }); }, 2500);
+    /* v2.15.0: tips removed with the speech bubble — Vaulty just waves hello now */
+    return;
   }
 
   function init() {
@@ -670,7 +586,6 @@
       /* v2.12.31: don't hide Vaulty — just freeze animations, keep him tappable */
       if (!on) {
         shimeji.state = 'idle';
-        if (els.bubble) els.bubble.classList.remove('show');
       } else {
         if (els.wrap && !els.wrap.classList.contains('visible')) {
           els.wrap.classList.add('visible');
@@ -959,14 +874,8 @@
       return;
     }
     /* don't interrupt important states */
-    /* v2.12.12 FIX: was checking bubble EXISTENCE (always true — it's in DOM but hidden),
-       so Vaulty never did autonomous behaviors. Now checks actual visibility. */
-    var bubbleVisible = (function () {
-      var b = document.querySelector('.tv-mentor-bubble');
-      return !!(b && !b.hidden && b.classList.contains('show'));
-    })();
     if (shimeji.dragging || shimeji.state === 'falling' || shimeji.state === 'climbing' ||
-        els.wrap.classList.contains('walking') || bubbleVisible) {
+        els.wrap.classList.contains('walking')) {
       setTimeout(shimejiBehave, 6000);
       return;
     }
@@ -1013,15 +922,16 @@
   window.TV = window.TV || {};
   /* v2.12.26: expose reset for debugging — rebuilds Vaulty from scratch */
   window.TV.mentor = {
-    say: say, pointAt: pointAt, hide: hide, init: init, take: vaultyTake, name: VAULTY,
+    /* v2.15.0: say/pointAt removed with the speech bubble. No-op stubs kept
+       so any stale caller doesn't throw. */
+    say: function () {}, pointAt: function () {}, hide: hide, init: init, take: vaultyTake, name: VAULTY,
     reset: function () {
       try {
         var old = document.getElementById('tv-mentor');
         if (old && old.parentNode) old.parentNode.removeChild(old);
       } catch (e) {}
-      els.wrap = null; els.char = null; els.bubble = null;
+      els.wrap = null; els.char = null;
       els.facebtn = null;
-      els.text = null; els.badge = null; els.count = null;
       bodyAnimStarted = false;
       try { init(); } catch (e) {}
     }

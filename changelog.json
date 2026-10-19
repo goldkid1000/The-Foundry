@@ -1,5 +1,11 @@
 [
   {
+    "version": "2.15.0",
+    "date": "2026-10-19",
+    "notes": "Vaulty rebuilt from scratch \u2014 speech bubble system deleted entirely (no bubble, no close button, no \u00d7 anywhere). Mobile: single face button on left edge, level with chat bubble. Desktop: Vaulty stationary by chat bubble.",
+    "notify": true
+  },
+  {
     "version": "2.14.2",
     "date": "2026-10-19",
     "notify": true,
