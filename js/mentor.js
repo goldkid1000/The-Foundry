@@ -496,6 +496,8 @@
     session.lastTip = Date.now();
     els.text.textContent = text;
     setChar('idle');
+    /* v2.13.4: never show speech bubble on mobile — face bubble only */
+    if (isMobileFaceMode()) { return; }
     els.bubble.hidden = false;
     els.wrap.classList.add('visible');
     els.wrap.classList.remove('pointing');

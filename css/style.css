@@ -2265,8 +2265,8 @@ footer, .site-footer{
 @media (max-width: 600px) {
   /* park: right edge, vertically centered, clear of tab bar + CTAs */
   #tv-mentor {
-    left: auto; right: 14px;
-    top: auto; bottom: 102px; /* v2.13.3: stacked BELOW the blue chat fab (bottom:170px) */
+    left: 18px; right: auto; /* v2.13.4: LEFT edge, level with blue chat fab */
+    top: auto; bottom: 84px; /* v2.13.4: same height as blue fab (bottom:84px) */
     transform: none;
     z-index: 60; /* above tab bar (50), far below update popup (10000) */
     align-items: flex-end;
@@ -2299,9 +2299,9 @@ footer, .site-footer{
     margin: 0 0 6px; padding: 3px 8px; font-size: 10px;
     animation: none;
   }
-  /* speech bubble anchors above the face button, right-aligned */
-  .tv-mentor-bubble { max-width: 220px; margin-bottom: 10px; }
-  .tv-mentor-bubble::after { left: auto; right: 22px; }
+  /* v2.13.4: speech bubble NEVER shows on mobile — it rendered as
+     white ×/square ghosts. Face bubble is the only mobile UI. */
+  .tv-mentor-bubble, #tv-mentor-bubble, #tv-mentor-close { display: none !important; }
 }
 /* v2.13.2: Vaulty is his own bubble again — the chat-fab merge is reverted. */
 @media (prefers-reduced-motion: reduce) {

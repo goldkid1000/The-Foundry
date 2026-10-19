@@ -1,10 +1,10 @@
 {
-  "version": "2.13.3",
+  "version": "2.13.4",
   "updated": "2026-10-19",
   "notify": true,
   "notes": [
-    "Vaulty cleanup: the \u00d7 is gone \u2014 tap his face bubble and it opens the AI chat directly (with his squash opening animation).",
-    "Vaulty's bubble now sits below the blue chat button, bottom-right.",
-    "Fixed duplicate leftover elements near Vaulty's bubble."
+    "Vaulty moved to the LEFT edge, level with the blue chat bubble on the right.",
+    "Killed the white \u00d7 pill and white square ghosts near Vaulty \u2014 the speech bubble never shows on mobile now.",
+    "Fixed stale cache-busters on all scripts so updates actually reach your phone."
   ]
 }
