@@ -1,8 +1,8 @@
 {
-  "version": "2.12.73",
+  "version": "2.13.0",
   "updated": "2026-10-19",
+  "notify": true,
   "notes": [
-    "Vaulty is now a circular face bubble on mobile \u2014 parked mid-right edge, never in the way. Tap for chat, \u00d7 to minimize to a dot (remembers your choice)."
-  ],
-  "notify": true
+    "Forge UI rework: molten charcoal + ember orange + molten gold theme across the whole app, heat-glow dividers, molten page titles. True fullscreen on mobile (viewport-fit=cover, 100dvh, safe-area insets, edge-to-edge hero). Vaulty face bubble re-tinted to match."
+  ]
 }

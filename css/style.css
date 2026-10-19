@@ -2409,3 +2409,197 @@ footer, .site-footer{
 }
 .tv-empty .tv-empty-face { font-size: 2.6rem; display: block; margin-bottom: 10px; }
 .tv-empty p { margin: 4px 0; font-size: .95rem; }
+
+/* ============================================================
+   FORGE v2.13.0 — molten forge rework (CSS-only layer)
+   Charcoal blacksmith base, ember orange + molten gold accents,
+   steel-gray text, heat-glow dividers. Built on top of v2.12.73.
+   Zero JS logic changes. Respects prefers-reduced-motion.
+   ============================================================ */
+
+/* ---------- 1. forge design tokens (override everything below) ---------- */
+:root{
+  --bg:#141110; --bg2:#1a1614; --card:#211b16; --card2:#282019;
+  --border:#3d2f22; --text:#f2ebe0; --muted:#a89b8a; --faint:#6f6355;
+  --accent:#ff6b1a; --accent-dim:#7a2f08; --gold:#ffb340; --red:#ff4d5e;
+  --green:#4ade80;
+  --surface-1:#211b16; --surface-2:#282019; --surface-3:#322920;
+  --text-1:#f2ebe0; --text-2:#a89b8a; --text-3:#6f6355;
+  --sh-glow:0 0 18px rgba(255,107,26,.32);
+  --sh-glow-gold:0 0 18px rgba(255,179,64,.32);
+  --forge-ember:#ff6b1a; --forge-ember-deep:#c2410c; --forge-gold:#ffb340;
+  --forge-coal:#0f0c0a;
+}
+
+/* ---------- 2. base: charcoal body, ember text accents ---------- */
+html,body{min-height:100vh;min-height:100dvh}
+body{background:var(--bg);color:var(--text);overflow-x:clip}
+::selection{background:rgba(255,107,26,.35);color:#fff}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- 3. forge background: ember coals, not void nebula ---------- */
+body::before{
+  background:
+    radial-gradient(520px 420px at 15% 12%, rgba(255,107,26,.10), transparent 70%),
+    radial-gradient(620px 480px at 85% 80%, rgba(194,65,12,.12), transparent 70%),
+    radial-gradient(380px 300px at 60% 6%, rgba(255,179,64,.08), transparent 70%),
+    radial-gradient(480px 420px at 10% 90%, rgba(120,30,8,.14), transparent 70%),
+    radial-gradient(900px 500px at 50% 110%, rgba(255,107,26,.05), transparent 70%);
+  animation:tv-forge-breathe 24s ease-in-out infinite alternate;
+}
+@keyframes tv-forge-breathe{
+  from{transform:translate3d(-2%,-1%,0) scale(1)}
+  to{transform:translate3d(2%,1.5%,0) scale(1.04)}
+}
+/* warm the scanlines into faint heat shimmer */
+body::after{
+  background:repeating-linear-gradient(0deg, rgba(255,150,60,.018) 0 1px, transparent 1px 4px);
+}
+
+/* ---------- 4. header: forge trim ---------- */
+#site-header{background:rgba(20,17,16,.96);border-bottom:1px solid var(--border)}
+#site-header::after{
+  background:linear-gradient(90deg,transparent,rgba(255,179,64,.7) 30%,rgba(255,107,26,.8) 70%,transparent);
+  height:2px;
+}
+.header-inner{padding-top:calc(10px + env(safe-area-inset-top))}
+.logo .lotus{color:var(--accent);text-shadow:0 0 14px rgba(255,107,26,.9)}
+.logo{animation:tv-forge-pulse 5s ease-in-out infinite}
+@keyframes tv-forge-pulse{
+  0%,100%{filter:drop-shadow(0 0 6px rgba(255,107,26,.25))}
+  50%{filter:drop-shadow(0 0 16px rgba(255,107,26,.55))}
+}
+@keyframes tv-ai-pulse{
+  0%,100%{box-shadow:0 4px 18px rgba(255,107,26,.35)}
+  50%{box-shadow:0 4px 30px rgba(255,107,26,.65)}
+}
+
+/* ---------- 5. nav: ember edge ---------- */
+#sidebar nav a::before{background:var(--accent);box-shadow:0 0 10px rgba(255,107,26,.85)}
+#sidebar nav a.active{color:var(--accent);text-shadow:0 0 12px rgba(255,107,26,.5)}
+#sidebar nav a:hover{background:rgba(255,107,26,.08)}
+#sidebar nav a.active{background:rgba(255,107,26,.13)}
+#tabbar a.active{text-shadow:0 0 12px rgba(255,107,26,.85)}
+#tabbar a::after{background:var(--accent);box-shadow:0 0 10px rgba(255,107,26,.85)}
+
+/* ---------- 6. molten page titles ---------- */
+main > h1{
+  background:linear-gradient(100deg,#fff7ea 15%,#ffc46b 42%,#ff6b1a 68%,#ffd9a0 100%);
+  background-size:100% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.tv-hero h1{
+  background:linear-gradient(115deg,#fff9f0 10%,#ffcf87 40%,#ff7a2e 75%,#ffe9c4 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+
+/* ---------- 7. heat-glow dividers ---------- */
+.orokin-divider::before,.orokin-divider::after{
+  background:linear-gradient(90deg,transparent,rgba(255,107,26,.75),transparent);
+  box-shadow:0 0 8px rgba(255,107,26,.35);
+}
+.orokin-divider > span{
+  background:var(--forge-ember);
+  box-shadow:0 0 12px rgba(255,107,26,.9), 0 0 3px #ffd9a0;
+}
+.related::before{
+  background:linear-gradient(90deg,transparent,rgba(255,107,26,.6),transparent);
+}
+
+/* ---------- 8. buttons: molten ---------- */
+.btn.primary{
+  background:linear-gradient(135deg,#c2410c,#ff6b1a 55%,#ff9a3d);
+  color:#1a0d04;
+  box-shadow:0 2px 16px rgba(255,107,26,.35), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.btn.primary:hover{box-shadow:0 0 26px rgba(255,107,26,.6);filter:brightness(1.08)}
+.btn:hover{border-color:var(--accent);box-shadow:0 0 14px rgba(255,107,26,.35)}
+.chip:hover{border-color:var(--accent);box-shadow:0 0 12px rgba(255,107,26,.3)}
+.chip.active{box-shadow:0 0 14px rgba(255,107,26,.45)}
+.chip{background:linear-gradient(180deg,#2a221b,#211a15)}
+.chip.active{background:linear-gradient(180deg,#a33d0a,#7a2c06);border-color:var(--accent)}
+#global-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,107,26,.2)}
+
+/* ---------- 9. cards: ember lift ---------- */
+a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 8px 18px rgba(255,107,26,.25))}
+.list-item:hover{border-color:var(--accent);filter:drop-shadow(0 4px 12px rgba(255,107,26,.18))}
+/* soften the angular Orokin cut into a forged chamfer (keeps the shape language) */
+.card,.list-item,.video-card{
+  clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+/* ---------- 10. hero: forge glow ---------- */
+.tv-hero{border-color:var(--border);
+  background:linear-gradient(180deg,rgba(48,32,20,.55),rgba(20,17,16,.25))}
+.tv-hero-bg{
+  background:
+    radial-gradient(440px 320px at 22% 18%, rgba(255,107,26,.16), transparent 70%),
+    radial-gradient(400px 300px at 80% 72%, rgba(255,179,64,.12), transparent 70%),
+    radial-gradient(320px 240px at 62% 8%, rgba(194,65,12,.14), transparent 70%);
+}
+.tv-stat b{color:var(--forge-gold);text-shadow:0 0 14px rgba(255,179,64,.35)}
+.tv-install-banner{background:linear-gradient(135deg,rgba(194,65,12,.22),rgba(255,107,26,.07))}
+
+/* ---------- 11. joy pieces re-tinted to forge ---------- */
+.tv-greet{
+  color:var(--text);
+  background:rgba(255,107,26,.12);
+  border:1px solid rgba(255,107,26,.4);
+  box-shadow:0 0 12px rgba(255,107,26,.15);
+}
+.tv-tip{
+  border:1px solid rgba(255,107,26,.4) !important;
+  background:
+    radial-gradient(300px 160px at 85% 20%, rgba(255,107,26,.16), transparent 70%),
+    var(--card);
+}
+.tv-tip::before{
+  background:linear-gradient(90deg,#ff6b1a,#ffb340,#ff6b1a);
+  background-size:200% 100%;
+}
+#tv-update-popup.show .tv-upd-card{
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg,#ff6b1a,#ffb340,#ff8c42,#ff6b1a) border-box;
+  box-shadow:0 12px 48px rgba(255,107,26,.4), 0 0 24px rgba(255,179,64,.22);
+}
+.tv-whatsnew-badge{background:rgba(255,107,26,.14);border:1px solid rgba(255,107,26,.45);color:#ffc46b}
+
+/* Vaulty face bubble: forge ring instead of cyan */
+@media (max-width:600px){
+  .tv-facebtn{
+    background:radial-gradient(circle at 35% 30%, #2b2119, #141110 70%);
+    border:2px solid rgba(255,107,26,.7);
+    box-shadow:0 0 16px rgba(255,107,26,.5), 0 4px 14px rgba(0,0,0,.55);
+  }
+  .tv-facemin:active{border-color:var(--accent)}
+  .tv-facedot span{
+    background:radial-gradient(circle at 35% 35%, #ffd9a0, #ff6b1a 60%, #a33d0a);
+    box-shadow:0 0 10px rgba(255,107,26,.85);
+  }
+}
+
+/* ---------- 12. chat + misc cyan remnants → ember ---------- */
+.tv-mentor-badge{background:rgba(255,107,26,.14);border:1px solid rgba(255,107,26,.4)}
+#tv-ptr.ready{background:linear-gradient(135deg,#a33d0a,#ff6b1a)}
+.tv-ptr-spin{border:2px solid rgba(255,107,26,.25);border-top-color:var(--accent)}
+.tv-toggle input:checked + .tv-toggle-track{background:rgba(255,107,26,.3);border-color:var(--accent)}
+
+/* ---------- 13. TRUE FULLSCREEN MOBILE ---------- */
+@media (max-width:1023.5px){
+  /* edge-to-edge: hero bleeds to screen edges */
+  .tv-hero{border-radius:0;border-left:none;border-right:none;margin-left:-14px;margin-right:-14px;
+    padding-left:20px;padding-right:20px}
+  main{padding-left:14px;padding-right:14px}
+  /* header breathing room under the notch */
+  .header-inner{padding-top:calc(10px + env(safe-area-inset-top))}
+}
+/* tab bar already safe-area aware; warm its tint */
+#tabbar{background:rgba(24,19,16,.72);border:1px solid rgba(255,107,26,.2)}
+
+/* ---------- 14. reduced motion: calm the forge ---------- */
+@media (prefers-reduced-motion:reduce){
+  body::before{animation:none}
+  .logo{animation:none}
+  .tv-tip::before{animation:none}
+  #tv-update-popup.show .tv-upd-card{animation:none}
+}

@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.13.0",
+    "date": "Oct 19, 2026",
+    "notify": true,
+    "notes": [
+      "FORGE UI rework (CSS-only): molten forge art direction \u2014 charcoal blacksmith base, ember orange + molten gold accents, steel-gray text, heat-glow dividers, molten gradient titles. Looks like the app's new name.",
+      "True fullscreen on mobile: viewport-fit=cover, 100dvh layout, safe-area insets on header/tab bar, edge-to-edge hero backgrounds at 390px, no horizontal overflow.",
+      "Vaulty face bubble, greeting pill, tip card, update popup all re-tinted to the forge palette. Reduced-motion, 44px targets, holiday themes untouched."
+    ]
+  },
+  {
     "version": "2.12.73",
     "date": "Oct 19, 2026",
     "notify": true,
