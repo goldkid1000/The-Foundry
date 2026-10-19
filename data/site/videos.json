@@ -862,5 +862,23 @@
   "description": "Solo Moonflesh farm hitting 1200+/hour: Cyte-09 Resupply electricity ammo + Kuva Sobek Acid Shells chaining explosions.",
   "item": "Taubound",
   "type": "farm"
+ },
+ {
+  "id": "N_yhW0kmtpY",
+  "title": "Warframe: Is The New Gas Sobek Riven The Best In The Game?",
+  "channel": "Gaz TTV",
+  "category": "Builds",
+  "description": "Kuva Sobek gas build built around a spliced gas Riven: how to get gas rivens, gas-proc chaining with Cyte-09, Kuva vs normal Sobek, archon shards. Uses the Riven Splicer system (Oct 2026).",
+  "item": "Kuva Sobek",
+  "type": "build"
+ },
+ {
+  "id": "95Lfec2FpdI",
+  "title": "Level 9999 - Grendel Sobek en Cascade : trop bien et trop fort!",
+  "channel": "Pandaahh",
+  "category": "Builds",
+  "description": "Level-cap Grendel + Gas Sobek (status Riven) build in Void Cascade: full rotation, gear, magnetic vs gas comparison, 1h41 of high-level proof. (Video is in French; build content is visual.)",
+  "item": "Sobek",
+  "type": "build"
  }
 ]

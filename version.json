@@ -1,8 +1,8 @@
 {
-  "version": "2.14.2",
+  "version": "2.14.3",
   "updated": "2026-10-19",
-  "notify": true,
+  "notify": false,
   "notes": [
-    "White ghost elements (speech bubble + close button) killed for good on mobile."
+    "2 new video guides added: Gas Sobek spliced-Riven build (Gaz TTV) and Grendel + Sobek level-cap run (Pandaahh, French)."
   ]
 }
