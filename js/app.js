@@ -78,7 +78,7 @@
       '<div class="header-inner">' +
       '<button id="tv-menu-btn" aria-label="Open menu" aria-expanded="false"><span class="bars"><span></span><span></span><span></span></span></button>' +
       (page !== 'home' ? '<button class="back-btn" id="tv-back" aria-label="Go back">←</button>' : '') +
-      '<a class="logo" href="index.html"><span class="logo-mark">◈</span><span class="logo-text">TENNO<em>VAULT</em></span></a>' +
+      '<a class="logo" href="index.html"><span class="logo-mark">◈</span><span class="logo-text">THE<em>FOUNDRY</em></span></a>' +
       '<span id="tv-online" class="muted small" style="display:none;white-space:nowrap"></span>' +
       '<div class="search-wrap"><input id="global-search" type="search" placeholder="Search warframes, weapons, mods, builds…" autocomplete="off" aria-label="Search"></div>' +
       '<!-- DONATE: buttons link to donate.html; swap the embedded QR data URI and the PayPal.me href inside donate.html as needed -->' +

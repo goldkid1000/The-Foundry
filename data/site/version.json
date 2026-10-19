@@ -1,5 +1,5 @@
 {
-  "version": "2.13.0",
+  "version": "2.13.1",
   "updated": "2026-10-19",
   "notes": "Forge UI rework: molten forge theme (charcoal, ember orange, molten gold) replaces Void Neon everywhere; true fullscreen on mobile (viewport-fit=cover, 100dvh, safe-area insets, edge-to-edge backgrounds); Vaulty face bubble re-tinted to match.",
   "notify": true

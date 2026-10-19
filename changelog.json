@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.13.1",
+    "date": "Oct 19, 2026",
+    "notify": true,
+    "notes": [
+      "Vaulty now rides ON the chat bubble \u2014 his face replaces the generic icon on the blue chat button (bottom-right, stays on top). The old separate face bubble is retired so there's only one Vaulty.",
+      "Fixed white bar behind the status bar on mobile (solid charcoal under the safe area, dark theme-color).",
+      "Header rebrand finished: top bar now says THE FOUNDRY (was still TENNOVAULT)."
+    ]
+  },
+  {
     "version": "2.13.0",
     "date": "Oct 19, 2026",
     "notify": true,

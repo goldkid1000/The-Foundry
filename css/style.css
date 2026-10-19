@@ -6,7 +6,7 @@
   --green:#3ddc84; --radius:12px; --max:1180px;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;background:#141110}
 body{margin:0;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
   line-height:1.55;font-size:16px}
@@ -2329,7 +2329,15 @@ footer, .site-footer{
   /* speech bubble anchors above the face button, right-aligned */
   .tv-mentor-bubble { max-width: 220px; margin-bottom: 10px; }
   .tv-mentor-bubble::after { left: auto; right: 22px; }
+  /* v2.13.1: the chat bubble WEARS Vaulty's face now — the separate mobile
+     face bubble is retired (belt-and-braces; mentor.js also hides them). */
+  .tv-facebtn, .tv-facemin, .tv-facedot { display: none !important; }
 }
+/* ---------- v2.13.1: Vaulty's face on the chat bubble ---------- */
+/* #tv-chat-fab is built by chat-panel.js; mentor.js swaps its icon for the
+   face SVG and adds .tv-vaulty-fab. Face sized to leave a gradient ring. */
+#tv-chat-fab.tv-vaulty-fab .tv-chat-fab-icon { line-height: 0; }
+#tv-chat-fab.tv-vaulty-fab .tv-chat-fab-icon svg { width: 42px; height: 42px; display: block; }
 @media (prefers-reduced-motion: reduce) {
   .tv-facedot span { animation: none; }
   #tv-mentor.entering { animation: none; }

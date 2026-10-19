@@ -186,6 +186,34 @@
     if (els.facedot) els.facedot.hidden = !min;
   }
 
+  /* v2.13.1: Vaulty's face lives ON the chat bubble. brandChatFab() swaps
+     the generic icon inside #tv-chat-fab (built by chat-panel.js, which may
+     load after us) for the face SVG. The fab keeps its own tap behavior. */
+  function brandChatFab() {
+    var fab;
+    try { fab = document.getElementById('tv-chat-fab'); } catch (e) { return false; }
+    if (!fab || fab.classList.contains('tv-vaulty-fab')) return !!fab;
+    var icon = fab.querySelector('.tv-chat-fab-icon');
+    if (!icon) return false;
+    try {
+      icon.innerHTML = faceSVG();
+      fab.classList.add('tv-vaulty-fab');
+      return true;
+    } catch (e) { return false; }
+  }
+  function watchChatFab() {
+    if (brandChatFab()) return;
+    var tries = 0;
+    var iv = setInterval(function () {
+      if (brandChatFab() || ++tries > 12) { clearInterval(iv); }
+    }, 500);
+    try {
+      var mo = new MutationObserver(function () { if (brandChatFab()) { try { mo.disconnect(); } catch (e) {} } });
+      mo.observe(document.body || document.documentElement, { childList: true, subtree: true });
+      setTimeout(function () { try { mo.disconnect(); } catch (e) {} }, 9000);
+    } catch (e) {}
+  }
+
   var VAULTY = 'Vaulty';
   var TIPS = {
     'index': "Hiya, I'm Vaulty! 👋 Your tiny Vault keeper. Tap me anytime — I give great advice and terrible jokes.",
@@ -339,6 +367,14 @@
     });
     /* restore minimized state */
     if (faceMinimized()) setFaceMinimized(true);
+    /* v2.13.1: the chat bubble WEARS Vaulty's face now — retire the separate
+       mobile face bubble so there aren't two Vaultys on screen. */
+    if (isMobileFaceMode()) {
+      if (els.facebtn) els.facebtn.hidden = true;
+      if (els.facemin) els.facemin.hidden = true;
+      if (els.facedot) els.facedot.hidden = true;
+    }
+    watchChatFab();
 
     function openAI() {
       squash();
