@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.12.70",
+    "date": "2026-10-19",
+    "notes": [
+      "2 new Taubound videos: GameTrailers' official Epoch Operation gameplay tease, Voruzhu's 1200 Moonflesh-per-hour solo farm guide. Videos 94 → 96."
+    ],
+    "notify": false
+  },
+  {
     "version": "2.12.69",
     "date": "2026-10-19",
     "notes": [
