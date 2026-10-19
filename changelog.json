@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.12.69",
+    "date": "2026-10-19",
+    "notes": [
+      "Update system anti-strand rewrite: the popup now fires whenever the build you're running is older than the published version (it used to silently mark itself seen on stale cached pages), the notice only clears once the new build actually boots, Dismiss/Later is remembered per version, and a failed update re-prompts instead of going quiet."
+    ],
+    "notify": true
+  },
+  {
     "version": "2.12.68",
     "date": "2026-10-19",
     "notes": [

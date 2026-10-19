@@ -3,37 +3,67 @@
    2. "Update" button next to it
    3. Tapping Update shows a loading bar, clears caches, unregisters the SW
    4. Auto-refreshes when done
-   Works on mobile PWA, PC installed app, and regular browser tabs. */
+   Works on mobile PWA, PC installed app, and regular browser tabs.
+   v2.12.69: anti-strand rewrite —
+   - TV_BUILD_VERSION is the source of truth for "am I old?", not localStorage.
+     The old code marked the REMOTE version as seen on first load even when the
+     running page was a stale cached build, so the popup never fired (stranded).
+   - The notice is consumed only when the NEW build actually boots: tapping
+     Update sets a sessionStorage pending flag; boot clears it only if the
+     running build matches. A failed update re-prompts instead of going silent.
+   - Dismiss/Later is remembered per version (not "never ask again" globally).
+   - window.location.reload(true) was a deprecated no-op — plain reload(). */
 (function () {
   'use strict';
 
+  /* BUMP WITH EVERY RELEASE — this is how the running page knows its own age */
+  var TV_BUILD_VERSION = '2.12.69';
+
   var CHECK_INTERVAL = 15 * 60 * 1000; /* check every 15 minutes */
-  var seenVersion = null;
   var updating = false;
   var pendingData = null;
+
+  function dismissedFor(v) {
+    try { return localStorage.getItem('tv-dismissed-' + v) === '1'; } catch (e) { return false; }
+  }
+  function markDismissed(v) {
+    try { localStorage.setItem('tv-dismissed-' + v, '1'); } catch (e) {}
+  }
+  function getPending() {
+    try { return sessionStorage.getItem('tv-update-pending'); } catch (e) { return null; }
+  }
+  function setPending(v) {
+    try { sessionStorage.setItem('tv-update-pending', v); } catch (e) {}
+  }
+  function clearPending() {
+    try { sessionStorage.removeItem('tv-update-pending'); } catch (e) {}
+  }
+
+  /* boot: consume the pending-update notice ONLY when the new build is running.
+     If we're still on the old build, the update didn't land — leave the flag
+     so check() re-prompts instead of going silent. */
+  (function consumePending() {
+    var p = getPending();
+    if (p && p === TV_BUILD_VERSION) clearPending();
+  })();
 
   function check() {
     if (updating) return;
     fetch('version.json', { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (!seenVersion) {
-          seenVersion = data.version;
-          try { localStorage.setItem('tv-seen-version', data.version); } catch (e) {}
-          return;
-        }
-        if (data.version !== seenVersion) {
-          seenVersion = data.version;
+        if (!data || !data.version) return;
+        /* the RUNNING build is older than what's published → update available.
+           Never mark anything "seen" here: a stale cached page must still fire. */
+        if (data.version !== TV_BUILD_VERSION) {
           pendingData = data;
           /* only pop up for real updates WE push (notify flag) —
              not auto-added content like content-watch videos */
-          if (data.notify === true) {
+          if (data.notify === true && !dismissedFor(data.version)) {
             showUpdatePopup(data);
-          } else {
-            /* silent: just remember it so we don't prompt later */
-            try { localStorage.setItem('tv-seen-version', data.version); } catch (e) {}
           }
         }
+        /* running build == published version: nothing to do */
       })
       .catch(function () { /* offline — stay quiet */ });
   }
@@ -87,9 +117,12 @@
     p.querySelector('#tv-upd-btn').addEventListener('click', startUpdate);
   }
 
+  /* Dismiss/Later = "not this version", remembered per version. A future
+     version still prompts. */
   function dismiss() {
     var p = document.getElementById('tv-update-popup');
     if (!p || updating) return;
+    if (pendingData && pendingData.version) markDismissed(pendingData.version);
     p.classList.remove('show');
     setTimeout(function () { if (p.parentNode) p.parentNode.removeChild(p); }, 350);
   }
@@ -133,8 +166,10 @@
     var done = function () {
       fill.style.width = '100%';
       status.textContent = 'Done! Refreshing…';
-      try { localStorage.setItem('tv-seen-version', seenVersion); } catch (e) {}
-      setTimeout(function () { window.location.reload(true); }, 800);
+      /* notice is consumed only when the NEW build boots (see consumePending).
+         If the reload still serves the old build, check() will re-prompt. */
+      if (pendingData && pendingData.version) setPending(pendingData.version);
+      setTimeout(function () { window.location.reload(); }, 800);
     };
     /* clear caches + unregister service worker so nothing stale survives */
     var clearCaches = ('caches' in window)
@@ -157,11 +192,6 @@
   }
 
   /* init: check shortly after load, then periodically */
-  /* restore seen version so we don't re-prompt after the user already updated */
-  try {
-    var stored = localStorage.getItem('tv-seen-version');
-    if (stored) seenVersion = stored;
-  } catch (e) {}
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(check, 3000); });
   } else {
@@ -177,4 +207,5 @@
   /* expose for manual trigger / debugging */
   window.TV = window.TV || {};
   window.TV.checkForUpdate = check;
+  window.TV.buildVersion = TV_BUILD_VERSION;
 })();
