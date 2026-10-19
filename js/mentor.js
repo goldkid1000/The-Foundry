@@ -175,16 +175,6 @@
   function isMobileFaceMode() {
     try { return window.matchMedia('(max-width: 600px)').matches; } catch (e) { return false; }
   }
-  var FACE_MIN_KEY = 'tv-vaulty-min';
-  function faceMinimized() {
-    try { return localStorage.getItem(FACE_MIN_KEY) === '1'; } catch (e) { return false; }
-  }
-  function setFaceMinimized(min) {
-    try { localStorage.setItem(FACE_MIN_KEY, min ? '1' : '0'); } catch (e) {}
-    if (els.facebtn) els.facebtn.hidden = !!min;
-    if (els.facemin) els.facemin.hidden = !!min;
-    if (els.facedot) els.facedot.hidden = !min;
-  }
 
   var VAULTY = 'Vaulty';
   var TIPS = {
@@ -307,38 +297,11 @@
     facebtn.innerHTML = faceSVG();
     wrap.appendChild(facebtn);
     els.facebtn = facebtn;
-    var facemin = document.createElement('button');
-    facemin.id = 'tv-facemin';
-    facemin.className = 'tv-facemin';
-    facemin.type = 'button';
-    facemin.setAttribute('aria-label', 'Minimize Vaulty');
-    facemin.textContent = '\u00d7';
-    wrap.appendChild(facemin);
-    els.facemin = facemin;
-    var facedot = document.createElement('button');
-    facedot.id = 'tv-facedot';
-    facedot.className = 'tv-facedot';
-    facedot.type = 'button';
-    facedot.setAttribute('aria-label', 'Show Vaulty');
-    facedot.innerHTML = '<span></span>';
-    facedot.hidden = true;
-    wrap.appendChild(facedot);
-    els.facedot = facedot;
     /* face tap opens the AI chat (same as tapping Vaulty on desktop) */
     facebtn.addEventListener('click', function (e) {
       e.stopPropagation();
       openAI();
     });
-    facemin.addEventListener('click', function (e) {
-      e.stopPropagation();
-      setFaceMinimized(true);
-    });
-    facedot.addEventListener('click', function (e) {
-      e.stopPropagation();
-      setFaceMinimized(false);
-    });
-    /* restore minimized state */
-    if (faceMinimized()) setFaceMinimized(true);
 
     function openAI() {
       squash();
@@ -408,7 +371,16 @@
   function attention() { playAnim('attn', 700); }
   function wave() { playAnim('wave', 1400); }
   function dance() { playAnim('dance', 2000); }
-  function squash() { playAnim('squash', 400); }
+  function squash() {
+    playAnim('squash', 400);
+    /* v2.13.3: on mobile the full char is hidden — squash the visible face bubble instead */
+    if (isMobileFaceMode() && els.facebtn && !reducedMotion) {
+      els.facebtn.classList.remove('tv-squash');
+      void els.facebtn.offsetWidth;
+      els.facebtn.classList.add('tv-squash');
+      setTimeout(function () { if (els.facebtn) els.facebtn.classList.remove('tv-squash'); }, 400);
+    }
+  }
   /* v2.12.31: new animation helpers */
   function jump() { playAnim('jump', 700); }
   function flip() { playAnim('flip', 800); }
@@ -1056,7 +1028,7 @@
         if (old && old.parentNode) old.parentNode.removeChild(old);
       } catch (e) {}
       els.wrap = null; els.char = null; els.bubble = null;
-      els.facebtn = null; els.facemin = null; els.facedot = null;
+      els.facebtn = null;
       els.text = null; els.badge = null; els.count = null;
       bodyAnimStarted = false;
       try { init(); } catch (e) {}

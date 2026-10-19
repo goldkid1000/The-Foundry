@@ -1,5 +1,15 @@
 [
   {
+    "v": "2.13.3",
+    "date": "Oct 19, 2026",
+    "notify": true,
+    "notes": [
+      "Vaulty cleanup: \u00d7 removed \u2014 tap his face to open the AI chat (squash opening animation kept)",
+      "Vaulty bubble moved below the blue chat button",
+      "Removed duplicate leftover elements around Vaulty's bubble"
+    ]
+  },
+  {
     "version": "2.13.2",
     "date": "Oct 19, 2026",
     "notify": true,

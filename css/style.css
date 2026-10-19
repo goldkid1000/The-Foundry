@@ -2261,21 +2261,21 @@ footer, .site-footer{
 /* ---------- 1. Vaulty mobile face bubble (≤600px) — v2.12.73 ----------
    The full shimeji character is replaced by a circular chat bubble with
    Vaulty's face, parked mid-right edge. Desktop is untouched. */
-.tv-facebtn, .tv-facemin, .tv-facedot { display: none; }
+.tv-facebtn { display: none; }
 @media (max-width: 600px) {
   /* park: right edge, vertically centered, clear of tab bar + CTAs */
   #tv-mentor {
-    left: auto; right: 10px;
-    top: 50%; bottom: auto;
-    transform: translateY(-50%);
+    left: auto; right: 14px;
+    top: auto; bottom: 102px; /* v2.13.3: stacked BELOW the blue chat fab (bottom:170px) */
+    transform: none;
     z-index: 60; /* above tab bar (50), far below update popup (10000) */
     align-items: flex-end;
   }
-  #tv-mentor.visible { transform: translateY(-50%); }
+  #tv-mentor.visible { transform: none; }
   #tv-mentor.entering { animation: tv-face-enter .5s ease; }
   @keyframes tv-face-enter {
-    0% { opacity: 0; transform: translateY(-50%) scale(.6); }
-    100% { opacity: 1; transform: translateY(-50%) scale(1); }
+    0% { opacity: 0; transform: scale(.6); }
+    100% { opacity: 1; transform: scale(1); }
   }
   /* full character hidden on mobile — the face bubble replaces him */
   #tv-mentor-char { display: none !important; }
@@ -2290,38 +2290,10 @@ footer, .site-footer{
     cursor: pointer; line-height: 0; position: relative;
   }
   .tv-facebtn:active { transform: scale(.92); }
+  /* v2.13.3: tap opening animation — squash plays on the visible bubble */
+  .tv-facebtn.tv-squash { animation: tv-mentor-squash .4s ease; }
   .tv-facebtn svg { width: 100%; height: 100%; display: block; }
   .tv-facebtn[hidden] { display: none !important; }
-  /* minimize × — 44px tap target riding the bubble's top-right */
-  .tv-facemin {
-    position: absolute; top: -16px; right: -8px;
-    width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(10, 16, 24, .94);
-    border: 1px solid var(--border, #2a3542);
-    border-radius: 50%; color: #9fb3c8;
-    font-size: 24px; line-height: 1; cursor: pointer; z-index: 2;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, .5);
-  }
-  .tv-facemin:active { color: #fff; border-color: var(--accent, #22d3ee); }
-  .tv-facemin[hidden] { display: none !important; }
-  /* minimized dot — smaller than the bubble, same parking spot */
-  .tv-facedot {
-    display: block; width: 44px; height: 44px; padding: 0;
-    background: none; border: none; cursor: pointer;
-  }
-  .tv-facedot[hidden] { display: none !important; }
-  .tv-facedot span {
-    display: block; width: 16px; height: 16px; margin: auto;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #7df9ff, #22d3ee 60%, #0e7490);
-    box-shadow: 0 0 10px rgba(34, 211, 238, .8);
-    animation: tv-face-pulse 2.4s ease-in-out infinite;
-  }
-  @keyframes tv-face-pulse {
-    0%, 100% { transform: scale(1); opacity: .85; }
-    50% { transform: scale(1.25); opacity: 1; }
-  }
   /* online-count badge becomes a compact pill above the bubble */
   .tv-mentor-badge {
     margin: 0 0 6px; padding: 3px 8px; font-size: 10px;
@@ -2333,7 +2305,6 @@ footer, .site-footer{
 }
 /* v2.13.2: Vaulty is his own bubble again — the chat-fab merge is reverted. */
 @media (prefers-reduced-motion: reduce) {
-  .tv-facedot span { animation: none; }
   #tv-mentor.entering { animation: none; }
 }
 
@@ -2572,11 +2543,6 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
     background:radial-gradient(circle at 35% 30%, #2b2119, #141110 70%);
     border:2px solid rgba(255,107,26,.7);
     box-shadow:0 0 16px rgba(255,107,26,.5), 0 4px 14px rgba(0,0,0,.55);
-  }
-  .tv-facemin:active{border-color:var(--accent)}
-  .tv-facedot span{
-    background:radial-gradient(circle at 35% 35%, #ffd9a0, #ff6b1a 60%, #a33d0a);
-    box-shadow:0 0 10px rgba(255,107,26,.85);
   }
 }
 

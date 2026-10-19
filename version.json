@@ -1,10 +1,10 @@
 {
-  "version": "2.13.2",
+  "version": "2.13.3",
   "updated": "2026-10-19",
   "notify": true,
   "notes": [
-    "Fixed the update popup looping: the running build's version stamp was stuck at 2.13.0 while 2.13.1 was published, so it kept prompting forever.",
-    "Vaulty is his own AI bubble again \u2014 the face-on-the-blue-chat-bubble merge is reverted; the blue chat button is back to its generic icon.",
-    "Vaulty no longer shows the Tenno-online pill (for now)."
+    "Vaulty cleanup: the \u00d7 is gone \u2014 tap his face bubble and it opens the AI chat directly (with his squash opening animation).",
+    "Vaulty's bubble now sits below the blue chat button, bottom-right.",
+    "Fixed duplicate leftover elements near Vaulty's bubble."
   ]
 }
