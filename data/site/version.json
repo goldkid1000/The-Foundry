@@ -1,6 +1,6 @@
 {
- "version": "2.12.71",
- "updated": "2026-10-19T12:05:00Z",
- "notes": "Void Neon UI redesign (stage 2): deeper void color system with cyan-to-violet gradients, glowing sidebar/tabbar active rails, neon table headers, gradient-edge cards, glassier hero, 44px+ mobile targets, no horizontal scroll.",
+ "version": "2.12.72",
+ "updated": "2026-10-19",
+ "notes": "Joy-of-use rework: Vaulty no longer gets in the way on phones \u2014 on \u2264600px he parks as a small 44px bubble bottom-right above the tab bar, with a \u00d7 that minimizes him to a tiny pulsing dot (state remembered). Tapping him still opens chat.",
  "notify": true
 }

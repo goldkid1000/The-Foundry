@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lost in the Void — Tenno Vault</title>
+<meta name="description" content="This page drifted into the Void. Head back to the Tenno Vault.">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:,">
+<style>
+  .tv-lost{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
+  .tv-lost .void-face{font-size:4rem;animation:tv-float 4s ease-in-out infinite}
+  @keyframes tv-float{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-14px) rotate(4deg)}}
+  .tv-lost h1{font-size:clamp(2rem,6vw,3.2rem);margin:18px 0 8px;
+    background:linear-gradient(120deg,#22d3ee,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tv-lost p{color:var(--muted,#8b98a8);max-width:420px;line-height:1.6}
+  .tv-lost .btn{margin-top:22px}
+  @media (prefers-reduced-motion:reduce){.tv-lost .void-face{animation:none}}
+</style>
+</head>
+<body>
+<main class="tv-lost">
+  <span class="void-face" aria-hidden="true">🌀</span>
+  <h1>Lost in the Void</h1>
+  <p>Vaulty checked every relay, dojo, and fissure — this page isn't anywhere in the Origin System. It may have been moved, renamed, or consumed by the Man in the Wall.</p>
+  <a class="btn primary" href="index.html" style="min-height:48px;display:inline-flex;align-items:center">🏠 Back to the Vault</a>
+  <p class="muted small" style="margin-top:16px">Tip: the search box on the homepage finds anything in the Vault.</p>
+</main>
+</body>
+</html>

@@ -17,7 +17,7 @@
   'use strict';
 
   /* BUMP WITH EVERY RELEASE — this is how the running page knows its own age */
-  var TV_BUILD_VERSION = '2.12.71';
+  var TV_BUILD_VERSION = '2.12.72';
 
   var CHECK_INTERVAL = 15 * 60 * 1000; /* check every 15 minutes */
   var updating = false;
@@ -209,3 +209,90 @@
   window.TV.checkForUpdate = check;
   window.TV.buildVersion = TV_BUILD_VERSION;
 })();
+/* v2.12.72 joy-of-use: Vaulty mobile parking + scroll reveals.
+   Runs on every page (this file loads site-wide). */
+(function () {
+  'use strict';
+
+  var MIN_KEY = 'tv-vaulty-min';
+  var MOBILE_Q = '(max-width: 600px)';
+
+  function isMobile() {
+    return window.matchMedia && window.matchMedia(MOBILE_Q).matches;
+  }
+
+  /* --- Vaulty: × minimizes him to a tiny dot; state remembered --- */
+  function setupVaulty(el) {
+    if (!isMobile() || el.dataset.tvMinSetup) return;
+    el.dataset.tvMinSetup = '1';
+
+    var minBtn = document.createElement('button');
+    minBtn.id = 'tv-mentor-min';
+    minBtn.type = 'button';
+    minBtn.setAttribute('aria-label', 'Minimize Vaulty');
+    minBtn.textContent = '\u00d7';
+    minBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      setMin(el, true);
+    });
+    el.appendChild(minBtn);
+
+    var dot = document.createElement('button');
+    dot.id = 'tv-mentor-dot';
+    dot.type = 'button';
+    dot.setAttribute('aria-label', 'Show Vaulty');
+    var inner = document.createElement('span');
+    dot.appendChild(inner);
+    dot.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      setMin(el, false);
+    });
+    el.appendChild(dot);
+
+    try { if (localStorage.getItem(MIN_KEY) === '1') el.classList.add('tv-minimized'); } catch (e) {}
+  }
+
+  function setMin(el, min) {
+    el.classList.toggle('tv-minimized', !!min);
+    try { localStorage.setItem(MIN_KEY, min ? '1' : '0'); } catch (e) {}
+  }
+
+  function initVaulty() {
+    var el = document.getElementById('tv-mentor');
+    if (el) { setupVaulty(el); return; }
+    /* mentor.js injects the markup — watch for it briefly */
+    if (!('MutationObserver' in window)) return;
+    var obs = new MutationObserver(function () {
+      var m = document.getElementById('tv-mentor');
+      if (m) { setupVaulty(m); obs.disconnect(); }
+    });
+    obs.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(function () { obs.disconnect(); }, 15000);
+  }
+
+  /* --- scroll reveals: subtle rise on cards/panels --- */
+  function initReveals() {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var targets = document.querySelectorAll('.card-grid .card, .panel');
+    if (!targets.length) return;
+    if (reduce || !('IntersectionObserver' in window)) {
+      targets.forEach(function (t) { t.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -6% 0px' });
+    targets.forEach(function (t, i) {
+      t.classList.add('tv-reveal');
+      t.style.transitionDelay = Math.min((i % 6) * 45, 270) + 'ms';
+      io.observe(t);
+    });
+  }
+
+  function init() { initVaulty(); initReveals(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+

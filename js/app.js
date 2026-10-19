@@ -234,7 +234,7 @@
     host.innerHTML =
       '<div class="frow">' +
       '<!-- DONATE: buttons link to donate.html; swap the embedded QR data URI and the PayPal.me href inside donate.html as needed -->' +
-      '<a class="btn donate-btn" href="donate.html">♥ Donate to Tenno Vault</a>' +
+      '<a class="btn donate-btn" href="donate.html">♥ Donate to The Foundry</a>' +
       '<a class="btn small" href="index.html#feedback">🐛 Report a bug / suggest something</a>' +
       '<span>Unofficial fan site. Not affiliated with Digital Extremes.</span>' +
       '<span>Game data: warframe-items (WFCD) · Price guide: community averages · Live: warframestat.us</span>' +
@@ -244,7 +244,7 @@
     try {
       window.TV.getJSON('data/site/version.json').then(function (v) {
         var el = document.getElementById('tv-version');
-        if (el && v && v.version) el.textContent = 'Tenno Vault v' + v.version;
+        if (el && v && v.version) el.textContent = 'The Foundry v' + v.version;
       }).catch(function () {});
     } catch (e) {}
   }

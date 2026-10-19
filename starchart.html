@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Star Chart — Tenno Vault</title>
+<title>Star Chart — The Foundry</title>
 <meta name="description" content="Interactive Warframe star chart — tap any planet or zone to see what drops there, or fly to where your item farms.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="images/favicon-32.png" type="image/png">
@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Tenno Vault">
+<meta name="apple-mobile-web-app-title" content="The Foundry">
 <style>
 /* ---- Star Chart page styles ---- */
 .sc-wrap { position: relative; }
@@ -411,7 +411,7 @@
           var g = bodiesG.querySelector('[data-id="' + z + '"]');
           if (g) g.classList.add('target');
         });
-        document.title = q.item + ' — Star Chart — Tenno Vault';
+        document.title = q.item + ' — Star Chart — The Foundry';
         /* let the map render, then fly */
         setTimeout(function () { flyTo(entry.zones, true); }, reduced ? 0 : 350);
         /* auto-open the first zone's panel */

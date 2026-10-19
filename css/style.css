@@ -2250,3 +2250,142 @@ footer, .site-footer{
   .card, .btn, .chip, table.data tbody tr{transition:none}
   .card:hover{transform:none}
 }
+
+/* ================================================================
+   v2.12.72 — JOY OF USE
+   1. Vaulty mobile parking: he never covers content on phones.
+   2. Delight: greeting pill, tip of the day, scroll reveals,
+      celebratory update popup, playful empty states.
+   ================================================================ */
+
+/* ---------- 1. Vaulty mobile parking (≤600px) ---------- */
+@media (max-width: 600px) {
+  /* park bottom-right, above the tab bar, clear of CTAs */
+  #tv-mentor {
+    left: auto;
+    right: 12px;
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    z-index: 60; /* above tabbar (50), far below update popup (10000) */
+  }
+  /* collapsed: small bubble, ≤48px wide */
+  #tv-mentor .tv-mentor-char > svg {
+    width: 44px !important;
+    height: 52px !important;
+  }
+  /* speech bubble tail points from the right side now */
+  #tv-mentor .tv-mentor-bubble::after { left: auto; right: 30px; }
+  #tv-mentor .tv-mentor-bubble { max-width: 200px; }
+
+  /* minimize button: visible × on the bubble, 44px tap target */
+  #tv-mentor-min {
+    position: absolute; top: -10px; right: -10px;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(10, 16, 24, .92);
+    border: 1px solid var(--border, #2a3542);
+    border-radius: 50%;
+    color: #9fb3c8; font-size: 22px; line-height: 1;
+    cursor: pointer; z-index: 2;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .5);
+  }
+  #tv-mentor-min:active { color: #fff; border-color: var(--accent, #22d3ee); }
+
+  /* minimized: character + bubble + × hide, tiny dot remains */
+  #tv-mentor.tv-minimized .tv-mentor-char,
+  #tv-mentor.tv-minimized .tv-mentor-bubble,
+  #tv-mentor.tv-minimized #tv-mentor-min { display: none !important; }
+  #tv-mentor-dot { display: none; }
+  #tv-mentor.tv-minimized #tv-mentor-dot {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; /* generous tap area */
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+  #tv-mentor-dot span {
+    width: 15px; height: 15px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #7df9ff, #22d3ee 60%, #0e7490);
+    box-shadow: 0 0 10px rgba(34, 211, 238, .8);
+    animation: tv-dot-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes tv-dot-pulse {
+    0%, 100% { transform: scale(1); opacity: .85; }
+    50% { transform: scale(1.25); opacity: 1; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #tv-mentor-dot span { animation: none; }
+}
+
+/* ---------- 2a. time-of-day greeting pill (homepage hero) ---------- */
+.tv-greet {
+  display: inline-block;
+  font-size: .82rem; font-weight: 600; letter-spacing: .2px;
+  color: var(--text, #e8eef4);
+  background: rgba(34, 211, 238, .1);
+  border: 1px solid rgba(34, 211, 238, .35);
+  border-radius: 999px;
+  padding: 6px 14px; margin: 0 0 10px;
+}
+.tv-greet:empty { display: none; }
+
+/* ---------- 2b. Tenno tip of the day ---------- */
+.tv-tip {
+  border: 1px solid rgba(139, 92, 246, .35) !important;
+  background:
+    radial-gradient(300px 160px at 85% 20%, rgba(139, 92, 246, .14), transparent 70%),
+    var(--card, #10161f);
+  position: relative; overflow: hidden;
+}
+.tv-tip::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #22d3ee, #8b5cf6, #22d3ee);
+  background-size: 200% 100%;
+  animation: tv-tip-shimmer 6s linear infinite;
+}
+@keyframes tv-tip-shimmer {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+.tv-tip h2 { margin-top: 6px; }
+.tv-tip p { font-size: 1.02rem; line-height: 1.55; margin: 6px 0 2px; }
+.tv-tip .tv-tip-date { font-size: .75rem; color: var(--muted, #8b98a8); }
+@media (prefers-reduced-motion: reduce) {
+  .tv-tip::before { animation: none; }
+}
+
+/* ---------- 2c. scroll reveals (JS adds .tv-reveal, then .in) ---------- */
+.tv-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity .55s ease, transform .55s cubic-bezier(.2,.7,.3,1);
+}
+.tv-reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tv-reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---------- 2d. celebratory update popup ---------- */
+#tv-update-popup.show .tv-upd-card {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--card, #10161f), var(--card, #10161f)) padding-box,
+    linear-gradient(135deg, #22d3ee, #8b5cf6, #f0abfc, #22d3ee) border-box;
+  background-size: auto, 300% 300%;
+  animation: tv-celebrate 5s ease infinite;
+  box-shadow: 0 12px 48px rgba(139, 92, 246, .35), 0 0 24px rgba(34, 211, 238, .2);
+}
+@keyframes tv-celebrate {
+  0%, 100% { background-position: 0 0, 0% 50%; }
+  50% { background-position: 0 0, 100% 50%; }
+}
+.tv-upd-icon { animation: tv-bounce 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  #tv-update-popup.show .tv-upd-card { animation: none; }
+}
+
+/* ---------- 2e. playful empty states ---------- */
+.tv-empty {
+  text-align: center; padding: 36px 20px;
+  color: var(--muted, #8b98a8);
+}
+.tv-empty .tv-empty-face { font-size: 2.6rem; display: block; margin-bottom: 10px; }
+.tv-empty p { margin: 4px 0; font-size: .95rem; }
