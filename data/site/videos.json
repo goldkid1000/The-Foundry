@@ -826,5 +826,23 @@
   "description": "Vauban rework AOE builds tested in level 10,000 Steel Path Void Cascade; ability-by-ability rundown of the 2026 rework.",
   "item": "Vauban",
   "type": "build"
+ },
+ {
+  "id": "V9ddPyss60M",
+  "title": "Narin Build | Weapon Platform and Ice Nuke | Solo Levelcap",
+  "channel": "Arsenyx",
+  "category": "Builds",
+  "description": "Full Narin build guide: high-Strength weapon-platform setup plus her ice-nuke ultimate, demonstrated through solo level-cap play.",
+  "item": "Narin",
+  "type": "build"
+ },
+ {
+  "id": "VPhlCU0HDN4",
+  "title": "200 PLATINUM GUARANTEED! | Turning THE WORST MISSION Into THE BEST PLATINUM FARM in WARFRAME 2026",
+  "channel": "Grind Hard Squad",
+  "category": "Trading",
+  "description": "Platinum farm guide: Mirror Defense on Tayana Pass for Arcane Steadfast (~200 plat at max rank), with the best frames/builds and alternatives.",
+  "item": "Arcane Steadfast",
+  "type": "farm"
  }
 ]
