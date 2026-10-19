@@ -1,6 +1,6 @@
 {
- "version": "2.12.70",
- "updated": "2026-10-19T11:35:00Z",
- "notes": "2 new Taubound videos: GameTrailers' official Epoch Operation gameplay tease, Voruzhu's 1200 Moonflesh-per-hour solo farm guide. Videos 94 → 96.",
- "notify": false
+ "version": "2.12.71",
+ "updated": "2026-10-19T12:05:00Z",
+ "notes": "Void Neon UI redesign (stage 2): deeper void color system with cyan-to-violet gradients, glowing sidebar/tabbar active rails, neon table headers, gradient-edge cards, glassier hero, 44px+ mobile targets, no horizontal scroll.",
+ "notify": true
 }

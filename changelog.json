@@ -1,352 +1,363 @@
 [
-  {
-    "version": "2.12.70",
-    "date": "2026-10-19",
-    "notes": [
-      "2 new Taubound videos: GameTrailers' official Epoch Operation gameplay tease, Voruzhu's 1200 Moonflesh-per-hour solo farm guide. Videos 94 → 96."
-    ],
-    "notify": false
-  },
-  {
-    "version": "2.12.69",
-    "date": "2026-10-19",
-    "notes": [
-      "Update system anti-strand rewrite: the popup now fires whenever the build you're running is older than the published version (it used to silently mark itself seen on stale cached pages), the notice only clears once the new build actually boots, Dismiss/Later is remembered per version, and a failed update re-prompts instead of going quiet."
-    ],
-    "notify": true
-  },
-  {
-    "version": "2.12.68",
-    "date": "2026-10-19",
-    "notes": [
-      "Vault Guide AI: new Steel Path build doctrine — a general Steel Path modding guide (damage layers, weapon arcanes, aura/exilus picks, frame arcanes, survival) plus 4 curated frame builds with full 8 mods, aura, exilus and arcanes (Saryn nuke, Rhino Roar buffer, Revenant endurance, Nova nuke). Ask 'build me a general steel path strong build' for the guide. No new hotfix since 44.1.2 + 2.1."
-    ],
-    "notify": true
-  },
-  {
-    "version": "2.12.67",
-    "date": "2026-10-18",
-    "notes": [
-      "2 new videos (Arsenyx Narin weapon-platform + ice-nuke build, Grind Hard Squad 200-plat Arcane Steadfast farm). No new hotfix since 44.1.2 + 2.1. News: PMCF charity streams Oct 19-25, Prime Time #502."
-    ],
-    "notify": false
-  },
-  {
-    "version": "2.12.66",
-    "date": "2026-10-18",
-    "notes": [
-      "3 new videos: Grind Hard Squad Nekros farming build, Gaz TTV updated Mirage build, Gaz TTV Vauban rework AOE build. No new hotfix since 44.1.2 + 2.1."
-    ],
-    "notify": false
-  },
-  {
-    "version": "2.12.65",
-    "date": "2026-10-18",
-    "notes": [
-      "3 new videos (Gaz spliced-riven Kuva Grattler build, Kengineer riven overhaul guide, NobuWasTaken Taubound guide). No new hotfix since 44.1.2 + 2.1."
-    ],
-    "notify": false
-  },
-  {
-    "version": "2.12.64",
-    "date": "2026-10-17",
-    "notes": [
-      "1 new video (Gaz Sevagoth Prime AOE nuke build). No new hotfix since 44.1.2 + 2.1."
-    ],
-    "notify": false
-  },
-  {
-    "version": "2.12.63",
-    "date": "2026-10-17",
-    "notes": [
-      "Added 2 videos: Pupsker — Best Moonflesh Farming Cyte-09! Fast Legendary Core & Cosmetics! (Moonflesh farm, Taubound) and Gaz TTV — Eskhatos (Spooky Baro) Ki'Teer Has Arrived! Full Inventory Review 10/16/2026 (Baro inventory review). Video library now at 85 total.",
-      "Checked: no new hotfix since 44.1.2 + 2.1; no new warframes/weapons/mods. Counts unchanged: 123 / 648 / 1,757 / 878 / 26 / 85 videos."
-    ]
-  },
-  {
-    "version": "2.12.62",
-    "date": "2026-10-17",
-    "notes": [
-      "Fixed: 11 Magus arcanes (Lockdown, Anomaly, Drive, Repair, Destruct, Firewall, Melt, Overload, Accelerant, Glitch, Revert) now correctly list Vox Solaris / Little Duck (Fortuna) instead of Quills; Virtuos Forge/Trojan/Spike/Surge fixed the same way. Source: WARFRAME Wiki arcane-source table.",
-      "Fixed: Secondary Encumber now lists Mirror Defense Rotation C (5.7%) + Otak (60 Belric + 60 Rania Fragments) instead of 1999 Nokko bounties. Source: WARFRAME Wiki.",
-      "Fixed: Mod Swaps numbers updated to the Update 34.0 (Oct 2023) stat overhaul — Vitality +100% (was +440%), Steel Fiber +100% (was +110%), Vigor +50%/+50% (was +220%), Umbral set bonuses +130%/+180%, Umbral Intensify +77% with full 3-mod set; Corrupted mods (Blind Rage, Transient Fortitude, Critical Delay/Deceleration, Spoiled Strike) now list Orokin Vaults only; Galvanized Aptitude effect corrected; Primed Pressure Point is a Daily Tribute milestone, not Baro.",
-      "Fixed: Vaulty AI — Magus arcanes split correctly (Quills vs Vox Solaris), Amp arcanes (Eternal set is Zariman, not Cavia), Galvanized mods come from Arbitrations (20 Vitus Essence), not Steel Path Acolytes; fixed 'Deep Archimedia' typo.",
-      "Fixed: Charged Chamber corrected to +30% (rank 2; Wiki ranks are 10/20/30/40%, max +40%) — the +60% value did not exist; tip corrected.",
-      "Fixed: bottom tab bar now only shows on touch devices (CSS) — PC narrow windows no longer get it via the unconditioned rule; the JS fallback was already hiding it.",
-      "Fixed: Mods page — 'Filter 1,800+ mods' -> '1,700+' (1,757 rows) and removed the '(max rank)' label from the detail view (first matching row isn't always the max-rank value).",
-      "New: Nights of Naberus countdown — ends Mon Nov 2, 11 AM ET (Daughter's shop + Hallowed Nightmares). Source: warframe.com.",
-      "Added 1 video: Tactical Potato — Warframes One-Time Event You Can't Ignore! Tau Inbound!",
-      "Checked: no new hotfix since 44.1.2.1; no new warframes/weapons/mods. Counts unchanged: 123 / 648 / 1,757 / 878 / 26 / 83 videos. Baro (Scare-o Ki'Teer) is live until Sun Oct 18, 9 AM ET — verified via warframestat.us; countdown drops off automatically."
-    ]
-  },
-  {
-    "version": "2.12.61",
-    "date": "2026-10-16",
-    "notes": [
-      "Added 1 new video: LeyzarGamingViews — Coda Bubonico build guide (Technocyte Coda shotgun). Video library now at 82 total.",
-      "Checked: the 2 other videos flagged this run (Gaz Moonflesh farm, Hunkpain Taubound guide) were already in the library — no duplicates added. No new hotfix since Hotfix 44.1.2.1. Two new official news items (Devourer single, Golden Joysticks vote) appear via the live news feed."
-    ]
-  },
-  {
-    "version": "2.12.60",
-    "date": "2026-10-16",
-    "notes": [
-      "New: Scare-o Ki'Teer (Baro) visit — Orcus Relay, Pluto, ends Sun Oct 18, 9 AM ET. Homepage countdown added. Source: warframestat.us voidTrader.",
-      "Checked: the 3 Taubound videos flagged this run were already in v2.12.59 — no duplicates added. No new hotfix since Hotfix 44.1.2.1."
-    ]
-  },
-  {
-    "version": "2.12.59",
-    "date": "2026-10-16",
-    "notes": [
-      "Added 3 new videos: MHBlacky — full Operation: Taubound guide (best Moonflesh farming strategy + reward priorities); Tactical Potato — Taubound complete guide (Moonflesh farming, reward priorities, daily dialogue, Tau Prologue); Gaz — Taubound live overview + full quest gameplay. Video library now at 81 total.",
-      "No new hotfix since Hotfix 44.1.2.1; no new warframes/weapons/mods."
-    ]
-  },
-  {
-    "version": "2.12.58",
-    "date": "2026-10-15",
-    "notes": [
-      "New: Devstream #198 date confirmed — Fri Oct 30, 2 PM ET (first Tau showcase, Tauforged Archon Shard Grab Bag Twitch drop). Homepage countdown added. Source: warframe.com Devstream 197 overview + official Steam announcement.",
-      "Added 4 new videos: Rainollon — Scyotid build guide; iFlynn — Dagath build guide; Pupsker — Devstream #198 / Tauforged drop; iFlynn — Warframe news (Riven Splicer nerf, Icebind low-manning, Taubound). Video library now at 78 total.",
-      "No new hotfix since Hotfix 44.1.2.1; no new warframes/weapons/mods in this cycle."
-    ]
-  },
-  {
-    "version": "2.12.57",
-    "date": "2026-10-15",
-    "notes": [
-      "Fixed: Shotgun filter now shows all 53 shotguns (was 47) — MK1-Strun, Bubonico, Cedo Prime, Coda Bassocyst, Coda Bubonico and Steflos Prime were in the data but missing the Shotgun tag, so the filter hid them. MK1-Strun stats verified against WARFRAME Wiki (18 damage/pellet x 10 pellets = 180 per shot, 7.5% crit, 6% status, MR 0)",
-      "New: weapon detail view shows Pellets + Damage per shot (all pellets) for multi-pellet weapons, so shotgun damage is no longer understated as per-pellet damage",
-      "Fixed: What's New dot now clears as soon as the panel is opened (was: only on close, so Escape / outside-click left the dot stuck on)",
-      "Verified live via test-run: countdowns tick + a11y labels sync + Ended/drop-off, Boss Killer filter = 8 builds, homepage counts 123 / 648 / 1,757 / 878 / 26 / 74"
-    ]
-  },
-  {
-    "version": "2.12.56",
-    "date": "2026-10-15",
-    "notes": [
-      "New: Hotfix 44.1.2.1 follow-up (Oct 15) — fixed crashing / severe performance issues when entering The Dark Refractory as part of the Lua quest in the Prologue to Tau. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
-      "New: Devstream #198 - Tau Part One announced (coming soon, date TBA) — no countdown added until DE confirms a date.",
-      "New: Epoch Operation: Taubound is now live (Oct 15 – Nov 17) — news feed updated; no new warframes/weapons/mods in this hotfix, Taubound rewards are cosmetics + returning items (Haalvu, Spectra Vandal, Basmu).",
-      "Added 4 new videos: Gaz TTV — 'Stop Wasting Time: The Best Way to Farm Moonflesh In Warframe'; Hunkpain Gaming — 'Warframe Taubound Event Guide: Fast Moonflesh Farm & Best Rewards!'; Pupsker — 'Epoch Operation Taubound! New Loot Cosmetics Skins Everything Guide!'; PlayWarframe — 'Devshorts 119: Epoch Operation: Taubound Launches Tomorrow!'"
-    ]
-  },
-  {
-    "version": "2.12.55",
-    "date": "2026-10-15",
-    "notes": [
-      "New: 8 Steel Path Boss Killer builds — one strong setup per major boss fight (Eidolon Hydrolyst, Archon Hunts, Profit-Taker, Exploiter Orb, Ropalolyst, Acolytes/Liches/Sisters, Murmur/The Fragmented, plus a general Steel Path boss-killer)",
-      "New: Boss Killer filter chip on the builds page (also at builds.html#boss-killer); the new builds also appear under the existing Boss Hunting filter",
-      "Every mod in the new builds verified against WARFRAME Wiki mod data for correct slot and weapon type; element mods listed in equip order where combination order matters (Radiation + Cold)",
-      "Honest framing: no one-shot guarantees — each build is a strong setup with its boss strategy, not a promise"
-    ]
-  },
-  {
-    "version": "2.12.54",
-    "date": "2026-10-15",
-    "notes": [
-      "New: Hotfix 44.1.2 (Oct 15) — Tau Prologue Quest series added to the Codex (requires completing The Hex and The Old Peace), Epoch Operation: Taubound live from 11 AM ET, Riven Splicing shortcut, Bronco Prime Barrel Ducat price cut 45 to 25, Icebind fixes plus Ash/Chroma/Nova/Secondary Enervate fixes. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
-      "Added 5 new videos: Fluffie Michi — 'Dagath is Now S Tier In Warframe! (Godmode ON)'; tosi-chan — 'Fullstatus Alchemist - LAVOS PRIME | Build Guide Warframe 2026'; Spopes — 'Updated Warframe Farming Guide (Comprehensive)'; LYouRYo — 'The Ultimate Endo Farming Guide'; OmniCross — 'Already Making Plat on Day 2 of the New Warframe Account?!'"
-    ]
-  },
-  {
-    "version": "2.12.53",
-    "date": "2026-10-15",
-    "notes": [
-      "Fixed: countdown timer's accessible text now updates on every tick to match the visible numbers (screen readers no longer hear a stale countdown)",
-      "Timer is explicitly aria-live=off, so the per-second update never spams screen reader announcements"
-    ]
-  },
-  {
-    "version": "2.12.52",
-    "date": "2026-10-15",
-    "notes": [
-      "New: homepage 'Upcoming launches & events' countdown section — live ticking countdowns (days/hrs/min/sec) per entry, data-driven from data/site/countdowns.json",
-      "Seeded with Epoch Operation: Taubound ending Nov 17, 2026 (date verified on warframe.com; no exact end time published, so it counts to end of that day)",
-      "Past events drop off automatically 24h after their target; launches show LIVE NOW and ended events show Ended in the grace window",
-      "No other upcoming Warframe update/event has a confirmed launch date from an official source yet (Warframe: Tau is 'December' with no exact date) — the data file is ready for future dates"
-    ]
-  },
-  {
-    "version": "2.12.51",
-    "date": "2026-10-15",
-    "notes": [
-      "Fixed: shotguns are now classified as shotguns — all 47 shotgun-class weapons (incl. Kuva Sobek) tagged with category 'Shotgun'",
-      "Weapons page gains a Shotgun filter tab + Shotgun badge in weapon details",
-      "Fixed: Vaulty AI now builds shotgun loadouts with shotgun mods (Primed Point Blank / Point Blank, Galvanized Hell / Hell's Chamber, Blunderbuss, Primed Ravage, shotgun 60/60s) instead of rifle mods (Serration, Split Chamber, Point Strike)",
-      "Known gap: MK1-Strun (starter shotgun) is still missing from the weapons list (resolved in v2.12.57 — it was in the data, just missing the Shotgun tag)"
-    ]
-  },
-  {
-    "version": "2.12.50",
-    "date": "2026-10-15",
-    "notes": [
-      "Added 3 new videos: LYouRYo - 'Warframe – Styanax Breakdown | 5 Builds From Beginner to Level Cap'; Rainollon - 'Vadarya Prime Thunder Build Guide' and 'Rubico Prime Field Sniper Build Guide'",
-      "No new official news/hotfixes since Hotfix 44.1.1; Epoch Operation: Taubound begins today (Oct 15-Nov 17)"
-    ]
-  },
-  {
-    "version": "2.12.49",
-    "date": "2026-10-14",
-    "notes": [
-      "Added 1 new video: SanicDX - 'These 2 Insane Volt Builds Let You Do It All | Warframe 2026' (two Volt builds: crowd control, damage, crit buffing)"
-    ]
-  },
-  {
-    "version": "2.12.48",
-    "date": "2026-10-14",
-    "notes": [
-      "Added 1 new video: WarframeFlo - '5 INSANE Builds You NEED to Try in Warframe 2026' (Melee Gauss, Stealth Bomber Jade, Turret Runner Protea, Xata Titania, BrightBonnet 360 Mesa)"
-    ]
-  },
-  {
-    "version": "2.12.47",
-    "date": "2026-10-14",
-    "notes": [
-      "Fixed: Vaulty AI now understands 'hunt for X' and 'grind for X' (e.g. 'where can I hunt for melee arcanes') instead of replying 'don't have anything called'"
-    ]
-  },
-  {
-    "version": "2.12.46",
-    "date": "2026-10-14",
-    "notes": [
-      "Fixed: Vaulty AI now answers arcane adapter questions correctly (Melee Adapter: Market 20p / Bird 3 50k Standing / Netracells; Primary-Secondary Adapters: Teshin 15 Steel Essence)",
-      "Fixed: Secondary Encumber is from Mirror Defense, not Acolytes (AI previously said Acolytes)",
-      "Fixed: melee arcane sources no longer lumped as Eidolons/Orphix"
-    ]
-  },
-  {
-    "version": "2.12.45",
-    "date": "2026-10-14",
-    "notes": [
-      "Correction: 3 more exalted weapons found on re-check (Glory — Jade, Noctua — Dante, Neutralizer — Cyte-09). Exalted total is 24, not 21.",
-      "Weapons total: 645 → 648"
-    ]
-  },
-  {
-    "version": "2.12.44",
-    "date": "2026-10-14",
-    "notes": [
-      "Added all 21 exalted weapons with verified stats (WARFRAME Wiki weapon data): Desert Wind + Prime, Diwata + Prime, Exalted Blade + Prime + Umbra, Iron Staff + Prime, Shadow Claws + Prime, Valkyr Talons + Prime, Balefire Charger + Prime, Dex Pixia + Prime, Regulators + Prime, Artemis Bow + Prime",
-      "Exalted weapons are now searchable and show stats + which warframe they come with",
-      "Weapons total: 624 → 645"
-    ]
-  },
-  {
-    "version": "2.12.43",
-    "date": "2026-10-14",
-    "notes": [
-      "Fixed: What's New bubble restored (whats-new.js was missing from the site)",
-      "Fixed: My Notes Save button restored (notes.js was missing from the site)",
-      "Fixed: mobile tab bar can now appear on touch devices",
-      "Fixed: builds page renders as soon as builds load, mods load in background, with a Loading X/11 progress count",
-      "Added 2 missing builds: Tenet Grigori Max Damage, Felarx Steel Path Destroyer (870 builds total)"
-    ]
-  },
-  {
-    "version": "2.12.41",
-    "date": "2026-10-14",
-    "notes": [
-      "1 new video: iFlynn Ember level-cap build guide (Shock Trooper + Fireball Frenzy, Melee Influence heat spread)"
-    ]
-  },
-  {
-    "version": "2.12.40",
-    "date": "2026-10-13",
-    "notes": [
-      "1 new video: iFlynn Equinox Prime Terrify-nuke build guide"
-    ]
-  },
-  {
-    "version": "2.12.39",
-    "date": "2026-10-13",
-    "notes": [
-      "4 new videos: Gaz TTV weekly reset overview, Icebind community gameplay, NobuWasTaken Citrine Prime 200+ KPM build, Riven Splicing guide"
-    ]
-  },
-  {
-    "date": "2026-10-13",
-    "version": "2.12.37",
-    "notes": [
-      "Kivota easy Narin Steel Path build guide",
-      "wellplayedninjas Banshee rework build & review",
-      "RawFrame Banshee perma-invisibility build",
-      "Video library now at 52 total"
-    ]
-  },
-  {
-    "date": "2026-10-13",
-    "version": "2.12.36",
-    "notes": [
-      "iFlynn Excalibur & Umbra Shield Gate build guide",
-      "NoSympathyy Hydroid Prime Steel Path build",
-      "Fluffie Michi Voruna 0-forma Steel Path nuke build",
-      "Qwinnara Nyx Steel Path immortality build",
-      "Video library now at 49 total"
-    ]
-  },
-  {
-    "date": "2026-10-12",
-    "version": "2.12.35",
-    "notes": [
-      "MHBlacky Citrine Prime builds (budget, status buffer, 2.1B beastmaster, room nuke)",
-      "Rainollon Citrine Prime 2026 build guide",
-      "Engineeeeer toxic status Citrine Prime build guide",
-      "Kivota Citrine Prime Steel Path build guide",
-      "Pupsker Narin review + build",
-      "Video library now at 45 total"
-    ]
-  },
-  {
-    "date": "2026-10-12",
-    "notes": [
-      "iFlynn Update 44 review",
-      "Gaz TTV Icebind day-1 strategy",
-      "NoSympathyy 6-creator Icebind first look",
-      "Pupsker Icebind walkthrough",
-      "KnightmareFrame Icebind review + guide",
-      "Gaz TTV Riven Splicing god-roll meta guide",
-      "Gaz TTV Riven Splicing strategy guide",
-      "Pupsker Icebind workshop loot & gameplay breakdown",
-      "Video library now at 40 total"
-    ],
-    "version": "2.12.10"
-  },
-  {
-    "date": "2026-10-11",
-    "notes": [
-      "5 new videos (32 total)"
-    ],
-    "version": "2.12.9"
-  },
-  {
-    "date": "2026-10-11",
-    "notes": [
-      "4 new Steel Path builds: Shedu Steel Path Shredder, Tenet Grigori Steel Path Blender, Nautilus Prime Best Sentinel Setup, Burst Laser Prime Steel Path Shredder"
-    ],
-    "version": "2.12.7"
-  },
-  {
-    "date": "2026-10-11",
-    "notes": [
-      "Nova Prime Unkillable Nuke build added",
-      "14 arcanes added to Star Chart farm data"
-    ],
-    "version": "2.12.6"
-  },
-  {
-    "date": "2026-10-10",
-    "notes": [
-      "2 new videos (27 total)"
-    ],
-    "version": "2.12.5"
-  },
-  {
-    "date": "2026-10-08",
-    "notes": [
-      "5 new videos: Narin builds, Narin farm guide, Taubound loot previews"
-    ],
-    "version": "2.12.1"
-  }
+ {
+  "version": "2.12.71",
+  "date": "2026-10-19",
+  "notes": [
+   "Void Neon UI redesign (stage 2): deeper void color system with cyan-to-violet gradients, glowing sidebar/tabbar active rails, neon table headers, gradient-edge cards, glassier hero, 44px+ mobile targets, no horizontal scroll.",
+   "All 33 pages restyled via shared stylesheet; hero duplicate line removed.",
+   "Colors: deep void base, cyan (#22d3ee) + violet (#8b5cf6) accent system.",
+   "Mobile: tables scroll inside their own box, no page sideways scroll."
+  ],
+  "notify": true
+ },
+ {
+  "version": "2.12.70",
+  "date": "2026-10-19",
+  "notes": [
+   "2 new Taubound videos: GameTrailers' official Epoch Operation gameplay tease, Voruzhu's 1200 Moonflesh-per-hour solo farm guide. Videos 94 \u2192 96."
+  ],
+  "notify": false
+ },
+ {
+  "version": "2.12.69",
+  "date": "2026-10-19",
+  "notes": [
+   "Update system anti-strand rewrite: the popup now fires whenever the build you're running is older than the published version (it used to silently mark itself seen on stale cached pages), the notice only clears once the new build actually boots, Dismiss/Later is remembered per version, and a failed update re-prompts instead of going quiet."
+  ],
+  "notify": true
+ },
+ {
+  "version": "2.12.68",
+  "date": "2026-10-19",
+  "notes": [
+   "Vault Guide AI: new Steel Path build doctrine \u2014 a general Steel Path modding guide (damage layers, weapon arcanes, aura/exilus picks, frame arcanes, survival) plus 4 curated frame builds with full 8 mods, aura, exilus and arcanes (Saryn nuke, Rhino Roar buffer, Revenant endurance, Nova nuke). Ask 'build me a general steel path strong build' for the guide. No new hotfix since 44.1.2 + 2.1."
+  ],
+  "notify": true
+ },
+ {
+  "version": "2.12.67",
+  "date": "2026-10-18",
+  "notes": [
+   "2 new videos (Arsenyx Narin weapon-platform + ice-nuke build, Grind Hard Squad 200-plat Arcane Steadfast farm). No new hotfix since 44.1.2 + 2.1. News: PMCF charity streams Oct 19-25, Prime Time #502."
+  ],
+  "notify": false
+ },
+ {
+  "version": "2.12.66",
+  "date": "2026-10-18",
+  "notes": [
+   "3 new videos: Grind Hard Squad Nekros farming build, Gaz TTV updated Mirage build, Gaz TTV Vauban rework AOE build. No new hotfix since 44.1.2 + 2.1."
+  ],
+  "notify": false
+ },
+ {
+  "version": "2.12.65",
+  "date": "2026-10-18",
+  "notes": [
+   "3 new videos (Gaz spliced-riven Kuva Grattler build, Kengineer riven overhaul guide, NobuWasTaken Taubound guide). No new hotfix since 44.1.2 + 2.1."
+  ],
+  "notify": false
+ },
+ {
+  "version": "2.12.64",
+  "date": "2026-10-17",
+  "notes": [
+   "1 new video (Gaz Sevagoth Prime AOE nuke build). No new hotfix since 44.1.2 + 2.1."
+  ],
+  "notify": false
+ },
+ {
+  "version": "2.12.63",
+  "date": "2026-10-17",
+  "notes": [
+   "Added 2 videos: Pupsker \u2014 Best Moonflesh Farming Cyte-09! Fast Legendary Core & Cosmetics! (Moonflesh farm, Taubound) and Gaz TTV \u2014 Eskhatos (Spooky Baro) Ki'Teer Has Arrived! Full Inventory Review 10/16/2026 (Baro inventory review). Video library now at 85 total.",
+   "Checked: no new hotfix since 44.1.2 + 2.1; no new warframes/weapons/mods. Counts unchanged: 123 / 648 / 1,757 / 878 / 26 / 85 videos."
+  ]
+ },
+ {
+  "version": "2.12.62",
+  "date": "2026-10-17",
+  "notes": [
+   "Fixed: 11 Magus arcanes (Lockdown, Anomaly, Drive, Repair, Destruct, Firewall, Melt, Overload, Accelerant, Glitch, Revert) now correctly list Vox Solaris / Little Duck (Fortuna) instead of Quills; Virtuos Forge/Trojan/Spike/Surge fixed the same way. Source: WARFRAME Wiki arcane-source table.",
+   "Fixed: Secondary Encumber now lists Mirror Defense Rotation C (5.7%) + Otak (60 Belric + 60 Rania Fragments) instead of 1999 Nokko bounties. Source: WARFRAME Wiki.",
+   "Fixed: Mod Swaps numbers updated to the Update 34.0 (Oct 2023) stat overhaul \u2014 Vitality +100% (was +440%), Steel Fiber +100% (was +110%), Vigor +50%/+50% (was +220%), Umbral set bonuses +130%/+180%, Umbral Intensify +77% with full 3-mod set; Corrupted mods (Blind Rage, Transient Fortitude, Critical Delay/Deceleration, Spoiled Strike) now list Orokin Vaults only; Galvanized Aptitude effect corrected; Primed Pressure Point is a Daily Tribute milestone, not Baro.",
+   "Fixed: Vaulty AI \u2014 Magus arcanes split correctly (Quills vs Vox Solaris), Amp arcanes (Eternal set is Zariman, not Cavia), Galvanized mods come from Arbitrations (20 Vitus Essence), not Steel Path Acolytes; fixed 'Deep Archimedia' typo.",
+   "Fixed: Charged Chamber corrected to +30% (rank 2; Wiki ranks are 10/20/30/40%, max +40%) \u2014 the +60% value did not exist; tip corrected.",
+   "Fixed: bottom tab bar now only shows on touch devices (CSS) \u2014 PC narrow windows no longer get it via the unconditioned rule; the JS fallback was already hiding it.",
+   "Fixed: Mods page \u2014 'Filter 1,800+ mods' -> '1,700+' (1,757 rows) and removed the '(max rank)' label from the detail view (first matching row isn't always the max-rank value).",
+   "New: Nights of Naberus countdown \u2014 ends Mon Nov 2, 11 AM ET (Daughter's shop + Hallowed Nightmares). Source: warframe.com.",
+   "Added 1 video: Tactical Potato \u2014 Warframes One-Time Event You Can't Ignore! Tau Inbound!",
+   "Checked: no new hotfix since 44.1.2.1; no new warframes/weapons/mods. Counts unchanged: 123 / 648 / 1,757 / 878 / 26 / 83 videos. Baro (Scare-o Ki'Teer) is live until Sun Oct 18, 9 AM ET \u2014 verified via warframestat.us; countdown drops off automatically."
+  ]
+ },
+ {
+  "version": "2.12.61",
+  "date": "2026-10-16",
+  "notes": [
+   "Added 1 new video: LeyzarGamingViews \u2014 Coda Bubonico build guide (Technocyte Coda shotgun). Video library now at 82 total.",
+   "Checked: the 2 other videos flagged this run (Gaz Moonflesh farm, Hunkpain Taubound guide) were already in the library \u2014 no duplicates added. No new hotfix since Hotfix 44.1.2.1. Two new official news items (Devourer single, Golden Joysticks vote) appear via the live news feed."
+  ]
+ },
+ {
+  "version": "2.12.60",
+  "date": "2026-10-16",
+  "notes": [
+   "New: Scare-o Ki'Teer (Baro) visit \u2014 Orcus Relay, Pluto, ends Sun Oct 18, 9 AM ET. Homepage countdown added. Source: warframestat.us voidTrader.",
+   "Checked: the 3 Taubound videos flagged this run were already in v2.12.59 \u2014 no duplicates added. No new hotfix since Hotfix 44.1.2.1."
+  ]
+ },
+ {
+  "version": "2.12.59",
+  "date": "2026-10-16",
+  "notes": [
+   "Added 3 new videos: MHBlacky \u2014 full Operation: Taubound guide (best Moonflesh farming strategy + reward priorities); Tactical Potato \u2014 Taubound complete guide (Moonflesh farming, reward priorities, daily dialogue, Tau Prologue); Gaz \u2014 Taubound live overview + full quest gameplay. Video library now at 81 total.",
+   "No new hotfix since Hotfix 44.1.2.1; no new warframes/weapons/mods."
+  ]
+ },
+ {
+  "version": "2.12.58",
+  "date": "2026-10-15",
+  "notes": [
+   "New: Devstream #198 date confirmed \u2014 Fri Oct 30, 2 PM ET (first Tau showcase, Tauforged Archon Shard Grab Bag Twitch drop). Homepage countdown added. Source: warframe.com Devstream 197 overview + official Steam announcement.",
+   "Added 4 new videos: Rainollon \u2014 Scyotid build guide; iFlynn \u2014 Dagath build guide; Pupsker \u2014 Devstream #198 / Tauforged drop; iFlynn \u2014 Warframe news (Riven Splicer nerf, Icebind low-manning, Taubound). Video library now at 78 total.",
+   "No new hotfix since Hotfix 44.1.2.1; no new warframes/weapons/mods in this cycle."
+  ]
+ },
+ {
+  "version": "2.12.57",
+  "date": "2026-10-15",
+  "notes": [
+   "Fixed: Shotgun filter now shows all 53 shotguns (was 47) \u2014 MK1-Strun, Bubonico, Cedo Prime, Coda Bassocyst, Coda Bubonico and Steflos Prime were in the data but missing the Shotgun tag, so the filter hid them. MK1-Strun stats verified against WARFRAME Wiki (18 damage/pellet x 10 pellets = 180 per shot, 7.5% crit, 6% status, MR 0)",
+   "New: weapon detail view shows Pellets + Damage per shot (all pellets) for multi-pellet weapons, so shotgun damage is no longer understated as per-pellet damage",
+   "Fixed: What's New dot now clears as soon as the panel is opened (was: only on close, so Escape / outside-click left the dot stuck on)",
+   "Verified live via test-run: countdowns tick + a11y labels sync + Ended/drop-off, Boss Killer filter = 8 builds, homepage counts 123 / 648 / 1,757 / 878 / 26 / 74"
+  ]
+ },
+ {
+  "version": "2.12.56",
+  "date": "2026-10-15",
+  "notes": [
+   "New: Hotfix 44.1.2.1 follow-up (Oct 15) \u2014 fixed crashing / severe performance issues when entering The Dark Refractory as part of the Lua quest in the Prologue to Tau. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
+   "New: Devstream #198 - Tau Part One announced (coming soon, date TBA) \u2014 no countdown added until DE confirms a date.",
+   "New: Epoch Operation: Taubound is now live (Oct 15 \u2013 Nov 17) \u2014 news feed updated; no new warframes/weapons/mods in this hotfix, Taubound rewards are cosmetics + returning items (Haalvu, Spectra Vandal, Basmu).",
+   "Added 4 new videos: Gaz TTV \u2014 'Stop Wasting Time: The Best Way to Farm Moonflesh In Warframe'; Hunkpain Gaming \u2014 'Warframe Taubound Event Guide: Fast Moonflesh Farm & Best Rewards!'; Pupsker \u2014 'Epoch Operation Taubound! New Loot Cosmetics Skins Everything Guide!'; PlayWarframe \u2014 'Devshorts 119: Epoch Operation: Taubound Launches Tomorrow!'"
+  ]
+ },
+ {
+  "version": "2.12.55",
+  "date": "2026-10-15",
+  "notes": [
+   "New: 8 Steel Path Boss Killer builds \u2014 one strong setup per major boss fight (Eidolon Hydrolyst, Archon Hunts, Profit-Taker, Exploiter Orb, Ropalolyst, Acolytes/Liches/Sisters, Murmur/The Fragmented, plus a general Steel Path boss-killer)",
+   "New: Boss Killer filter chip on the builds page (also at builds.html#boss-killer); the new builds also appear under the existing Boss Hunting filter",
+   "Every mod in the new builds verified against WARFRAME Wiki mod data for correct slot and weapon type; element mods listed in equip order where combination order matters (Radiation + Cold)",
+   "Honest framing: no one-shot guarantees \u2014 each build is a strong setup with its boss strategy, not a promise"
+  ]
+ },
+ {
+  "version": "2.12.54",
+  "date": "2026-10-15",
+  "notes": [
+   "New: Hotfix 44.1.2 (Oct 15) \u2014 Tau Prologue Quest series added to the Codex (requires completing The Hex and The Old Peace), Epoch Operation: Taubound live from 11 AM ET, Riven Splicing shortcut, Bronco Prime Barrel Ducat price cut 45 to 25, Icebind fixes plus Ash/Chroma/Nova/Secondary Enervate fixes. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
+   "Added 5 new videos: Fluffie Michi \u2014 'Dagath is Now S Tier In Warframe! (Godmode ON)'; tosi-chan \u2014 'Fullstatus Alchemist - LAVOS PRIME | Build Guide Warframe 2026'; Spopes \u2014 'Updated Warframe Farming Guide (Comprehensive)'; LYouRYo \u2014 'The Ultimate Endo Farming Guide'; OmniCross \u2014 'Already Making Plat on Day 2 of the New Warframe Account?!'"
+  ]
+ },
+ {
+  "version": "2.12.53",
+  "date": "2026-10-15",
+  "notes": [
+   "Fixed: countdown timer's accessible text now updates on every tick to match the visible numbers (screen readers no longer hear a stale countdown)",
+   "Timer is explicitly aria-live=off, so the per-second update never spams screen reader announcements"
+  ]
+ },
+ {
+  "version": "2.12.52",
+  "date": "2026-10-15",
+  "notes": [
+   "New: homepage 'Upcoming launches & events' countdown section \u2014 live ticking countdowns (days/hrs/min/sec) per entry, data-driven from data/site/countdowns.json",
+   "Seeded with Epoch Operation: Taubound ending Nov 17, 2026 (date verified on warframe.com; no exact end time published, so it counts to end of that day)",
+   "Past events drop off automatically 24h after their target; launches show LIVE NOW and ended events show Ended in the grace window",
+   "No other upcoming Warframe update/event has a confirmed launch date from an official source yet (Warframe: Tau is 'December' with no exact date) \u2014 the data file is ready for future dates"
+  ]
+ },
+ {
+  "version": "2.12.51",
+  "date": "2026-10-15",
+  "notes": [
+   "Fixed: shotguns are now classified as shotguns \u2014 all 47 shotgun-class weapons (incl. Kuva Sobek) tagged with category 'Shotgun'",
+   "Weapons page gains a Shotgun filter tab + Shotgun badge in weapon details",
+   "Fixed: Vaulty AI now builds shotgun loadouts with shotgun mods (Primed Point Blank / Point Blank, Galvanized Hell / Hell's Chamber, Blunderbuss, Primed Ravage, shotgun 60/60s) instead of rifle mods (Serration, Split Chamber, Point Strike)",
+   "Known gap: MK1-Strun (starter shotgun) is still missing from the weapons list (resolved in v2.12.57 \u2014 it was in the data, just missing the Shotgun tag)"
+  ]
+ },
+ {
+  "version": "2.12.50",
+  "date": "2026-10-15",
+  "notes": [
+   "Added 3 new videos: LYouRYo - 'Warframe \u2013 Styanax Breakdown | 5 Builds From Beginner to Level Cap'; Rainollon - 'Vadarya Prime Thunder Build Guide' and 'Rubico Prime Field Sniper Build Guide'",
+   "No new official news/hotfixes since Hotfix 44.1.1; Epoch Operation: Taubound begins today (Oct 15-Nov 17)"
+  ]
+ },
+ {
+  "version": "2.12.49",
+  "date": "2026-10-14",
+  "notes": [
+   "Added 1 new video: SanicDX - 'These 2 Insane Volt Builds Let You Do It All | Warframe 2026' (two Volt builds: crowd control, damage, crit buffing)"
+  ]
+ },
+ {
+  "version": "2.12.48",
+  "date": "2026-10-14",
+  "notes": [
+   "Added 1 new video: WarframeFlo - '5 INSANE Builds You NEED to Try in Warframe 2026' (Melee Gauss, Stealth Bomber Jade, Turret Runner Protea, Xata Titania, BrightBonnet 360 Mesa)"
+  ]
+ },
+ {
+  "version": "2.12.47",
+  "date": "2026-10-14",
+  "notes": [
+   "Fixed: Vaulty AI now understands 'hunt for X' and 'grind for X' (e.g. 'where can I hunt for melee arcanes') instead of replying 'don't have anything called'"
+  ]
+ },
+ {
+  "version": "2.12.46",
+  "date": "2026-10-14",
+  "notes": [
+   "Fixed: Vaulty AI now answers arcane adapter questions correctly (Melee Adapter: Market 20p / Bird 3 50k Standing / Netracells; Primary-Secondary Adapters: Teshin 15 Steel Essence)",
+   "Fixed: Secondary Encumber is from Mirror Defense, not Acolytes (AI previously said Acolytes)",
+   "Fixed: melee arcane sources no longer lumped as Eidolons/Orphix"
+  ]
+ },
+ {
+  "version": "2.12.45",
+  "date": "2026-10-14",
+  "notes": [
+   "Correction: 3 more exalted weapons found on re-check (Glory \u2014 Jade, Noctua \u2014 Dante, Neutralizer \u2014 Cyte-09). Exalted total is 24, not 21.",
+   "Weapons total: 645 \u2192 648"
+  ]
+ },
+ {
+  "version": "2.12.44",
+  "date": "2026-10-14",
+  "notes": [
+   "Added all 21 exalted weapons with verified stats (WARFRAME Wiki weapon data): Desert Wind + Prime, Diwata + Prime, Exalted Blade + Prime + Umbra, Iron Staff + Prime, Shadow Claws + Prime, Valkyr Talons + Prime, Balefire Charger + Prime, Dex Pixia + Prime, Regulators + Prime, Artemis Bow + Prime",
+   "Exalted weapons are now searchable and show stats + which warframe they come with",
+   "Weapons total: 624 \u2192 645"
+  ]
+ },
+ {
+  "version": "2.12.43",
+  "date": "2026-10-14",
+  "notes": [
+   "Fixed: What's New bubble restored (whats-new.js was missing from the site)",
+   "Fixed: My Notes Save button restored (notes.js was missing from the site)",
+   "Fixed: mobile tab bar can now appear on touch devices",
+   "Fixed: builds page renders as soon as builds load, mods load in background, with a Loading X/11 progress count",
+   "Added 2 missing builds: Tenet Grigori Max Damage, Felarx Steel Path Destroyer (870 builds total)"
+  ]
+ },
+ {
+  "version": "2.12.41",
+  "date": "2026-10-14",
+  "notes": [
+   "1 new video: iFlynn Ember level-cap build guide (Shock Trooper + Fireball Frenzy, Melee Influence heat spread)"
+  ]
+ },
+ {
+  "version": "2.12.40",
+  "date": "2026-10-13",
+  "notes": [
+   "1 new video: iFlynn Equinox Prime Terrify-nuke build guide"
+  ]
+ },
+ {
+  "version": "2.12.39",
+  "date": "2026-10-13",
+  "notes": [
+   "4 new videos: Gaz TTV weekly reset overview, Icebind community gameplay, NobuWasTaken Citrine Prime 200+ KPM build, Riven Splicing guide"
+  ]
+ },
+ {
+  "date": "2026-10-13",
+  "version": "2.12.37",
+  "notes": [
+   "Kivota easy Narin Steel Path build guide",
+   "wellplayedninjas Banshee rework build & review",
+   "RawFrame Banshee perma-invisibility build",
+   "Video library now at 52 total"
+  ]
+ },
+ {
+  "date": "2026-10-13",
+  "version": "2.12.36",
+  "notes": [
+   "iFlynn Excalibur & Umbra Shield Gate build guide",
+   "NoSympathyy Hydroid Prime Steel Path build",
+   "Fluffie Michi Voruna 0-forma Steel Path nuke build",
+   "Qwinnara Nyx Steel Path immortality build",
+   "Video library now at 49 total"
+  ]
+ },
+ {
+  "date": "2026-10-12",
+  "version": "2.12.35",
+  "notes": [
+   "MHBlacky Citrine Prime builds (budget, status buffer, 2.1B beastmaster, room nuke)",
+   "Rainollon Citrine Prime 2026 build guide",
+   "Engineeeeer toxic status Citrine Prime build guide",
+   "Kivota Citrine Prime Steel Path build guide",
+   "Pupsker Narin review + build",
+   "Video library now at 45 total"
+  ]
+ },
+ {
+  "date": "2026-10-12",
+  "notes": [
+   "iFlynn Update 44 review",
+   "Gaz TTV Icebind day-1 strategy",
+   "NoSympathyy 6-creator Icebind first look",
+   "Pupsker Icebind walkthrough",
+   "KnightmareFrame Icebind review + guide",
+   "Gaz TTV Riven Splicing god-roll meta guide",
+   "Gaz TTV Riven Splicing strategy guide",
+   "Pupsker Icebind workshop loot & gameplay breakdown",
+   "Video library now at 40 total"
+  ],
+  "version": "2.12.10"
+ },
+ {
+  "date": "2026-10-11",
+  "notes": [
+   "5 new videos (32 total)"
+  ],
+  "version": "2.12.9"
+ },
+ {
+  "date": "2026-10-11",
+  "notes": [
+   "4 new Steel Path builds: Shedu Steel Path Shredder, Tenet Grigori Steel Path Blender, Nautilus Prime Best Sentinel Setup, Burst Laser Prime Steel Path Shredder"
+  ],
+  "version": "2.12.7"
+ },
+ {
+  "date": "2026-10-11",
+  "notes": [
+   "Nova Prime Unkillable Nuke build added",
+   "14 arcanes added to Star Chart farm data"
+  ],
+  "version": "2.12.6"
+ },
+ {
+  "date": "2026-10-10",
+  "notes": [
+   "2 new videos (27 total)"
+  ],
+  "version": "2.12.5"
+ },
+ {
+  "date": "2026-10-08",
+  "notes": [
+   "5 new videos: Narin builds, Narin farm guide, Taubound loot previews"
+  ],
+  "version": "2.12.1"
+ }
 ]
