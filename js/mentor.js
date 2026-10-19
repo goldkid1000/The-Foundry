@@ -612,16 +612,11 @@
       try { if (window.TV && typeof window.TV.getOnlineCount === 'function') n = window.TV.getOnlineCount(); } catch (e) {}
       if (n > 1) msg = n + ' Tenno browsing the Vault right now! 🎉';
     }
-    var roll = Math.random();
-    if (roll < 0.35) {
-      /* 35%: run across the screen saying the message */
-      walkAcross(msg);
-    } else {
-      /* rest: wave or dance */
-      var doDance = Math.random() < 0.3;
-      say(msg, { duration: 8000 });
-      setTimeout(function () { doDance ? dance() : wave(); }, 400);
-    }
+    /* v2.14.0: Vaulty is stationary — no more walking across the screen.
+       He stays parked by the chat bubble; wave or dance in place instead. */
+    var doDance = Math.random() < 0.4;
+    say(msg, { duration: 8000 });
+    setTimeout(function () { doDance ? dance() : wave(); }, 400);
     schedulePopup();
   }
 
@@ -690,9 +685,10 @@
     /* v2.12.30: if user placed him, keep his spot (clamped to new viewport) */
     window.addEventListener('resize', function () {
       resetPosition();
-      /* recalc home for new viewport size */
-      shimeji.homeX = 8;
-      shimeji.homeY = Math.max(200, window.innerHeight * 0.45);
+      /* recalc home for new viewport size — parked by the chat bubble */
+      var rh = stationaryHome();
+      shimeji.homeX = rh.x;
+      shimeji.homeY = rh.y;
       if (shimeji.userPlaced && !shimeji.dragging) {
         /* keep his spot, just clamp inside the new viewport */
         shimeji.x = Math.max(0, Math.min(window.innerWidth - 80, shimeji.x));
@@ -720,13 +716,23 @@
     userPlaced: false        // v2.12.30: true after user drags him — resize keeps his spot
   };
 
+  /* v2.14.0: stationary home — parked left of the chat bubble (right:18px, 52px wide,
+     bottom:84px), aligned at the same height. He doesn't wander anymore. */
+  function stationaryHome() {
+    return {
+      x: Math.max(0, window.innerWidth - 18 - 52 - 16 - 90),
+      y: Math.max(60, window.innerHeight - 84 - 100)
+    };
+  }
+
   function shimejiInit() {
     if (isMobileFaceMode()) return; /* v2.12.73: face bubble replaces shimeji on mobile */
     if (reducedMotion || !els.wrap) return;
     els.wrap.classList.add('shimeji');
-    /* home spot: left edge, vertically centered — comfortable, out of the way */
-    shimeji.x = 8;
-    shimeji.y = Math.max(200, window.innerHeight * 0.45);
+    /* v2.14.0 home: parked left of the chat bubble, same height — stationary */
+    var h0 = stationaryHome();
+    shimeji.x = h0.x;
+    shimeji.y = h0.y;
     shimeji.homeX = shimeji.x;
     shimeji.homeY = shimeji.y;
     positionShimeji();
@@ -914,6 +920,9 @@
       }
       positionShimeji();
     } else if (shimeji.state === 'walking') {
+      /* v2.14.0: stationary — never move on his own; snap back to idle */
+      shimeji.state = 'idle';
+      if (els.char) els.char.classList.remove('walk-anim');
       /* walk in facing direction */
       shimeji.x += 2 * shimeji.dir;
       if (shimeji.x <= 0) { shimeji.x = 0; shimeji.dir = 1; flipShimeji(); }
@@ -940,51 +949,10 @@
       return;
     }
     var roll = Math.random();
-    if (roll < 0.25) {
-      /* short walk, then return home */
-      shimeji.state = 'walking';
-      shimeji.dir = 1; /* walk right, away from left edge */
-      flipShimeji();
-      if (els.char) els.char.classList.add('walk-anim');
-      /* walk for 2-3 seconds, then walk back home */
-      setTimeout(function () {
-        shimeji.dir = -1; /* head back left */
-        flipShimeji();
-        setTimeout(function () {
-          shimeji.state = 'idle';
-          shimeji.x = shimeji.homeX;
-          shimeji.y = shimeji.homeY;
-          positionShimeji();
-          if (els.char) els.char.classList.remove('walk-anim');
-        }, 2000);
-      }, 2000 + Math.random() * 1000);
-    } else if (roll < 0.35) {
-      /* peek-a-boo: briefly duck behind left edge, then pop out */
-      /* v2.12.12 FIX: clear transition immediately on drag so it never lags */
-      if (els.wrap) {
-        els.wrap.style.transition = 'left .3s ease';
-        els.wrap.style.left = '-15px';
-        var peekTimer = setTimeout(function () {
-          if (!els.wrap) return;
-          els.wrap.style.left = shimeji.homeX + 'px';
-          /* pop! */
-          if (els.char && !reducedMotion) {
-            els.char.classList.add('excited');
-            setTimeout(function () { if (els.char) els.char.classList.remove('excited'); }, 800);
-          }
-          setTimeout(function () { if (els.wrap) els.wrap.style.transition = ''; }, 500);
-        }, 1200);
-        /* if user grabs him mid-peek, cancel the peek instantly */
-        var cancelPeek = function () {
-          clearTimeout(peekTimer);
-          if (els.wrap) {
-            els.wrap.style.transition = '';
-            /* drag handler will set position */
-          }
-          els.char.removeEventListener('pointerdown', cancelPeek);
-        };
-        els.char.addEventListener('pointerdown', cancelPeek);
-      }
+    /* v2.14.0: Vaulty is stationary — walk and peek-a-boo move him, so skip both.
+       Nap, jump, spin, wave all happen in place and are fine. */
+    if (roll < 0.35) {
+      /* v2.14.0: walk + peek-a-boo disabled (stationary) — chill instead */
     } else if (roll < 0.45) {
       /* take a nap */
       shimeji.state = 'sleeping';
