@@ -1,8 +1,8 @@
 {
-  "version": "2.17.1",
+  "version": "2.17.2",
   "updated": "2026-10-20",
-  "notify": true,
+  "notify": false,
   "notes": [
-    "Tuesday audit pass: images filled for 42 weapons + 21 amp parts + Archgun Deployer (all URLs verified via warframestat.us); removed a duplicate Melee Riven Mod entry; countdowns refreshed — expired Scare-o Ki'Teer removed, Baro Ki'Teer return (Oct 23-25) and Ghoul Purge (ends Nov 9) added."
+    "2 new videos: Wickedfun Scare-o Ki'Teer full inventory (Trading); Gaz weekly reset overview for week of Oct 18 (Farming)."
   ]
 }

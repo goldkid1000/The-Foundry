@@ -898,5 +898,23 @@
   "description": "Complete 2026 Steel Path beginner guide: unlocking it, enemy scaling, Steel Essence farm, Acolytes, Teshin's shop, Circuit & Incarnons, survival, modding, shields/armour, arcanes, Archon Shards, Helminth, and a first-week plan. (Upload ~Oct 17, 2026.)",
   "item": "Steel Path",
   "type": "beginner"
+ },
+ {
+  "id": "ccPbYCwFk2Q",
+  "title": "Warframe - Scare-o Ki'Teer Returns! [16th October 2026]",
+  "channel": "Wickedfun",
+  "category": "Trading",
+  "description": "Full Scare-o (Eskhatos) Ki'Teer inventory at Orcus Relay, Pluto \u2014 new Eskhatos cosmetics (necramech skin, sugatra, floof, grimoire + Silva & Aegis skins, ephemera, glyphs), Primed mods, Prisma Teta/Twin Gremlins, Axi V8 relic, Baro Void Signal, Void Surplus. (Upload ~Oct 16, 2026.)",
+  "item": "Baro Ki'Teer",
+  "type": "guide"
+ },
+ {
+  "id": "QLKJCXMRbUE",
+  "title": "This Week In Warframe - FULL Weekly Reset Overview Week Of 10/18/2026",
+  "channel": "Gaz TTV",
+  "category": "Farming",
+  "description": "Weekly reset roundup for the week of Oct 18, 2026 \u2014 Teshin, Dormizone, Descendia, ETA/EDA, Bird 3, Archon Hunt, Steel Path Circuit/Incarnon rotation, Nightwave challenges/shop, plus riven/ammo-efficiency patch notes.",
+  "item": "Weekly Reset",
+  "type": "guide"
  }
 ]
