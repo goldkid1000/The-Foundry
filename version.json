@@ -1,8 +1,8 @@
 {
-  "version": "2.16.0",
+  "version": "2.16.1",
   "updated": "2026-10-19",
-  "notify": true,
+  "notify": false,
   "notes": [
-    "Mobile rebuilt from scratch \u2014 clean layout, Vaulty + chat level, no ghosts."
+    "1 new build video: Ocucor 2026 build guide (LeyzarGamingViews)."
   ]
 }
