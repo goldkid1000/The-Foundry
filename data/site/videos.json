@@ -889,5 +889,14 @@
   "description": "Full Ocucor build setup with mod and arcane walkthrough plus in-action gameplay showcase. (Upload ~Oct 18, 2026.)",
   "item": "Ocucor",
   "type": "build"
+ },
+ {
+  "id": "0y8vp942G1Y",
+  "title": "Most Steel Path Guides Are WRONG (Warframe Beginner Guide 2026)",
+  "channel": "iFlynn",
+  "category": "Beginner",
+  "description": "Complete 2026 Steel Path beginner guide: unlocking it, enemy scaling, Steel Essence farm, Acolytes, Teshin's shop, Circuit & Incarnons, survival, modding, shields/armour, arcanes, Archon Shards, Helminth, and a first-week plan. (Upload ~Oct 17, 2026.)",
+  "item": "Steel Path",
+  "type": "beginner"
  }
 ]
