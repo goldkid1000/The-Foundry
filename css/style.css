@@ -1048,15 +1048,8 @@ a.card:active { transform: scale(.98); }
   box-shadow: 0 2px 10px rgba(0,0,0,.4);
   animation: tv-mentor-bob 3.2s ease-in-out infinite;
 }
-.tv-mentor-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
-  box-shadow: 0 0 6px #4ade80; flex-shrink: 0;
-  animation: tv-mentor-pulse 2s ease-in-out infinite;
-}
-@keyframes tv-mentor-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .5; }
-}
+/* v2.17.0: orphaned dot rules deleted (pre-rebuild badge/minimize system;
+   nothing creates that element anymore). */
 /* v2.15.0: speech bubble + close button DELETED — no bubble, no × anywhere */
 @media (max-width: 640px) {
   #tv-mentor { left: 10px; bottom: 10px; }
@@ -1066,7 +1059,7 @@ a.card:active { transform: scale(.98); }
   .tv-mentor-char, .tv-mentor-badge, #tm-eyes,
   .tv-mentor-char.attn, .tv-mentor-char.wave, .tv-mentor-char.dance,
   .tv-mentor-char.squash, .tv-mentor-char.point-anim #tm-arm-r,
-  #tv-mentor.entering, .tv-mentor-dot { animation: none !important; }
+  #tv-mentor.entering { animation: none !important; }
   #tv-mentor { transition: none; }
 }
 
@@ -2560,6 +2553,9 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
    ONE source of truth for mobile layout. This block comes last
    so it wins over every legacy mobile patch above it.
    Simple > clever. Static > dynamic. No ghosts possible.
+   v2.17.0 — re-verified intact: Vaulty left bottom:84px level
+   with chat right, tab bar safe-area, overflow-x clip, 44px
+   targets, fullscreen (100dvh + manifest display:fullscreen).
    ============================================================ */
 @media (max-width: 767px) {
 

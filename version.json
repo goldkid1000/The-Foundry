@@ -1,8 +1,8 @@
 {
-  "version": "2.16.2",
+  "version": "2.17.0",
   "updated": "2026-10-20",
-  "notify": false,
+  "notify": true,
   "notes": [
-    "1 new beginner video: Steel Path 2026 beginner guide (iFlynn)."
+    "Mobile redone — updates now reach your phone automatically. No more manual cache clearing: the app checks itself on every load and heals stale copies on its own."
   ]
 }

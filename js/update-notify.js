@@ -17,7 +17,48 @@
   'use strict';
 
   /* BUMP WITH EVERY RELEASE — this is how the running page knows its own age */
-  var TV_BUILD_VERSION = '2.16.0';
+  var TV_BUILD_VERSION = '2.17.0';
+
+  /* v2.17.0 — BOOT SELF-HEAL (the permanent stale-cache fix).
+     Problem it ends: Safari's HTTP cache can serve an old index.html, which
+     then loads old ?v= assets — the phone looks "stuck" on an old build for
+     days and no push can reach it, because the stale page never asks the
+     server for anything new.
+     Fix: on every boot, fetch version.json with cache:'no-store' (always
+     hits the network). If the published version differs from this page's
+     baked-in TV_BUILD_VERSION, this page IS stale → unregister all service
+     workers, delete ALL Cache Storage caches, and reload once. A
+     sessionStorage guard (shared with the inline boot script in index.html)
+     records the version we healed toward, so it can never loop: if the
+     reload still serves the old build (deploy still propagating), we wait
+     quietly instead of reloading forever. */
+  (function bootSelfHeal() {
+    var GUARD_KEY = 'tv-selfheal-target';
+    function healedTarget() {
+      try { return sessionStorage.getItem(GUARD_KEY); } catch (e) { return null; }
+    }
+    fetch('version.json', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.version || data.version === TV_BUILD_VERSION) return;
+        if (healedTarget() === data.version) return; /* already healed once */
+        try { sessionStorage.setItem(GUARD_KEY, data.version); } catch (e) {}
+        var wipeSW = ('serviceWorker' in navigator)
+          ? navigator.serviceWorker.getRegistrations().then(function (regs) {
+              return Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }).catch(function () {})
+          : Promise.resolve();
+        var wipeCaches = ('caches' in window)
+          ? caches.keys().then(function (names) {
+              return Promise.all(names.map(function (n) { return caches.delete(n); }));
+            }).catch(function () {})
+          : Promise.resolve();
+        Promise.all([wipeSW, wipeCaches]).then(function () {
+          window.location.reload();
+        });
+      })
+      .catch(function () { /* offline — stay quiet */ });
+  })();
 
   var CHECK_INTERVAL = 15 * 60 * 1000; /* check every 15 minutes */
   var updating = false;
@@ -209,66 +250,13 @@
   window.TV.checkForUpdate = check;
   window.TV.buildVersion = TV_BUILD_VERSION;
 })();
-/* v2.12.72 joy-of-use: Vaulty mobile parking + scroll reveals.
-   Runs on every page (this file loads site-wide). */
+/* v2.12.72 joy-of-use: scroll reveals. Runs on every page (site-wide).
+   v2.17.0: the old Vaulty ×-minimize injection that lived here is DELETED.
+   Giel's standing rule is no × anywhere on Vaulty, and the button it
+   appended (plus its restore dot) was a leftover ghost-element source
+   from before the v2.15.0 rebuild. Vaulty is owned by mentor.js alone now. */
 (function () {
   'use strict';
-
-  var MIN_KEY = 'tv-vaulty-min';
-  var MOBILE_Q = '(max-width: 600px)';
-
-  function isMobile() {
-    return window.matchMedia && window.matchMedia(MOBILE_Q).matches;
-  }
-
-  /* --- Vaulty: × minimizes him to a tiny dot; state remembered --- */
-  function setupVaulty(el) {
-    if (!isMobile() || el.dataset.tvMinSetup) return;
-    el.dataset.tvMinSetup = '1';
-
-    var minBtn = document.createElement('button');
-    minBtn.id = 'tv-mentor-min';
-    minBtn.type = 'button';
-    minBtn.setAttribute('aria-label', 'Minimize Vaulty');
-    minBtn.textContent = '\u00d7';
-    minBtn.addEventListener('click', function (ev) {
-      ev.stopPropagation();
-      setMin(el, true);
-    });
-    el.appendChild(minBtn);
-
-    var dot = document.createElement('button');
-    dot.id = 'tv-mentor-dot';
-    dot.type = 'button';
-    dot.setAttribute('aria-label', 'Show Vaulty');
-    var inner = document.createElement('span');
-    dot.appendChild(inner);
-    dot.addEventListener('click', function (ev) {
-      ev.stopPropagation();
-      setMin(el, false);
-    });
-    el.appendChild(dot);
-
-    try { if (localStorage.getItem(MIN_KEY) === '1') el.classList.add('tv-minimized'); } catch (e) {}
-  }
-
-  function setMin(el, min) {
-    el.classList.toggle('tv-minimized', !!min);
-    try { localStorage.setItem(MIN_KEY, min ? '1' : '0'); } catch (e) {}
-  }
-
-  function initVaulty() {
-    var el = document.getElementById('tv-mentor');
-    if (el) { setupVaulty(el); return; }
-    /* mentor.js injects the markup — watch for it briefly */
-    if (!('MutationObserver' in window)) return;
-    var obs = new MutationObserver(function () {
-      var m = document.getElementById('tv-mentor');
-      if (m) { setupVaulty(m); obs.disconnect(); }
-    });
-    obs.observe(document.documentElement, { childList: true, subtree: true });
-    setTimeout(function () { obs.disconnect(); }, 15000);
-  }
 
   /* --- scroll reveals: subtle rise on cards/panels --- */
   function initReveals() {
@@ -291,7 +279,7 @@
     });
   }
 
-  function init() { initVaulty(); initReveals(); }
+  function init() { initReveals(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
