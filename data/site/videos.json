@@ -880,7 +880,7 @@
   "description": "Level-cap Grendel + Gas Sobek (status Riven) build in Void Cascade: full rotation, gear, magnetic vs gas comparison, 1h41 of high-level proof. (Video is in French; build content is visual.)",
   "item": "Sobek",
   "type": "build"
-  },
+ },
  {
   "id": "mOQSn8hr1wI",
   "title": "OCUCOR Build Guide 2026 — Death By Tendril | Warframe",
@@ -904,7 +904,7 @@
   "title": "Warframe - Scare-o Ki'Teer Returns! [16th October 2026]",
   "channel": "Wickedfun",
   "category": "Trading",
-  "description": "Full Scare-o (Eskhatos) Ki'Teer inventory at Orcus Relay, Pluto \u2014 new Eskhatos cosmetics (necramech skin, sugatra, floof, grimoire + Silva & Aegis skins, ephemera, glyphs), Primed mods, Prisma Teta/Twin Gremlins, Axi V8 relic, Baro Void Signal, Void Surplus. (Upload ~Oct 16, 2026.)",
+  "description": "Full Scare-o (Eskhatos) Ki'Teer inventory at Orcus Relay, Pluto — new Eskhatos cosmetics (necramech skin, sugatra, floof, grimoire + Silva & Aegis skins, ephemera, glyphs), Primed mods, Prisma Teta/Twin Gremlins, Axi V8 relic, Baro Void Signal, Void Surplus. (Upload ~Oct 16, 2026.)",
   "item": "Baro Ki'Teer",
   "type": "guide"
  },
@@ -913,8 +913,17 @@
   "title": "This Week In Warframe - FULL Weekly Reset Overview Week Of 10/18/2026",
   "channel": "Gaz TTV",
   "category": "Farming",
-  "description": "Weekly reset roundup for the week of Oct 18, 2026 \u2014 Teshin, Dormizone, Descendia, ETA/EDA, Bird 3, Archon Hunt, Steel Path Circuit/Incarnon rotation, Nightwave challenges/shop, plus riven/ammo-efficiency patch notes.",
+  "description": "Weekly reset roundup for the week of Oct 18, 2026 — Teshin, Dormizone, Descendia, ETA/EDA, Bird 3, Archon Hunt, Steel Path Circuit/Incarnon rotation, Nightwave challenges/shop, plus riven/ammo-efficiency patch notes.",
   "item": "Weekly Reset",
   "type": "guide"
+ },
+ {
+  "id": "V4BflaaYPM4",
+  "title": "Warframe 2026 | The Shadow & The Swarm: Nyx Prime & Soma Prime Incarnon Masterclass!",
+  "channel": "Swifty Academy",
+  "category": "Builds",
+  "description": "Two-for-one masterclass pairing Nyx Prime with a Soma Prime Incarnon: god-tier spliced Soma Riven, 4 Nyx Prime Helminth variants, Tauforged Archon Shard layout, and live Simulacrum Steel Path tests. (Upload ~Oct 19, 2026.)",
+  "item": "Nyx Prime / Soma Prime",
+  "type": "build"
  }
 ]
