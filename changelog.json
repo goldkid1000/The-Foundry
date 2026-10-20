@@ -1,5 +1,11 @@
 [
   {
+    "version": "2.16.0",
+    "date": "2026-10-19",
+    "notify": true,
+    "notes": "Mobile rebuilt from scratch \u2014 one clean mobile layout. Vaulty is a single face button on the left, chat bubble level on the right, tab bar redone, no horizontal scrolling, no ghost elements."
+  },
+  {
     "version": "2.15.0",
     "date": "2026-10-19",
     "notes": "Vaulty rebuilt from scratch \u2014 speech bubble system deleted entirely (no bubble, no close button, no \u00d7 anywhere). Mobile: single face button on left edge, level with chat bubble. Desktop: Vaulty stationary by chat bubble.",

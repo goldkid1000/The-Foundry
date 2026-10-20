@@ -227,7 +227,6 @@ code{background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:.88em}
   background:linear-gradient(135deg,#0090b8,#00d2ff);border:none;color:#04121a;
   font-weight:800;font-size:.95rem;padding:13px 20px;border-radius:999px;cursor:pointer;
   box-shadow:0 4px 18px rgba(0,210,255,.35)}
-#vault-ai-btn:hover{filter:brightness(1.1)}
 #vault-ai-panel{position:fixed;right:18px;bottom:78px;z-index:90;
   width:min(390px,calc(100vw - 24px));height:min(540px,72vh);
   background:var(--card);border:1px solid var(--border);border-radius:14px;
@@ -269,7 +268,6 @@ code{background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:.88em}
   padding:8px 10px;overflow-x:auto;font-size:.8rem;margin:.4em 0}
 .vai-msg code{background:#0a0e1a;padding:1px 5px;border-radius:4px;font-size:.82rem}
 @media (max-width:900px){
-  #vault-ai-btn{right:12px;bottom:86px;padding:11px 16px}
   #vault-ai-panel{right:12px;left:12px;width:auto;bottom:152px;height:min(520px,64vh)}
 }
 
@@ -482,8 +480,6 @@ table.data tbody tr:hover{background:rgba(0,210,255,.05)}
   outline:none;border-color:var(--accent);box-shadow:0 0 12px rgba(0,210,255,.25);
 }
 .badge.recommended{box-shadow:0 0 10px rgba(201,162,39,.35)}
-#vault-ai-btn{animation:tv-ai-pulse 3.2s ease-in-out infinite}
-#vault-ai-btn:hover{animation-play-state:paused;filter:brightness(1.12)}
 .vai-chip{transition:border-color .15s ease, box-shadow .2s ease}
 .vai-chip:hover{box-shadow:0 0 10px rgba(0,210,255,.3)}
 .notice{position:relative;overflow:hidden}
@@ -505,7 +501,6 @@ table.data tbody tr:hover{background:rgba(0,210,255,.05)}
   body::before{animation:none}
   main > h1{animation:none;background:none;color:#fff;-webkit-text-fill-color:#fff}
   .logo{animation:none}
-  #vault-ai-btn{animation:none}
 }
 
 
@@ -715,7 +710,6 @@ main{animation:tv-page-in .32s var(--ease) both}
   .layout{gap:8px}
   main{padding:28px 32px 80px}
   footer{padding-bottom:40px}
-  #vault-ai-btn{bottom:24px}
 }
 /* below 1024px — touch-only tabbar nav (PC narrow windows use the hamburger, no bottom bar) */
 @media (max-width:1023.5px) and (hover:none){
@@ -749,7 +743,6 @@ main{animation:tv-page-in .32s var(--ease) both}
 @media(max-width:560px){.tv-hero h1{font-size:1.6rem}}
 /* AI chat button clears the tabbar on tablet-portrait widths */
 @media (max-width:1023.5px){
-  #vault-ai-btn{bottom:86px;right:12px}
   #vault-ai-panel{bottom:152px}
 }
 
@@ -1291,7 +1284,6 @@ body.tv-chat-lock { overflow: hidden; }
 
   /* ---------- 8. floating buttons clear the new tabbar ---------- */
   #tv-chat-fab{right:14px;bottom:170px;width:56px;height:56px}
-  #vault-ai-btn{right:14px;bottom:102px;padding:13px 20px}
   #vault-ai-panel{right:12px;left:12px;width:auto;bottom:172px;height:min(560px,62vh)}
   #tv-mentor{left:10px;bottom:104px}
   .tv-online-pill{font-size:16px;padding:10px 20px}
@@ -1721,7 +1713,6 @@ html.tv-no-anim-early *,html.tv-no-anim-early *::before,html.tv-no-anim-early *:
   transition-duration:.001s !important}
 
 /* v2.12.15: floating Ask the Vault button removed — Vaulty is the entry point */
-#vault-ai-btn{display:none !important}
 
 /* ---------- Home button in header (v2.12.16) ---------- */
 .home-btn{padding:10px 12px;font-size:1.1rem;line-height:1}
@@ -2183,10 +2174,6 @@ table.data tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--v5-cyan)
 }
 
 /* ---------- chat + vaulty: keep selectors, add depth ---------- */
-#vault-ai-btn{
-  background:var(--v5-grad);
-  box-shadow:0 6px 24px rgba(34,211,238,.4), 0 4px 16px rgba(139,92,246,.35);
-}
 .vai-msg{border:1px solid var(--border)}
 .vai-msg.user{
   background:linear-gradient(135deg,#0a5a70,#3b2a6e);
@@ -2566,4 +2553,90 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
   /* tab bar: 5 tabs fit, labels never truncate */
   #tabbar a { font-size: .66rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #tabbar a .ti { font-size: 1.25rem; }
+}
+
+/* ============================================================
+   v2.16.0 — MOBILE REBUILD (canonical block, phones ≤767px)
+   ONE source of truth for mobile layout. This block comes last
+   so it wins over every legacy mobile patch above it.
+   Simple > clever. Static > dynamic. No ghosts possible.
+   ============================================================ */
+@media (max-width: 767px) {
+
+  /* ---- root safety: horizontal scrolling is impossible ---- */
+  html, body { overflow-x: clip; }
+  img, svg, video, iframe, table { max-width: 100%; }
+  p, h1, h2, h3, h4, li, a, span, td { overflow-wrap: break-word; }
+
+  /* ---- content never hides under the floating tab bar ---- */
+  main { padding: 16px 14px 190px; }
+
+  /* ---- Vaulty: ONE face button, left edge, level with chat ---- */
+  #tv-mentor {
+    position: fixed;
+    left: 14px; right: auto; top: auto; bottom: 84px;
+    transform: none;
+    z-index: 60;
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  #tv-mentor.visible { transform: none; }
+  #tv-mentor-char { display: none !important; }  /* face button replaces him */
+  .tv-facebtn {
+    display: block;
+    width: 56px; height: 56px; padding: 0;
+    border-radius: 50%; overflow: hidden; cursor: pointer; line-height: 0;
+    background: radial-gradient(circle at 35% 30%, #2b2119, #141110 70%);
+    border: 2px solid rgba(255,107,26,.7);
+    box-shadow: 0 0 16px rgba(255,107,26,.5), 0 4px 14px rgba(0,0,0,.55);
+  }
+  .tv-facebtn:active { transform: scale(.92); }
+  .tv-facebtn svg { width: 100%; height: 100%; display: block; }
+
+  /* ---- chat bubble: right edge, SAME height as Vaulty ---- */
+  #tv-chat-fab {
+    right: 14px; left: auto; top: auto; bottom: 84px;
+    width: 56px; height: 56px;
+  }
+  #tv-chat-panel {
+    right: 12px; left: 12px; width: auto;
+    bottom: 152px; height: min(560px, 62vh);
+  }
+
+  /* ---- tab bar: clean, 5 tabs, thumb-sized ---- */
+  #tabbar {
+    display: flex;
+    position: fixed; left: 12px; right: 12px; top: auto;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 50;
+    border-radius: 26px;
+    background: rgba(24,19,16,.92);
+    border: 1px solid rgba(255,107,26,.2);
+    box-shadow: 0 12px 36px rgba(0,0,0,.55);
+    padding: 8px 6px;
+  }
+  #tabbar a {
+    flex: 1; min-width: 0;
+    min-height: 60px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: .66rem; font-weight: 700; letter-spacing: .2px;
+    color: var(--muted);
+    padding: 8px 2px 6px; border-radius: 18px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #tabbar a .ti { font-size: 1.5rem; line-height: 1; margin-bottom: 2px; }
+  #tabbar a.active {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(163,61,10,.6), rgba(255,107,26,.35));
+  }
+  #tabbar a.active::after { display: none; }
+
+  /* ---- touch targets: nothing smaller than a thumb ---- */
+  .btn, .chip, button { min-height: 44px; }
+  .vai-chip { min-height: 44px; }
+  #vai-close { min-width: 44px; min-height: 44px; }
+  #tv-totop { bottom: 160px; }
+
+  /* ---- grids collapse to one column, cards stay inside ---- */
+  .card-grid, .video-grid { grid-template-columns: 1fr; }
+  .card, .list-item, .detail-box { min-width: 0; }
 }

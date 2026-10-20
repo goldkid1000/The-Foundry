@@ -173,7 +173,7 @@
   }
   /* v2.12.73: mobile face-bubble mode — circular button replaces the shimeji */
   function isMobileFaceMode() {
-    try { return window.matchMedia('(max-width: 600px)').matches; } catch (e) { return false; }
+    try { return window.matchMedia('(max-width: 767px)').matches; } catch (e) { return false; }
   }
 
   var VAULTY = 'Vaulty';

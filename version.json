@@ -1,8 +1,8 @@
 {
-  "version": "2.15.0",
+  "version": "2.16.0",
   "updated": "2026-10-19",
   "notify": true,
   "notes": [
-    "White ghost elements (speech bubble + close button) killed for good on mobile."
+    "Mobile rebuilt from scratch \u2014 clean layout, Vaulty + chat level, no ghosts."
   ]
 }

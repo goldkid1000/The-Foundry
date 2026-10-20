@@ -17,7 +17,7 @@
   'use strict';
 
   /* BUMP WITH EVERY RELEASE — this is how the running page knows its own age */
-  var TV_BUILD_VERSION = '2.15.0';
+  var TV_BUILD_VERSION = '2.16.0';
 
   var CHECK_INTERVAL = 15 * 60 * 1000; /* check every 15 minutes */
   var updating = false;
