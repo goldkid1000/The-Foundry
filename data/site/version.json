@@ -1,8 +1,8 @@
 {
-  "version": "2.17.0",
+  "version": "2.17.1",
   "updated": "2026-10-20",
   "notify": true,
   "notes": [
-    "Mobile redone — updates now reach your phone automatically. No more manual cache clearing: the app checks itself on every load and heals stale copies on its own."
+    "Tuesday audit pass: images filled for 42 weapons + 21 amp parts + Archgun Deployer (all URLs verified via warframestat.us); removed a duplicate Melee Riven Mod entry; countdowns refreshed — expired Scare-o Ki'Teer removed, Baro Ki'Teer return (Oct 23-25) and Ghoul Purge (ends Nov 9) added."
   ]
 }

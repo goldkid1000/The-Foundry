@@ -73,11 +73,14 @@
       '<button class="tv-whatsnew-close" type="button" aria-label="Close">✕</button></div>' +
       '<div class="tv-whatsnew-list">' +
       data.slice(0, 8).map(function (v) {
-        var notes = (v.notes || []).map(function (n) {
+        /* notes can be a string (older changelog entries) or an array — normalize */
+        var notesRaw = Array.isArray(v.notes) ? v.notes : (v.notes ? [v.notes] : []);
+        var ver = v.version || v.v || '';
+        var notes = notesRaw.map(function (n) {
           return '<li>' + esc(n) + '</li>';
         }).join('');
         return '<div class="tv-whatsnew-item">' +
-          '<div class="tv-whatsnew-ver"><span class="tv-whatsnew-badge">v' + esc(v.version) + '</span>' +
+          '<div class="tv-whatsnew-ver"><span class="tv-whatsnew-badge">v' + esc(ver) + '</span>' +
           '<span class="tv-whatsnew-date">' + esc(v.date || '') + '</span></div>' +
           '<ul>' + notes + '</ul></div>';
       }).join('') +

@@ -12,15 +12,21 @@
   "name": "Devstream #198: Tau Part One"
  },
  {
-  "name": "Scare-o Ki'Teer Visit (Baro) ends",
-  "date": "2026-10-18T13:00:00.000Z",
-  "kind": "ends",
-  "description": "Baro Ki'Teer (Scare-o Ki'Teer) at Orcus Relay, Pluto. Ends Sun Oct 18, 9 AM ET. Source: warframestat.us voidTrader."
- },
- {
   "name": "Nights of Naberus ends",
   "date": "2026-11-02T16:00:00.000Z",
   "kind": "ends",
   "description": "Daughter's seasonal shop in the Necralisk + Hallowed Nightmares Tactical Alert (Jack O'Naut). Ends Mon Nov 2, 11 AM ET. Source: warframe.com."
+ },
+ {
+  "name": "Baro Ki'Teer returns",
+  "date": "2026-10-23T13:00:00.000Z",
+  "kind": "launch",
+  "description": "Baro Ki'Teer (EvilBaroWeek2) at Strata Relay, Earth. Fri Oct 23, 9 AM ET -> Sun Oct 25, 9 AM ET. Source: warframestat.us voidTrader."
+ },
+ {
+  "name": "Ghoul Purge ends",
+  "date": "2026-11-09T17:52:07.067Z",
+  "kind": "ends",
+  "description": "Ghoul Purge bounties: help Konzu rid the Plains of Eidolon of Grineer Ghouls. Ends Mon Nov 9. Source: warframestat.us events."
  }
 ]

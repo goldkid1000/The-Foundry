@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.17.1",
+    "date": "2026-10-20",
+    "notify": true,
+    "notes": [
+      "Tuesday audit: 64 missing images filled (42 weapons — all Archwing + Exalted/Primal weapons, 21 amp parts, Archgun Deployer), every URL verified live via warframestat.us. Removed a wrong duplicate 'Melee Riven Mod' entry (mods-3.json; the correct Rare/Melee one kept). Countdowns: expired Scare-o Ki'Teer removed; Baro Ki'Teer return Oct 23–25 and Ghoul Purge (ends Nov 9) added. Also fixed: the 'What's new' pill did nothing when tapped — it crashed on older changelog entries; it now opens reliably."
+    ]
+  },
+  {
     "version": "2.17.0",
     "date": "2026-10-20",
     "notify": true,
