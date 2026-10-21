@@ -1,8 +1,10 @@
 {
- "version": "2.17.5",
+ "version": "2.18.0",
  "updated": "2026-10-21",
- "notify": false,
+ "notify": true,
  "notes": [
-  "+1 build video: Gauss Prime + Kuva Zarr zoom-and-boom nuke build for Iceblade of Narin (infinite-ammo setup). News check: no new official hotfix since 44.1.2 + 2.1 (Oct 15); Dev Workshop ammo-efficiency cap / Riven disposition retirement hotfix still pending (expected ~Oct 22)."
+  "Big polish update: the site now says The Foundry everywhere (install prompts, chat, marketplace), Vaulty's chat buttons match his no-× design, and the footer shows the version + last updated date.",
+  "Fixed: the app version check was stuck at 2.17.1, which could keep phones on an old cached copy — the cache and version stamps are now in sync (2.18.0), and the homepage Mods counter now matches the real library (1,756).",
+  "Smoother feel: gentle page fade-ins, cards lift on hover and press, loading text pulses — all disabled if your device prefers reduced motion."
  ]
 }

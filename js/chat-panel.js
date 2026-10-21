@@ -1,4 +1,4 @@
-/* Tenno Vault — slide-in community chat panel.
+/* The Foundry — slide-in community chat panel.
  * Floating 💬 button on the right edge opens a drawer from the right.
  * Unread badge counts messages newer than the last time the panel was opened.
  * Pages that already host a full chat (#tv-chat) are skipped — no double subscriptions. */
@@ -42,7 +42,7 @@
     panel.innerHTML =
       '<div class="tv-chat-panel-head">' +
         '<h2>💬 Community chat</h2>' +
-        '<button id="tv-chat-close" aria-label="Close chat">×</button>' +
+        '<button id="tv-chat-close" aria-label="Close chat">⌄</button>' +
       '</div>' +
       '<div id="tv-chat-panel-body" class="tv-chat-panel-body">' +
         '<div class="loading">Connecting to chat…</div>' +

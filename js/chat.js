@@ -1,4 +1,4 @@
-/* Tenno Vault — community chat (Firebase Firestore).
+/* The Foundry — community chat (Firebase Firestore).
  * Gracefully shows a "coming soon" placeholder when Firebase isn't configured.
  * Exposes window.TVChat for reuse (e.g. the slide-in chat panel). */
 (function () {

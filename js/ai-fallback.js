@@ -1,4 +1,4 @@
-/* Tenno Vault — Vault Guide chat. Built-in guide answering from the Vault's own
+/* The Foundry — Vault Guide chat. Built-in guide answering from the Vault's own
    data (warframes, weapons, mods, arcanes, relics, builds, farming). Not a live AI. */
 (function () {
   'use strict';
@@ -952,7 +952,7 @@ function oneShotBuildAnswer(t) {
     }
     /* "who are you" */
     if (/who are you|your name/.test(t)) {
-      return 'I\'m the Vault Guide — your Warframe companion built into Tenno Vault. Ask me about builds, farming, mods, anything.';
+      return 'I\'m the Vault Guide — your Warframe companion built into The Foundry. Ask me about builds, farming, mods, anything.';
     }
     return null; /* not handled — fall through to keyword matching */
   }

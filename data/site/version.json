@@ -1,8 +1,10 @@
 {
-  "version": "2.17.1",
-  "updated": "2026-10-20",
-  "notify": true,
-  "notes": [
-    "Tuesday audit pass: images filled for 42 weapons + 21 amp parts + Archgun Deployer (all URLs verified via warframestat.us); removed a duplicate Melee Riven Mod entry; countdowns refreshed — expired Scare-o Ki'Teer removed, Baro Ki'Teer return (Oct 23-25) and Ghoul Purge (ends Nov 9) added."
-  ]
+ "version": "2.18.0",
+ "updated": "2026-10-21",
+ "notify": true,
+ "notes": [
+  "Big polish update: the site now says The Foundry everywhere (install prompts, chat, marketplace), Vaulty's chat buttons match his no-× design, and the footer shows the version + last updated date.",
+  "Fixed: the app version check was stuck at 2.17.1, which could keep phones on an old cached copy — the cache and version stamps are now in sync (2.18.0), and the homepage Mods counter now matches the real library (1,756).",
+  "Smoother feel: gentle page fade-ins, cards lift on hover and press, loading text pulses — all disabled if your device prefers reduced motion."
+ ]
 }

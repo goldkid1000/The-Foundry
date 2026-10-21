@@ -1,4 +1,4 @@
-/* Tenno Vault — Mod Equivalents data.
+/* The Foundry — Mod Equivalents data.
    "Don't have X? Use Y instead" — for damage, one-shots, and Steel Path.
    Each entry: the best-in-slot mod, then alternatives ranked by effectiveness. */
 

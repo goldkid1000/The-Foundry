@@ -1,4 +1,4 @@
-/* Tenno Vault — smart PWA install UX.
+/* The Foundry — smart PWA install UX.
    - Shows a dismissible install banner in #tv-install-slot (homepage hero)
    - Shows a subtle install icon-button in the site header (all pages)
    - Only when the app is NOT already installed
@@ -61,10 +61,10 @@
     m.className = 'tv-modal';
     m.setAttribute('hidden', '');
     m.setAttribute('role', 'dialog');
-    m.setAttribute('aria-label', 'Install Tenno Vault');
+    m.setAttribute('aria-label', 'Install The Foundry');
     m.innerHTML =
       '<div class="tv-modal-card holo">' +
-        '<h3>📲 Install Tenno Vault</h3>' +
+        '<h3>📲 Install The Foundry</h3>' +
         '<p class="muted small">Get the app icon on your home screen for one-tap access.</p>' +
         '<ol>' + steps + '</ol>' +
         '<button class="btn primary" id="tv-install-modal-close" style="width:100%;min-height:44px">Got it</button>' +
@@ -111,9 +111,9 @@
     var slot = document.getElementById('tv-install-slot');
     if (!slot || isDismissed()) return;
     slot.innerHTML =
-      '<div class="tv-install-banner" role="complementary" aria-label="Install the Tenno Vault app">' +
+      '<div class="tv-install-banner" role="complementary" aria-label="Install The Foundry app">' +
         '<div class="tv-install-icon" aria-hidden="true">📲</div>' +
-        '<div class="tv-install-text"><b>Get the Tenno Vault app</b>' +
+        '<div class="tv-install-text"><b>Get The Foundry app</b>' +
         '<span>One tap from your home screen. Works offline.</span></div>' +
         '<button class="btn primary" id="tv-install-go">Install</button>' +
         '<button class="tv-install-x" id="tv-install-dismiss" aria-label="Dismiss install prompt">✕</button>' +
@@ -133,7 +133,7 @@
     var btn = document.createElement('button');
     btn.id = 'tv-hinstall';
     btn.className = 'tv-hinstall show';
-    btn.setAttribute('aria-label', 'Install Tenno Vault app');
+    btn.setAttribute('aria-label', 'Install The Foundry app');
     btn.setAttribute('title', 'Install app');
     btn.innerHTML = '📲';
     btn.addEventListener('click', doInstall);

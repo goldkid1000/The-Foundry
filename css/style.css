@@ -1278,7 +1278,7 @@ body.tv-chat-lock { overflow: hidden; }
   /* ---------- 8. floating buttons clear the new tabbar ---------- */
   #tv-chat-fab{right:14px;bottom:170px;width:56px;height:56px}
   #vault-ai-panel{right:12px;left:12px;width:auto;bottom:172px;height:min(560px,62vh)}
-  #tv-mentor{left:10px;bottom:104px}
+  #tv-mentor{left:10px;bottom:84px}
   .tv-online-pill{font-size:16px;padding:10px 20px}
 
   /* ---------- 9. forms & inputs: thumb-friendly ---------- */
@@ -2636,3 +2636,18 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
   .card-grid, .video-grid { grid-template-columns: 1fr; }
   .card, .list-item, .detail-box { min-width: 0; }
 }
+
+/* ================= v2.18.0 polish: motion + feedback ================= */
+@media (prefers-reduced-motion: no-preference) {
+  main { animation: tvPageIn .32s ease both; }
+  @keyframes tvPageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .loading { animation: tvPulse 1.4s ease-in-out infinite; }
+  @keyframes tvPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+}
+.card { transition: transform .18s ease, box-shadow .18s ease; }
+@media (hover: hover) {
+  .card:hover { transform: translateY(-3px); }
+}
+.card:active { transform: scale(.99); }
+.btn, button, #tabbar a, .tv-facebtn, #tv-chat-fab { transition: transform .15s ease, filter .15s ease; }
+.btn:active, button:active { transform: scale(.97); }

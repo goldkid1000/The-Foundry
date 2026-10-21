@@ -1,4 +1,4 @@
-/* Tenno Vault — shared layout, navigation, search, infinite scroll */
+/* The Foundry — shared layout, navigation, search, infinite scroll */
 (function () {
   'use strict';
 
@@ -244,7 +244,15 @@
     try {
       window.TV.getJSON('data/site/version.json').then(function (v) {
         var el = document.getElementById('tv-version');
-        if (el && v && v.version) el.textContent = 'The Foundry v' + v.version;
+        if (el && v && v.version) {
+          var stamp = 'The Foundry v' + v.version;
+          if (v.updated) {
+            var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var p = String(v.updated).split('-');
+            if (p.length === 3) stamp += ' · Updated ' + mo[parseInt(p[1], 10) - 1] + ' ' + parseInt(p[2], 10) + ', ' + p[0];
+          }
+          el.textContent = stamp;
+        }
       }).catch(function () {});
     } catch (e) {}
   }

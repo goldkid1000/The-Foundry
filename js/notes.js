@@ -1,4 +1,4 @@
-/* Tenno Vault — personal notes. Saved in localStorage, no account needed.
+/* The Foundry — personal notes. Saved in localStorage, no account needed.
    Write down favorite builds, farm reminders, anything. */
 (function () {
   'use strict';

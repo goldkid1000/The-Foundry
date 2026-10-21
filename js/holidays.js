@@ -1,4 +1,4 @@
-/* Tenno Vault — Holiday theming. Detects the current date, applies a
+/* The Foundry — Holiday theming. Detects the current date, applies a
    data-holiday attribute to <body>, shows a badge, and spawns lightweight
    CSS particle decorations. Dark theme stays; only accents change.
    API: window.TV.holiday = { id, name, emoji } | null

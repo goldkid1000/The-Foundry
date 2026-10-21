@@ -1,4 +1,4 @@
-/* Tenno Vault — live presence + page-view analytics (Firebase Firestore).
+/* The Foundry — live presence + page-view analytics (Firebase Firestore).
  * No login, no cookies, no cross-session tracking.
  * Gracefully does nothing when Firebase isn't configured. */
 (function () {

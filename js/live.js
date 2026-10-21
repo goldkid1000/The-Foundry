@@ -1,4 +1,4 @@
-/* Tenno Vault — live worldstate + platinum prices */
+/* The Foundry — live worldstate + platinum prices */
 (function () {
   'use strict';
   var esc = function (s) { return window.TV.esc(s); };

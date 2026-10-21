@@ -1,4 +1,4 @@
-/* Tenno Vault — update flow. When a new version is detected:
+/* The Foundry — update flow. When a new version is detected:
    1. Popup appears: "Update available" + version + what's new
    2. "Update" button next to it
    3. Tapping Update shows a loading bar, clears caches, unregisters the SW
@@ -17,7 +17,7 @@
   'use strict';
 
   /* BUMP WITH EVERY RELEASE — this is how the running page knows its own age */
-  var TV_BUILD_VERSION = '2.17.1';
+  var TV_BUILD_VERSION = '2.18.0';
 
   /* v2.17.0 — BOOT SELF-HEAL (the permanent stale-cache fix).
      Problem it ends: Safari's HTTP cache can serve an old index.html, which

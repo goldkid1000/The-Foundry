@@ -1,4 +1,4 @@
-/* Tenno Vault — Update launch countdowns.
+/* The Foundry — Update launch countdowns.
    Data-driven: entries live in data/site/countdowns.json as
    { name, date (ISO), kind ("launch" | "ends"), description }.
    - Date-only entries (YYYY-MM-DD) count down to the END of that day

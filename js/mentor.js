@@ -1,4 +1,4 @@
-/* Tenno Vault — Vaulty. v2.15.0 COMPLETE REBUILD.
+/* The Foundry — Vaulty. v2.15.0 COMPLETE REBUILD.
    The speech bubble system is GONE — no bubble, no close button, no × anywhere.
    Mobile: single face bubble button, left edge, level with the chat bubble.
    Desktop: Vaulty sits still by the chat bubble (no wandering). Tap opens AI chat.

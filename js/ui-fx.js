@@ -1,4 +1,4 @@
-/* Tenno Vault — UI effects: animated counters, tap ripple, pull-to-refresh.
+/* The Foundry — UI effects: animated counters, tap ripple, pull-to-refresh.
    Vanilla JS, no dependencies. All motion respects prefers-reduced-motion. */
 (function () {
   'use strict';

@@ -1,4 +1,4 @@
-/* Tenno Vault — "What's new" notification bubble.
+/* The Foundry — "What's new" notification bubble.
    Sits in the top header on every page. Shows a red dot when there are
    updates the visitor hasn't seen yet; tapping opens a panel listing the
    latest versions from changelog.json. Seen state is kept in localStorage. */
@@ -46,7 +46,7 @@
     btn.id = 'tv-whatsnew';
     btn.className = 'tv-whatsnew-pill';
     btn.type = 'button';
-    btn.setAttribute('aria-label', "What's new in Tenno Vault");
+    btn.setAttribute('aria-label', "What's new in The Foundry");
     btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML =
       '<span class="tv-whatsnew-dot"' + (hasNew ? '' : ' hidden') + '></span>' +

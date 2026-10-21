@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.18.0",
+    "date": "2026-10-21",
+    "notify": true,
+    "notes": [
+      "Rebrand finished: every user-visible \"Tenno Vault\" string now says The Foundry (install banner/modal, Vault Guide intros, marketplace disclaimer, What's New).",
+      "Fixed a stale version stamp: TV_BUILD_VERSION, the service-worker cache and all ?v= asset stamps were still 2.17.1 while the app was 2.17.5 — the update self-check could treat fresh pages as stale. All now read 2.18.0.",
+      "Fixed the homepage Mods counter: it said 1,757, the library actually holds 1,756 (mods-0..8). Counter corrected; warframes 123, weapons 648, builds 878, videos 106 all re-verified against the data files.",
+      "Vaulty polish: his chat panel close is now a chevron (no × anywhere, per his design), and at tablet widths (601–767px) Vaulty now sits level with the chat bubble at bottom:84px instead of 20px higher.",
+      "Motion polish: page fade-in, card hover lift / press feedback, pulsing loading states — wrapped in prefers-reduced-motion so nothing moves for users who opt out.",
+      "Footer on every page now shows \"The Foundry v2.18.0 · Updated Oct 21, 2026\"."
+    ]
+  },
+  {
     "version": "2.17.1",
     "date": "2026-10-20",
     "notify": true,

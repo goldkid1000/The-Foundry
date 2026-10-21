@@ -1,4 +1,4 @@
-/* Tenno Vault — News & Hotfixes feed.
+/* The Foundry — News & Hotfixes feed.
    Pulls official Warframe news from warframestat.us (CORS-friendly JSON).
    Caches for 1 hour. Filters hotfixes/updates vs news/events. */
 (function () {

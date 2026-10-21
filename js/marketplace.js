@@ -1,4 +1,4 @@
-/* Tenno Vault — classifieds marketplace (Firestore, no login).
+/* The Foundry — classifieds marketplace (Firestore, no login).
  * Anyone can browse and post; a display name is used instead of an account.
  * Gracefully degrades when the owner hasn't pasted their Firebase config yet. */
 (function () {
@@ -21,7 +21,7 @@
 
   function scamNotice() {
     return '<div class="notice danger"><h4>⚠️ Trade safe</h4>' +
-      '<p class="small">Tenno Vault never touches your items or platinum. ' +
+      '<p class="small">The Foundry never touches your items or platinum. ' +
       '<b>Trade in-game only</b> (dojo trading post or Maroo\'s Bazaar). ' +
       '<b>Never</b> share your password, 2FA codes, or account email. ' +
       'If a deal feels wrong, walk away.</p></div>';

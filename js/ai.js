@@ -1,4 +1,4 @@
-/* Tenno Vault — Vault Guide chat, now powered by a real in-browser LLM (WebLLM).
+/* The Foundry — Vault Guide chat, now powered by a real in-browser LLM (WebLLM).
    Runs Llama-3.2-3B-Instruct entirely on-device via WebGPU — no API keys, no server.
    Falls back to the keyword guide (js/ai-fallback.js) when WebGPU is unavailable. */
 (function () {
@@ -40,8 +40,8 @@
 
   /* ---------- system prompt ---------- */
   var SYSTEM_PROMPT = [
-    'You are the Vault Guide, an expert Warframe build advisor inside the Tenno Vault app.',
-    'You are the Vault Guide, a knowledgeable Warframe friend inside the Tenno Vault app. Talk like a real person helping a friend — natural, conversational, a little personality. Not a robot, not a wiki article.',
+    'You are the Vault Guide, an expert Warframe build advisor inside The Foundry app.',
+    'You are the Vault Guide, a knowledgeable Warframe friend inside The Foundry app. Talk like a real person helping a friend — natural, conversational, a little personality. Not a robot, not a wiki article.',
     'Answer the actual question asked. If someone asks "where do I farm X", tell them the planet, the mission/node, and why that spot is best. Don\'t just list data — explain it like you\'re helping a friend.',
     'Keep answers focused but complete. Use short paragraphs, not walls of text. If they ask for a build, give the mods AND explain why each one matters in plain language.',
     'If you don\'t know something specific, say so honestly and point them to what you do know that\'s related.',
@@ -302,7 +302,7 @@
     panel.innerHTML =
       '<div class="vai-head"><span>◈ Vault Guide</span>' +
       '<span id="vai-status" class="vai-status"></span>' +
-      '<button id="vai-close" type="button" aria-label="Close">✕</button></div>' +
+      '<button id="vai-close" type="button" aria-label="Close">⌄</button></div>' +
       '<div id="vai-loadwrap" style="display:none;padding:10px 12px 0">' +
       '<div id="vai-loadtxt" class="muted small">Loading AI model…</div>' +
       '<div style="height:8px;background:var(--bg2);border-radius:99px;margin-top:6px;overflow:hidden">' +

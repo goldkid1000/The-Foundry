@@ -1,4 +1,4 @@
-/* Tenno Vault — Firebase config (project: tenno-vault) */
+/* The Foundry — Firebase config (project: tenno-vault) */
 window.TV_FIREBASE_CONFIG = {
   apiKey: "AIzaSyDp7Huw3e_kpw8ZMOcbMCAhU3ehePwc5BU",
   authDomain: "tenno-vault.firebaseapp.com",
