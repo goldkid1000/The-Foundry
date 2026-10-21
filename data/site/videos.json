@@ -925,5 +925,23 @@
   "description": "Two-for-one masterclass pairing Nyx Prime with a Soma Prime Incarnon: god-tier spliced Soma Riven, 4 Nyx Prime Helminth variants, Tauforged Archon Shard layout, and live Simulacrum Steel Path tests. (Upload ~Oct 19, 2026.)",
   "item": "Nyx Prime / Soma Prime",
   "type": "build"
+ },
+ {
+  "id": "gyBOfbhIvEM",
+  "title": "RIVEN DISPOSITION REMOVED! Ammo Efficiency Cap & Refunds! Warframe Updates",
+  "channel": "Pupsker",
+  "category": "Beginner",
+  "description": "Devshorts 120 news roundup: DE is retiring all Riven dispositions to a fixed 1.2, hard-capping Ammo Efficiency at 75% (with new temporary infinite-ammo buffs replacing Arcane Pistoleer-style infinite ammo), plus kuva/forma/Riven Splicer refunds for affected players. Changes expected this week. (Upload ~Oct 19, 2026.)",
+  "item": "Riven / Ammo Efficiency changes",
+  "type": "guide"
+ },
+ {
+  "id": "tiIS--VKNDc",
+  "title": "Sobek Nerf Breakdown: Is This The End Of Trading?",
+  "channel": "Gaz TTV",
+  "category": "Beginner",
+  "description": "Gaz TTV breaks down the Dev Workshop nerfs: Kuva Sobek/Acid Shells changes (details not yet announced by DE), the 75% Ammo Efficiency cap, Riven disposition retirement, and Riven trading disabled until the hotfix lands. (Upload ~Oct 19, 2026.)",
+  "item": "Sobek / Ammo Efficiency nerfs",
+  "type": "guide"
  }
 ]
