@@ -117,6 +117,23 @@
     return typeof navigator !== 'undefined' && !!navigator.gpu;
   }
 
+  /* v2.19.3: NEVER load WebLLM on iOS. The owner's screen recording shows
+     the loop end to end: panel opens → model starts loading from cache →
+     mobile Safari kills the page ("A problem repeatedly occurred") while
+     the ~2GB model loads → reload → load restarts. iOS jetsam makes a 2GB
+     in-tab model unloadable there, so on iPhone/iPad (Safari AND the iOS
+     home-screen PWA — same engine, same UA family) and on any device
+     without WebGPU, the panel is Vault Guide only: live answers + the
+     guide brain, permanently. Desktop keeps the v2.19.2 opt-in flow. */
+  function isIOS() {
+    var ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+    if (/iP(hone|ad|od)/.test(ua)) return true;
+    /* iPadOS 13+ poses as a Mac in its UA; touch points give it away */
+    return /Macintosh/.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1;
+  }
+  function guideOnly() { return isIOS() || !hasWebGPU(); }
+  var GUIDE_ONLY_STATUS = 'Quick-answer mode on iPhone — the full AI model is too heavy for mobile Safari';
+
   function setStatus(text, cls) {
     var st = document.getElementById('vai-status');
     if (st) { st.textContent = text; st.className = 'vai-status ' + (cls || ''); }
@@ -201,6 +218,7 @@
      load, not a download). Not cached → say so and offer the download as
      an explicit tap; the guide answers in the meantime. */
   function loadEngine() {
+    if (guideOnly()) return; /* v2.19.3: WebLLM never loads on iOS / no WebGPU */
     if (engine || engineLoading || modelCached !== null) return;
     setStatus('Checking AI…', 'loading');
     checkModelCached().then(function (cached) {
@@ -215,6 +233,7 @@
   }
 
   function startDownload() {
+    if (guideOnly()) return; /* v2.19.3: no download exists on iOS / no WebGPU */
     if (engine || engineLoading || aiSettled) return;
     downloadAttempts++;
     requestPersist();
@@ -385,11 +404,11 @@
     }
     if (engine) {
       askAI(q);
-    } else if (engineLoading) {
-      addMsg('Still loading the AI model — one sec… (or ask again in a moment)', 'bot');
     } else {
-      /* not downloaded / failed / settled / no WebGPU — the guide answers.
-         v2.19.2: no more "still loading" dead-end when nothing is loading. */
+      /* v2.19.3: questions NEVER wait for the model. If the engine isn't
+         fully ready — still loading, not downloaded, failed, settled, or
+         guide-only (iOS / no WebGPU) — the live/guide brain answers right
+         now. The old "still loading" dead-end is gone. */
       askFallback(q);
     }
   }
@@ -413,11 +432,16 @@
       try { document.dispatchEvent(new CustomEvent('tv-ai-panel-closed')); } catch (e) {}
     }
     if (els.btn) els.btn.classList.toggle('open', show);
+    /* v2.19.3: after showing, fit to the visual viewport (keyboard may
+       already be up from the auto-focus); after hiding, hand sizing back */
+    if (show) requestAnimationFrame(fitPanelToViewport);
+    else clearPanelFit();
     /* on reopen, re-assert an honest status from the real engine state —
        never a stale "Loading AI…" (v2.19.1) and never a claim the cache
        check hasn't backed up (v2.19.2) */
     if (show && opened && !engineLoading) {
       if (engine) setStatus('AI ready ✓', 'ready');
+      else if (isIOS()) setStatus(GUIDE_ONLY_STATUS, 'fallback');
       else if (!hasWebGPU()) setStatus('AI unavailable on this device', 'fallback');
       else if (engineFailed) setStatus('Vault Guide — quick answers', 'fallback');
       else if (modelCached === false) setStatus('AI not downloaded');
@@ -426,14 +450,54 @@
       opened = true;
       addMsg("Hey Tenno! ◈ I can help with builds, farming, mods — anything Warframe. " +
         "Try a suggestion below or just ask.", 'bot');
-      if (!hasWebGPU()) {
+      if (isIOS()) {
+        /* v2.19.3: iPhone/iPad — guide mode permanently, WebLLM never loads */
+        engineFailed = true;
+        setStatus(GUIDE_ONLY_STATUS, 'fallback');
+        greetFallbackOnce();
+      } else if (!hasWebGPU()) {
         engineFailed = true;
         setStatus('AI unavailable on this device', 'fallback');
+        greetFallbackOnce();
       } else {
         loadEngine();
       }
     }
     if (show) setTimeout(function () { els.input.focus(); }, 60);
+  }
+
+  /* ---------- v2.19.3: visual-viewport fit (iOS keyboard) ----------
+     The panel is position:fixed + bottom-anchored to the LAYOUT viewport,
+     but the iOS keyboard only shrinks the VISUAL viewport — so with the
+     keyboard up, the panel slid under it, the newest message hid behind
+     it, and page content showed through above it (owner's recording).
+     While the keyboard is up we pin the panel to the visual viewport with
+     inline styles; when it closes, the inline styles come off and the
+     stylesheet's sizing rules again. The message list keeps its own
+     internal scrolling either way. */
+  var vvFitted = false;
+  function clearPanelFit() {
+    if (!els.panel || !vvFitted) return;
+    vvFitted = false;
+    els.panel.style.bottom = '';
+    els.panel.style.height = '';
+    els.panel.style.maxHeight = '';
+  }
+  function fitPanelToViewport() {
+    if (!els.panel) return;
+    var vv = window.visualViewport;
+    if (!vv || els.panel.style.display !== 'flex') { clearPanelFit(); return; }
+    var keyboardUp = (window.innerHeight - vv.height) > 80;
+    if (!keyboardUp) { clearPanelFit(); return; }
+    /* distance from the layout viewport's bottom edge up to the visual
+       viewport's bottom edge = the keyboard's height on screen */
+    var below = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+    vvFitted = true;
+    els.panel.style.bottom = (below + 10) + 'px';
+    els.panel.style.height = Math.max(230, Math.min(vv.height - 20, 620)) + 'px';
+    els.panel.style.maxHeight = Math.max(230, vv.height - 20) + 'px';
+    /* newest message stays reachable above the keyboard */
+    if (els.msgs) els.msgs.scrollTop = els.msgs.scrollHeight;
   }
 
   var CHIPS = [
@@ -509,6 +573,15 @@
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && panel.style.display === 'flex') toggle(false);
+    });
+    /* v2.19.3: track the visual viewport so the panel rides the iOS
+       keyboard instead of sliding under it */
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', fitPanelToViewport);
+      window.visualViewport.addEventListener('scroll', fitPanelToViewport);
+    }
+    window.addEventListener('orientationchange', function () {
+      setTimeout(fitPanelToViewport, 80);
     });
   }
 

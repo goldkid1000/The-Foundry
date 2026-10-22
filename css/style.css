@@ -2656,3 +2656,11 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
 .card:active { transform: scale(.99); }
 .btn, button, #tabbar a, .tv-facebtn, #tv-chat-fab { transition: transform .15s ease, filter .15s ease; }
 .btn:active, button:active { transform: scale(.97); }
+
+/* ---------- v2.19.3: Vault Guide panel vs the iOS keyboard ----------
+   While the keyboard is up, js/ai.js pins #vault-ai-panel to the visual
+   viewport with inline bottom/height (see fitPanelToViewport). These
+   rules keep the message list the only scroller and stop scroll gestures
+   chaining through to the page behind the panel. */
+#vault-ai-panel{overscroll-behavior:contain}
+#vai-msgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
