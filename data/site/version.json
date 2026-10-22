@@ -1,10 +1,1 @@
-{
- "version": "2.18.0",
- "updated": "2026-10-21",
- "notify": true,
- "notes": [
-  "Big polish update: the site now says The Foundry everywhere (install prompts, chat, marketplace), Vaulty's chat buttons match his no-× design, and the footer shows the version + last updated date.",
-  "Fixed: the app version check was stuck at 2.17.1, which could keep phones on an old cached copy — the cache and version stamps are now in sync (2.18.0), and the homepage Mods counter now matches the real library (1,756).",
-  "Smoother feel: gentle page fade-ins, cards lift on hover and press, loading text pulses — all disabled if your device prefers reduced motion."
- ]
-}
+{"notes":["Vaulty upgrade: he now answers LIVE questions from the worldstate feed — when Baro Ki'Teer is back (he lands Fri Oct 23 at Strata Relay), current events, Nightwave challenges, active fissures, today's Sortie, day/night cycles and the latest hotfix.","Vaulty knows much more: modding doctrine, Rivens (including the temporary Riven-trading shutdown), credits/endo/relic farming routes, focus schools, amps, forma and potatoes, and playstyle frame picks (tank, support, speed, spy).","When Vaulty honestly doesn't know, he now says so and offers one-tap 'Research this' buttons — Warframe Wiki search and web search on your exact question — instead of a dead end.","Fixed: Vaulty was missing his guide brain on 11 pages, 'where do I farm Kuva' answered with Nova's farm location, and 'what is Steel Path' returned a build list instead of an explanation."],"notify":true,"updated":"2026-10-22","version":"2.19.0"}

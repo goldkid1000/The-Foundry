@@ -1,8 +1,1 @@
-{
- "version": "2.18.1",
- "updated": "2026-10-21",
- "notify": false,
- "notes": [
-  "+1 video: iFlynn's 'DE Are Killing Riven Dispositions in Warframe' — a 17-minute Devshorts 120 + Dev Workshop deep-dive on the Riven disposition retirement (all Rivens go to a fixed 1.2) and the 75% Ammo Efficiency cap landing in Thursday's (Oct 22) hotfix, including the free Forma + up to 200k Kuva inbox compensation and which Rivens win/lose. (Beginner) News check: no new official hotfix yet — PC still on Hotfix 44.1.2 + 2.1 (Oct 15); the ammo-efficiency / Riven hotfix is expected tomorrow."
- ]
-}
+{"notes":["Vaulty upgrade: he now answers LIVE questions from the worldstate feed — when Baro Ki'Teer is back (he lands Fri Oct 23 at Strata Relay), current events, Nightwave challenges, active fissures, today's Sortie, day/night cycles and the latest hotfix. Plus a big knowledge expansion (modding doctrine, Rivens — including the temporary Riven-trading shutdown, credits/endo/relic routes, focus schools, playstyle frame picks) and one-tap 'Research this' buttons (Warframe Wiki + web) whenever he honestly doesn't know. Fixes: Vaulty was missing his guide brain on 11 pages (Archwing, Companions, Damage, Focus, Helminth, Incarnon, Liches, Quests, Railjack, Shards, Syndicates), 'where do I farm Kuva' answered with Nova's farm, and 'what is Steel Path' returned a build list instead of an explanation."],"notify":true,"updated":"2026-10-22","version":"2.19.0"}

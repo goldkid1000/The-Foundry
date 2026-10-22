@@ -17,7 +17,7 @@
   'use strict';
 
   /* BUMP WITH EVERY RELEASE — this is how the running page knows its own age */
-  var TV_BUILD_VERSION = '2.18.0';
+  var TV_BUILD_VERSION = '2.19.0';
 
   /* v2.17.0 — BOOT SELF-HEAL (the permanent stale-cache fix).
      Problem it ends: Safari's HTTP cache can serve an old index.html, which

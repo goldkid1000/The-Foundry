@@ -81,12 +81,18 @@
       if (n.indexOf(q) === 0 && q.length >= 4) return list[i];
     }
     for (i = 0; i < list.length; i++) { if (norm(list[i].name).indexOf(q) !== -1) return list[i]; }
-    /* fuzzy: allow 1-2 typos on names of similar length */
+    /* fuzzy: allow 1-2 typos on names of similar length.
+       v2.19.0: for short queries the first letter must match — otherwise
+       "kuva" typo-matched "Nova" (distance 2) and farm questions about
+       Kuva answered with Nova's drop location. */
     var best = null, bestD = 3;
     for (i = 0; i < list.length; i++) {
       n = norm(list[i].name);
       if (Math.abs(n.length - q.length) > 2) continue;
+      if (q.length <= 6 && n.charAt(0) !== q.charAt(0)) continue;
       var dd = lev(n, q);
+      /* very short names collide at distance 2 (kuva→Khra) — allow only 1 */
+      if (q.length <= 5 && dd > 1) continue;
       if (dd < bestD) { bestD = dd; best = list[i]; }
     }
     return best;
@@ -117,13 +123,21 @@
     if (a && a.drops && a.drops.length) return { kind: 'arcane', e: a };
     var r = findByName(D.relics, q);
     if (r) return { kind: 'relic', e: r };
-    /* resource / farm-spot tables */
-    var cats = ['resourceFarms', 'modFarms', 'arcaneFarms', 'relicFarms', 'primePartFarms'];
-    for (var c = 0; c < cats.length; c++) {
-      var list = D.farming[cats[c]] || [];
-      for (var i = 0; i < list.length; i++) {
-        if (norm(list[i].what).indexOf(norm(q)) !== -1 && norm(q).length >= 3) {
-          return { kind: 'spot', e: list[i] };
+    /* resource / farm-spot tables (v2.19.0: currencyFarms included — credits,
+       endo, kuva and focus lookups used to miss this table entirely.
+       Two passes: an exact/prefix "what" match beats a contains match, so
+       "kuva" finds "Kuva (Riven rolling)" instead of "Entropic Kuva".) */
+    var cats = ['resourceFarms', 'modFarms', 'arcaneFarms', 'relicFarms', 'primePartFarms', 'currencyFarms'];
+    var pass, c, list, i;
+    for (pass = 0; pass < 2; pass++) {
+      for (c = 0; c < cats.length; c++) {
+        list = D.farming[cats[c]] || [];
+        for (i = 0; i < list.length; i++) {
+          var what = norm(list[i].what);
+          var hit = pass === 0
+            ? (what.indexOf(norm(q)) === 0 && norm(q).length >= 3)
+            : (what.indexOf(norm(q)) !== -1 && norm(q).length >= 3);
+          if (hit) return { kind: 'spot', e: list[i] };
         }
       }
     }
@@ -265,9 +279,22 @@
       '<li>📍 <b>Find anything</b> — <i>"where do I farm Argon Crystals"</i></li>' +
       '<li>❓ <b>Explain mods & arcanes</b> — <i>"what does Hunter Munitions do"</i></li>' +
       '<li>💰 <b>Platinum trading</b> — <i>"how do I sell for platinum"</i></li>' +
+      '<li>🛎 <b>Live stuff, answered live</b> — <i>"when is Baro back?"</i>, <i>"what events are on?"</i>, <i>"Nightwave challenges"</i>, <i>"active fissures"</i>, <i>"latest hotfix"</i> — pulled from the live worldstate feed</li>' +
+      '<li>🧭 <b>Doctrine & guidance</b> — <i>"how do I mod"</i>, <i>"what is a Riven"</i>, <i>"best tank frame"</i>, <i>"how do I raise Mastery Rank"</i></li>' +
       '<li>🌱 <b>New player help</b> — <i>"I\'m new, what should I do first"</i></li></ul>' +
-      '<p class="muted small">I\'m the Vault\'s built-in guide — I answer from the Vault\'s own data, not a live AI. ' +
-      'But I\'ll always try to get you something useful.</p>';
+      '<p class="muted small">I\'m the Vault\'s built-in guide — I answer from the Vault\'s own data plus the live worldstate feed. ' +
+      'And if I genuinely don\'t know something, I\'ll say so and give you one-tap research buttons instead of guessing.</p>';
+  }
+
+  /* v2.19.0: the honest dead-end. When Vaulty doesn't know, it says so
+     plainly and offers one-tap research on the user's exact question —
+     the Warframe Wiki and the open web — instead of a canned shrug. */
+  function researchMarkup(q) {
+    var wiki = 'https://wiki.warframe.com/w/Special:Search?search=' + encodeURIComponent(q);
+    var web = 'https://www.google.com/search?q=' + encodeURIComponent(q + ' warframe');
+    return '<div class="vai-research">' +
+      '<a class="vai-research-btn" href="' + wiki + '" target="_blank" rel="noopener">🔎 Research on the Warframe Wiki</a>' +
+      '<a class="vai-research-btn" href="' + web + '" target="_blank" rel="noopener">🌐 Research on the web</a></div>';
   }
 
   function fallbackAnswer(q) {
@@ -275,9 +302,9 @@
       return e.n && norm(e.n).indexOf(norm(q)) !== -1;
     }).slice(0, 5);
     if (!hits.length) {
-      return 'Hmm, I don\'t have anything called "' + esc(q) + '" in the Vault. 🤔 ' +
-        'Double-check the spelling — or try asking about a warframe, weapon, mod, arcane, or relic. ' +
-        'You can also ask <i>"help"</i> to see everything I can do.';
+      return 'Straight up: I don\'t know that one — "' + esc(q) + '" isn\'t in the Vault\'s data, and I won\'t make something up. 🤔 ' +
+        'You can research it in one tap:' + researchMarkup(q) +
+        '<p class="muted small">Or ask me about a warframe, weapon, mod, arcane, or relic by name — or say <i>"help"</i> to see everything I can do.</p>';
     }
     var rows = hits.map(function (h) {
       return '<li><a href="' + esc(h.u) + '"><b>' + esc(h.n) + '</b></a> ' +
@@ -903,6 +930,195 @@ function oneShotBuildAnswer(t) {
     'Want the theory? Ask <i>"one-shot formula"</i>.</p>';
 }
 
+/* ---------- v2.19.0 KNOWLEDGE BASE ----------
+   Curated doctrine & guidance: modding, Rivens, Steel Path / MR explainers,
+   credits & endo routes, relic farming, focus schools, amps, forma/potatoes,
+   playstyle frame picks, trading basics. Checked in answer() after the build
+   generator, before the generic farm intent — patterns are kept narrow so
+   specific item lookups still win. */
+  var KNOWLEDGE = [
+    {
+      re: /\brivens?\b.*\b(trade|trading|sell|buy)\b|\b(trade|trading|sell|buy)\b.*\brivens?\b/,
+      html: '<b>⚠️ Riven trading is temporarily disabled in-game right now</b> — DE posted a PSA about it (Oct 20), ' +
+        'so Riven mods can\'t change hands until they switch it back on. Unveiling, rolling with Kuva, and using your own ' +
+        'Rivens all still work normally.<p class="muted small">When it\'s back: Rivens trade like any mod — price by weapon, ' +
+        'stats and roll quality on warframe.market. See the <a href="trading.html">Trading page</a>.</p>'
+    },
+    {
+      re: /what (is|are) (a |an )?(riven|rivens)\b|how do rivens work|riven (mod )?(basics|guide|help|explained)/,
+      html: '<b>Riven mods</b> are randomized, weapon-specific mods — each one is locked to a single weapon (or weapon family) ' +
+        'and rolls 2–4 random stats, sometimes with a negative.<p><b>Getting them:</b> Sortie rewards, Archon Hunts, Steel Path ' +
+        'honors (Teshin sells one weekly), and Riven Slivers → trade 10 to <b>Palladino</b> at Iron Wake.</p>' +
+        '<p><b>Rolling:</b> spend <b>Kuva</b> to re-roll the stats (the weapon lock never changes). A weapon\'s <b>disposition</b> ' +
+        'scales how strong the numbers can roll — DE is retiring dispositions so every Riven settles at a fixed 1.2.</p>' +
+        '<p class="muted small">⚠️ Right now Riven <i>trading</i> is temporarily disabled in-game (DE PSA, Oct 20) — ' +
+        'you can still unveil, roll and equip your own. Deep dive on the <a href="guides.html">Guides page</a>.</p>'
+    },
+    {
+      re: /how (do i|to|should i) mod\b|modding (guide|tips|help|basics)|why is my damage|my damage is (low|bad|weak)|how.*(increase|boost|raise) (my )?damage|damage (guide|help|tips)/,
+      html: '<b>Modding doctrine — the 30-second version:</b>' +
+        '<p><b>1. Multiply, don\'t stack.</b> Damage comes from different buckets multiplying together: base damage ' +
+        '(Serration/Hornet Strike) × multishot × crit × elemental × faction (Bane) mods. Two mods from different buckets ' +
+        'beat three from the same one.</p>' +
+        '<p><b>2. Capacity first.</b> Orokin Catalyst/Reactor doubles mod capacity; <b>Forma</b> halves a slot\'s cost. ' +
+        'Match slot polarities to your expensive mods.</p>' +
+        '<p><b>3. Elements matter.</b> Viral (cold + toxin) is the default — it amplifies health damage. Corrosive for armor, ' +
+        'Magnetic for shields/Overguard.</p>' +
+        '<p><b>4. Rank your mods.</b> One rank-8 Serration beats three unranked mods. Spend Endo on the core set first.</p>' +
+        '<p class="muted small">Want it applied? Ask <i>"make me a [weapon] build"</i> and I\'ll slot a full loadout with a reason for every mod. Full doctrine on the <a href="index.html">homepage modding section</a> and <a href="damage.html">Damage page</a>.</p>'
+    },
+    {
+      re: /what is (the )?steel path|how.*(unlock|start|get into).*steel path|steel path.*(unlock|start)/,
+      html: '<b>Steel Path</b> is Warframe\'s hard mode: the whole star chart again at +100 enemy levels with boosted ' +
+        'health, armor and shields.<p><b>Unlock:</b> complete every node on the normal star chart, then talk to <b>Teshin</b> ' +
+        'in any Relay.</p><p><b>Why bother:</b> Steel Essence (buys Arcane Adapters, Umbra Forma, Kuva), Acolytes that drop ' +
+        'the Merciless/Deadhead/Dexterity weapon arcanes, and much better resource rates.</p>' +
+        '<p class="muted small">Bring a real build — ask <i>"make me a [frame] Steel Path build"</i> when you\'re ready.</p>'
+    },
+    {
+      re: /mastery rank|how.*(raise|increase|level up).*(\bmr\b|mastery)|\bwhat is mr\b|rank up (fast|quick)/,
+      html: '<b>Mastery Rank (MR)</b> rises by leveling <i>new</i> gear — every Warframe, weapon, companion and Archwing ' +
+        'grants Mastery the first time you rank it to 30 (6,000 per frame, 3,000 per weapon). Re-leveling the same item gives nothing new.' +
+        '<p><b>Fastest route:</b> keep a constant rotation of fresh gear leveling while you clear the star chart and do quests. ' +
+        'Leveling spots: <b>Hydron (Sedna)</b>, <b>Helene (Saturn)</b>, or <b>Sanctuary Onslaught</b>.</p>' +
+        '<p><b>Why it matters:</b> MR gates weapons, Rivens, daily standing caps and your daily trade count (trades/day = MR).</p>' +
+        '<p class="muted small">When your bar fills, take the rank-up test at a Relay (Cephalon Simaris\' room) — you can practice it first, and a failed test just means a 24h retry wait.</p>'
+    },
+    {
+      re: /credits?/,
+      test: /(farm|make|earn|get|best|fast|grind|need)/,
+      html: '<b>Credits — best routes:</b>' +
+        '<p>🏦 <b>The Index (Neptune, High Risk)</b> — the credit king. Solo or squad, ~250k per run, doubled during credit-booster weekends.</p>' +
+        '<p>🕷 <b>Profit-Taker bounties (Fortuna)</b> — ~125k per kill plus toroids to sell for standing.</p>' +
+        '<p>🌑 <b>Dark Sector missions</b> (e.g. Seimeni, Ceres) — solid early-game credits, leave after the first rotation.</p>' +
+        '<p class="muted small">First mission of the day pays double credits — make it a good one. Full table on the <a href="farming.html">Farming Hub</a>.</p>'
+    },
+    {
+      re: /\bendo\b/,
+      html: '<b>Endo — best routes:</b>' +
+        '<p>⚖️ <b>Arbitrations</b> — the best repeatable source: Endo drops plus Ayatan Sculptures you can dissolve.</p>' +
+        '<p>🏟 <b>Vodyanoi / Yam (Sedna, Rathuum arena)</b> on Steel Path with a Nekros/Khora squad — the classic Endo-per-hour farm.</p>' +
+        '<p>🗿 <b>Maroo\'s weekly Ayatan hunt</b> (Maroo\'s Bazaar, Mars) — one guaranteed sculpture a week; fill it with Amber/Cyan stars before dissolving.</p>' +
+        '<p class="muted small">Also: dissolve duplicate mods you\'ll never use — most players sit on thousands of Endo without knowing. Full table on the <a href="farming.html">Farming Hub</a>.</p>'
+    },
+    {
+      re: /\b(farm|farming|get|grind|best)\b.{0,30}\brelics\b|\brelic (farm|farming|spots?)\b/,
+      html: '<b>Farming Void Relics by tier:</b>' +
+        '<p><b>Lith</b> — Hepit (Void, Capture): ~1 minute per relic.<br>' +
+        '<b>Meso</b> — Ukko (Void, Capture) for Meso+Neo, or Io (Jupiter, Defense).<br>' +
+        '<b>Neo</b> — Ukko (Void, Capture); Xini (Eris, Interception) for Neo+Axi.<br>' +
+        '<b>Axi</b> — Apollo (Lua, Disruption) is the community favorite; Xini works too.</p>' +
+        '<p class="muted small">Then crack them in Void Fissures — ask me <i>"active fissures"</i> for what\'s live right now. Which relics hold which parts: <a href="relics.html">Relics page</a>.</p>'
+    },
+    {
+      re: /focus school|which focus|best focus|\b(zenurik|madurai|naramon|unairu|vazarin)\b/,
+      html: '<b>Focus schools — which one?</b>' +
+        '<p>⚡ <b>Zenurik</b> — the default pick: energy regeneration for you and the squad. Most players live here.</p>' +
+        '<p>🔥 <b>Madurai</b> — damage: amp damage for Eidolons/operators and a weapon damage buff after Void Sling. The one-shot school.</p>' +
+        '<p>🗡 <b>Naramon</b> — melee: combo decay instead of full loss, combo-count tricks.</p>' +
+        '<p>🛡 <b>Unairu</b> — armor/shield strip on demand (Caustic Strike / Magnetic Flare) — a Steel Path problem-solver.</p>' +
+        '<p>💚 <b>Vazarin</b> — support: instant revives and protective healing.</p>' +
+        '<p class="muted small">Farm Focus with lenses on your gear in Elite Sanctuary Onslaught, or convert Eidolon Shards past the daily cap. You can switch schools freely once unlocked — max Zenurik first if unsure.</p>'
+    },
+    {
+      re: /best amp|which amp|amp (build|setup|guide)|\b777\b.*amp|amp.*\b777\b/,
+      html: '<b>The meta amp is the "777"</b> — <b>Klamora</b> prism (wide flamethrower beam) + <b>Phahd</b> scaffold ' +
+        '(bouncing glaive) + <b>Certus</b> brace (crit). Parts come from the <b>Quills</b> (Cetus) and <b>Vox Solaris</b> ' +
+        '(Fortuna) — you\'ll need rank with both.<p><b>Arcanes:</b> Virtuos Strike (Quills) + Eternal Eradicate (Zariman). ' +
+        'Pair with <b>Madurai</b> focus for the amp damage buffs.</p>' +
+        '<p class="muted small">Full amp part list on the <a href="amps.html">Amps page</a>.</p>'
+    },
+    {
+      re: /what is (a |an )?(orokin )?(catalyst|reactor|potato)|how.*(get|farm|find).*(catalyst|reactor|potato)|\bpotato(es)?\b.*(get|farm|find|work)|orokin (catalyst|reactor)/,
+      html: '<b>"Potatoes"</b> — <b>Orokin Reactor</b> (Warframes/companions) and <b>Orokin Catalyst</b> (weapons) — ' +
+        'double a item\'s mod capacity 30 → 60 (or 40 → 80 for aura frames/Kuva gear). The single biggest power jump a new item can get.' +
+        '<p><b>Free sources:</b> Nightwave credit offerings (150 Cred each — the main route), Sortie rewards, Invasion battle-pay, ' +
+        'Gift of the Lotus alerts after Devstreams, and occasional events.</p>' +
+        '<p class="muted small">Or 20p each in the Market — but spend Nightwave Cred first. Never put one on gear you\'ll throw away tomorrow.</p>'
+    },
+    {
+      re: /what is (a |an )?forma|how.*(get|farm|make|build).*forma|forma.*(drop|farm|get)/,
+      html: '<b>Forma</b> changes a mod slot\'s polarity so matching mods cost half — that\'s how endgame builds fit. ' +
+        'Using one resets the item to rank 0; re-level it and the polarity stays.' +
+        '<p><b>Getting Forma:</b> the <b>Forma Blueprint</b> drops from many <b>Void Relics</b> (a common reward — crack relics and you\'ll swim in them), ' +
+        'the Lua music-room puzzle, and Plague Star when it runs. Crafting takes 23 hours, so keep one cooking in the Foundry at all times.</p>' +
+        '<p class="muted small">Built Forma also show up in Nightwave and market bundles — the blueprint route is free. See <a href="relics.html">Relics</a> for which ones drop it.</p>'
+    },
+    {
+      re: /how (do|does) (i |you )?trad|how trading works|trading (basics|guide|help)|where do i trade|trade with (other )?players/,
+      html: '<b>Trading basics:</b>' +
+        '<p><b>Requirements:</b> Mastery Rank 2+, two-factor authentication enabled on your account, and enough credits for the trade tax.</p>' +
+        '<p><b>Where:</b> a clan <b>dojo trading post</b> (best) or <b>Maroo\'s Bazaar</b> (Mars). One of you invites, the other accepts, both pick items, both confirm twice.</p>' +
+        '<p><b>Limits:</b> trades per day = your MR. Prime parts, mods, arcanes and some special items are tradable; built gear and resources are not.</p>' +
+        '<p><b>Prices:</b> check <b>warframe.market</b> before you buy or sell — never accept a "trust me" price.</p>' +
+        '<p class="muted small">⚠️ Riven trading is temporarily disabled in-game right now (DE PSA, Oct 20). Full guide: <a href="trading.html">Trading page</a>.</p>'
+    },
+    {
+      re: /(best|good|top|strongest).{0,14}(tank|tanky) frame|frame.{0,10}(tank|unkillable|never dies)|hardest frame to kill/,
+      html: '<b>Tank frames — pick your flavor:</b>' +
+        '<p>🦏 <b>Rhino</b> — Iron Skin + Roar: tank AND team damage buff. The beginner-proof pick.</p>' +
+        '<p>👑 <b>Revenant</b> — Mesmer Skin makes him functionally immortal; the lazy Steel Path tank.</p>' +
+        '<p>🌀 <b>Nezha</b> — Warding Halo + speed + crowd control, the fun tank.</p>' +
+        '<p>🐒 <b>Wukong</b> — a clone, three extra lives, and a cloud to escape in.</p>' +
+        '<p class="muted small">Ask <i>"revenant steel path build"</i> or <i>"rhino steel path build"</i> for full loadouts.</p>'
+    },
+    {
+      re: /(best|good|top).{0,14}support frame|frame.{0,10}support|best healer/,
+      html: '<b>Support frames:</b>' +
+        '<p>🌸 <b>Wisp</b> — health/speed/fire-rate motes; the squad never wants her to leave.</p>' +
+        '<p>📖 <b>Dante</b> — team Overguard + book nukes; support that also deletes rooms.</p>' +
+        '<p>🍋 <b>Citrine</b> — health/energy orb economy + status priming for the whole team.</p>' +
+        '<p>✝️ <b>Trinity</b> — the classic: instant energy and heals, still great for bosses.</p>' +
+        '<p class="muted small">Tell me a frame name + <i>"build"</i> and I\'ll slot a full support loadout.</p>'
+    },
+    {
+      re: /fastest frame|best.{0,10}speed frame|frame.{0,10}(fast|speed runs?)/,
+      html: '<b>Speed frames:</b>' +
+        '<p>💨 <b>Gauss</b> — Mach Rush; literally built to be the fastest thing in the game.</p>' +
+        '<p>⚡ <b>Volt</b> — Speed buffs the whole squad (and his shield carries guns too).</p>' +
+        '<p>🦋 <b>Titania</b> — Razorwing flight: fastest across open worlds and big tilesets.</p>' +
+        '<p>🏎 <b>Wukong</b> — Cloud Walker zooms and ignores lasers/traps.</p>' +
+        '<p class="muted small">For Capture/Rescue farming it\'s Titania or Wukong; for style points, Gauss.</p>'
+    },
+    {
+      re: /(best|good).{0,12}spy frame|frame.{0,12}spy|spy missions?.{0,14}(frame|easy|best)/,
+      html: '<b>Spy frames:</b>' +
+        '<p>🍄 <b>Ivara</b> — permanent invisibility + Infiltrate augment walks through lasers. Spy on easy mode.</p>' +
+        '<p>🎭 <b>Loki</b> — long invisibility and decoys; the classic.</p>' +
+        '<p>🐒 <b>Wukong</b> — Cloud Walker flies over everything and ignores alarms\' lasers.</p>' +
+        '<p>🚪 <b>Limbo</b> — the Rift ignores lasers (but not cameras).</p>' +
+        '<p class="muted small">Pro tip: Spy rewards come from getting all 3 vaults — bring ciphers for emergencies, not as the plan.</p>'
+    },
+    {
+      re: /which frame should i|what frame should i|frame should i (get|pick|use|build|farm|main)/,
+      html: 'Depends on your flavor — here\'s the cheat sheet:' +
+        '<p>🛡 <b>Survive anything:</b> Revenant, Rhino<br>' +
+        '💥 <b>Delete rooms:</b> Saryn, Mesa, Octavia<br>' +
+        '🌾 <b>Farm loot:</b> Nekros, Khora, Hydroid (extra loot rolls)<br>' +
+        '🏃 <b>Go fast:</b> Gauss, Volt, Titania<br>' +
+        '🤝 <b>Support the squad:</b> Wisp, Dante, Citrine<br>' +
+        '🕵️ <b>Spy/stealth:</b> Ivara, Wukong</p>' +
+        '<p class="muted small">Tell me which job you want done and I\'ll give you the build and where to farm it.</p>'
+    },
+    {
+      re: /(best|good|great) (weapon|gun)s? for (a )?(beginner|new player)|beginner (weapon|gun)|starter weapon|early game (weapon|gun)|first weapon/,
+      html: '<b>Best early weapons (low MR, carry hard):</b>' +
+        '<p>🔫 <b>Hek</b> (MR4 shotgun) — the classic new-player delete button; its Syndicate augment (Scattered Justice, Steel Meridian) is a huge boost.</p>' +
+        '<p>💥 <b>Atomos</b> (MR5) — chaining beam pistol that melts crowds.</p>' +
+        '<p>🌀 <b>Xoris</b> (from The Deadlock Protocol quest) — infinite-combo glaive, carries well into Steel Path.</p>' +
+        '<p>⚔️ <b>Broken War</b> (quest reward) — one of the best melee in the game, handed to you for free.</p>' +
+        '<p class="muted small">Ask <i>"make me a Hek build"</i> and I\'ll mod it out for you.</p>'
+    }
+  ];
+
+  function knowledgeAnswer(t) {
+    for (var i = 0; i < KNOWLEDGE.length; i++) {
+      var k = KNOWLEDGE[i];
+      if (k.re.test(t) && (!k.test || k.test.test(t))) return k.html;
+    }
+    return null;
+  }
+
 /* ---------- intent routing ---------- */
   function stripQ(q) { return norm(q).replace(/\?+$/, '').trim(); }
 
@@ -993,6 +1209,13 @@ function oneShotBuildAnswer(t) {
     if (/\benabler\b/.test(t) || /best frame for (damage|one[\s-]?shot|dps)/.test(t)) {
       return ENABLER_KNOWLEDGE;
     }
+    /* v2.19.0: "what is Steel Path / how do I unlock it" is an explainer
+       question, not a build request — answer it before the build intent
+       below can hijack it ("steel path" is itself a build-intent word). */
+    if (/what is (the )?steel path|how.*(unlock|start|get into).*steel path|steel path.*(unlock|start)/.test(t)) {
+      var spx = knowledgeAnswer(t);
+      if (spx) return spx;
+    }
     /* v2.12.68: general Steel Path build questions — "build me a general steel path
        strong build that does lots of damage plus arcanes, auras, exilus".
        Only when NO specific item is named; named items keep their own builds. */
@@ -1048,6 +1271,12 @@ function oneShotBuildAnswer(t) {
       /* no specific item found — recommend instead of dead-ending */
       return genericBuildAnswer(t, bp.purpose);
     }
+    /* v2.19.0: curated knowledge base — doctrine, explainers, playstyle picks.
+       Runs after the build generator so "X build" still builds, and before the
+       sell/farm intents so Riven-trading status and trading basics win over
+       the generic platinum answer. */
+    var know = knowledgeAnswer(t);
+    if (know) return know;
     if (/\bi'?m new\b/.test(t) || /\bnew player\b/.test(t) || /\bjust started\b/.test(t) ||
         /\bwhat should i do first\b/.test(t) || /\bwhere do i start\b/.test(t) ||
         /\bbeginner (guide|tips|help)\b/.test(t)) {
@@ -1066,7 +1295,8 @@ function oneShotBuildAnswer(t) {
       var arc = findByName(D.arcanes, thing);
       if (arc) return describeAnswer(arc, 'arcanes.html');
       return 'Hmm, I don\'t know a mod or arcane called "' + esc(thing) + '". 🤔 ' +
-        'Check the spelling — or browse the <a href="mods.html">mods list</a> to find it.';
+        'Check the spelling — or browse the <a href="mods.html">mods list</a>. Or research it directly:' +
+        researchMarkup(thing);
     }
 
     m = t.match(/^(?:where (?:do|can) i (?:farm|get|find|hunt|grind)|where to (?:farm|get|find|hunt|grind)|how do i (?:get|farm|obtain|find|hunt|grind)|how to (?:get|farm|obtain|find|hunt|grind)|farm|get|find|hunt|grind) (.+)$/);
@@ -1205,7 +1435,7 @@ function oneShotBuildAnswer(t) {
       var sug = findItemForBuild(m[1]) || findItemForBuild(t);
       if (sug) return generateBuild(sug.e.name + ' build');
       return 'Hmm, I couldn\'t pin down which item you mean. 🤔 Try the full name — like <i>"Nova Prime build"</i> or <i>"Kuva Zarr build"</i>. ' +
-        'Or ask <i>"help"</i> to see what I can do.';
+        'Or ask <i>"help"</i> to see what I can do — or research it:' + researchMarkup(q);
     }
 
     m = t.match(/^what is (?:a |an |the )?(.+)$/);
@@ -1242,6 +1472,15 @@ function oneShotBuildAnswer(t) {
     if (!q) return;
     addMsg(q, 'user');
     els.input.value = '';
+    /* v2.19.0: live questions go to the worldstate feed, not stored data */
+    if (window.TVLive && window.TVLive.isLive(q)) {
+      window.TVLive.answer(q).then(function (html) {
+        addMsg(html || 'The live feed didn\'t have that — check the <a href="live.html">Live page</a>.', 'bot');
+      }).catch(function () {
+        addMsg('The live feed didn\'t answer just now — check the <a href="live.html">Live page</a>.', 'bot');
+      });
+      return;
+    }
     loadData().then(function () {
       addMsg(answer(q), 'bot');
     }).catch(function () {
@@ -1292,7 +1531,7 @@ function oneShotBuildAnswer(t) {
     panel.style.display = 'none';
     panel.innerHTML =
       '<div class="vai-head"><span>◈ Vault Guide</span>' +
-      '<button id="vai-close" type="button" aria-label="Close">✕</button></div>' +
+      '<button id="vai-close" type="button" aria-label="Close">⌄</button></div>' +
       '<div id="vai-msgs"></div>' +
       '<div class="vai-chips">' +
       CHIPS.map(function (c) { return '<button type="button" class="vai-chip">' + esc(c) + '</button>'; }).join('') +
@@ -1323,5 +1562,5 @@ function oneShotBuildAnswer(t) {
     });
   }
 
-  window.TVAI = { init: init, toggle: toggle, _answer: answer, _load: loadData };
+  window.TVAI = { init: init, toggle: toggle, _answer: answer, _load: loadData, _research: researchMarkup };
 })();

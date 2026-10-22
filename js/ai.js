@@ -85,7 +85,11 @@
     '',
     'AMPS: 777 (Klamora prism / Phahd scaffold / Certus brace) is the best amp. Use Madurai focus school (amp damage buffs after Void Sling), Virtuos Strike arcane (electric damage on headshot), Eternal Eradicate amp arcane. For Steel Path: Void Sling into enemy, headshot to proc Virtuos, hold Klamora beam point-blank.',
     '',
-    'FARM NOTES: Primed mods come from Baro Ki\'Teer (void trader). Galvanized mods drop from Steel Path Arbitration-style rewards. Hunter Munitions from Ghoul Purge bounties on Cetus. 60/60 elemental mods from Spy missions and Corrupted Vor. Corrupt mods from Orokin Vaults (Deimos).'
+    'FARM NOTES: Primed mods come from Baro Ki\'Teer (void trader). Galvanized mods drop from Steel Path Arbitration-style rewards. Hunter Munitions from Ghoul Purge bounties on Cetus. 60/60 elemental mods from Spy missions and Corrupted Vor. Corrupt mods from Orokin Vaults (Deimos).',
+    '',
+    'LIVE QUESTIONS: if the Tenno asks about RIGHT NOW in-game (Baro Ki\'Teer, current events, fissures, Nightwave, the latest hotfix), the app answers those itself from the live worldstate feed — never guess at timers, dates, or stock lists from memory.',
+    'RIVEN STATUS: Riven trading is temporarily disabled in-game right now (DE PSA, Oct 2026). Unveiling, rolling and using your own Rivens still works. DE is also retiring Riven dispositions, so every Riven is settling at a fixed 1.2 disposition.',
+    'HONESTY RULE: if you truly don\'t know a specific fact, say "I don\'t know that one" plainly — the app will offer the Tenno one-tap research buttons. Never invent drop locations, prices, dates, or patch details.'
   ].join('\n');
 
   /* ---------- WebGPU / engine ---------- */
@@ -199,8 +203,13 @@
         return stream.next().then(function (r) {
           if (r.done) {
             removeTyping();
-            if (botEl) botEl.innerHTML = md(full);
-            else addMsg(md(full), 'bot');
+            var finalHtml = md(full);
+            /* model admitted it doesn't know → offer real research */
+            if (UNCERTAIN_RE.test(full) && FALLBACK && FALLBACK._research) {
+              finalHtml += FALLBACK._research(q);
+            }
+            if (botEl) botEl.innerHTML = finalHtml;
+            else addMsg(finalHtml, 'bot');
             history.push({ role: 'user', content: q });
             history.push({ role: 'assistant', content: full });
             if (history.length > 12) history = history.slice(-12);
@@ -225,10 +234,28 @@
     });
   }
 
+  /* v2.19.0: phrases that mean the model just admitted it doesn't know —
+     those answers get one-tap research buttons appended */
+  var UNCERTAIN_RE = /i (don'?t|do not) know|i'?m not (sure|certain)|no idea|not familiar with|can'?t (help with|answer)|don'?t have (any )?(info|information|details) (on|about)/i;
+
   function ask(q) {
     if (!q) return;
     addMsg(q, 'user');
     els.input.value = '';
+    /* v2.19.0: time-sensitive questions are answered from the live
+       worldstate feed (same data as the Live page), never from the
+       model's memory — timers and stock change too fast to guess at. */
+    if (window.TVLive && window.TVLive.isLive(q)) {
+      addTyping();
+      window.TVLive.answer(q).then(function (html) {
+        removeTyping();
+        addMsg(html || 'The live feed didn\'t have that — check the <a href="live.html">Live page</a>.', 'bot');
+      }).catch(function () {
+        removeTyping();
+        addMsg('The live feed didn\'t answer just now — check the <a href="live.html">Live page</a>, or ask me again in a minute.', 'bot');
+      });
+      return;
+    }
     if (engine) {
       askAI(q);
     } else if (engineFailed || !hasWebGPU()) {
@@ -268,6 +295,7 @@
   }
 
   var CHIPS = [
+    '🛎 When is Baro back?',
     '💥 One-shot build for Kuva Zarr',
     '✨ Best aura mods?',
     "🌱 I'm new, where do I start?",
