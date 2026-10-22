@@ -1,10 +1,18 @@
 [
   {
+    "version": "2.19.4",
+    "date": "2026-10-22",
+    "notes": [
+      "Build answers from the Vault Guide now come as tidy build cards with Copy buttons. Tap 'Copy build' to copy the whole build as clean text — title, aura and exilus, mods in mod-screen order, arcanes, and the play note — and paste it anywhere: your notes, a message, or chat. 'Copy compact' gives a one-line version for quick sharing. Warframe itself only creates build links in-game, so there is no import code — the card lists the mods in order so slotting them in takes seconds."
+    ],
+    "notify": true
+  },
+  {
     "version": "2.19.3",
     "date": "2026-10-22",
     "notify": true,
     "notes": [
-      "Fixed the Vault Guide crash loop on iPhone: mobile Safari killed the page while the ~2GB on-device AI model was loading ('A problem repeatedly occurred'), the page reloaded, and the load restarted \u2014 forever. The full AI model no longer loads on iPhone/iPad or on devices without WebGPU; the guide runs there in quick-answer mode (live worldstate answers + the guide brain) with an honest status line saying so.",
+      "Fixed the Vault Guide crash loop on iPhone: mobile Safari killed the page while the ~2GB on-device AI model was loading ('A problem repeatedly occurred'), the page reloaded, and the load restarted — forever. The full AI model no longer loads on iPhone/iPad or on devices without WebGPU; the guide runs there in quick-answer mode (live worldstate answers + the guide brain) with an honest status line saying so.",
       "Questions never wait for the AI model anymore: if the engine isn't fully ready, the guide answers immediately instead of replying 'still loading'.",
       "Fixed the chat panel vs the iOS keyboard: the panel now tracks the visual viewport, so with the keyboard up it resizes, the typing box stays visible, the newest message stays reachable, and page content no longer overlaps the chat.",
       "Desktop is unchanged: the AI is still an explicit tap-to-download (~2GB, stated up front, persistent storage requested) and the v2.19.2 cache protections still keep site updates from wiping it."
@@ -15,9 +23,9 @@
     "date": "2026-10-22",
     "notify": true,
     "notes": [
-      "Fixed the AI download loop: the site's update/cache cleaner was deleting EVERY cache on this origin \u2014 including the 'webllm' caches where the on-device AI keeps its ~2GB model \u2014 so every update (and every homepage self-heal) wiped the AI and the download started over. All cache cleaners (service worker, update flow, boot self-heal) now only delete the site's own 'foundry-' caches.",
+      "Fixed the AI download loop: the site's update/cache cleaner was deleting EVERY cache on this origin — including the 'webllm' caches where the on-device AI keeps its ~2GB model — so every update (and every homepage self-heal) wiped the AI and the download started over. All cache cleaners (service worker, update flow, boot self-heal) now only delete the site's own 'foundry-' caches.",
       "The AI download no longer starts by itself when you open the guide: it waits for your tap, states the ~2GB size first, and asks the browser for persistent storage so the model isn't evicted.",
-      "Honest AI status: the guide header now derives from a real on-device check \u2014 'AI ready \u2713', 'AI not downloaded', or 'AI unavailable on this device'. If the AI can't start after a try and one retry, the guide settles into quick-answer mode with a plain explanation instead of prompting the download again."
+      "Honest AI status: the guide header now derives from a real on-device check — 'AI ready ✓', 'AI not downloaded', or 'AI unavailable on this device'. If the AI can't start after a try and one retry, the guide settles into quick-answer mode with a plain explanation instead of prompting the download again."
     ]
   },
   {
@@ -25,7 +33,7 @@
     "date": "2026-10-22",
     "notify": true,
     "notes": [
-      "Fixed: after closing the Vault Guide with the chevron, tapping Vaulty didn't reopen the chat \u2014 he stayed hidden (invisible and untappable) until the page was reloaded. Vaulty now comes back every time you close the guide, ready for the next tap."
+      "Fixed: after closing the Vault Guide with the chevron, tapping Vaulty didn't reopen the chat — he stayed hidden (invisible and untappable) until the page was reloaded. Vaulty now comes back every time you close the guide, ready for the next tap."
     ]
   },
   {
@@ -33,10 +41,10 @@
     "date": "2026-10-22",
     "notify": true,
     "notes": [
-      "Vaulty upgrade: he now answers LIVE questions from the worldstate feed \u2014 when Baro Ki'Teer is back (he lands Fri Oct 23 at Strata Relay), current events, Nightwave challenges, active fissures, today's Sortie, day/night cycles and the latest hotfix.",
+      "Vaulty upgrade: he now answers LIVE questions from the worldstate feed — when Baro Ki'Teer is back (he lands Fri Oct 23 at Strata Relay), current events, Nightwave challenges, active fissures, today's Sortie, day/night cycles and the latest hotfix.",
       "Vaulty knows much more: modding doctrine, Rivens (including the temporary Riven-trading shutdown), credits/endo/relic farming routes, focus schools, amps, forma and potatoes, and playstyle frame picks (tank, support, speed, spy).",
-      "When Vaulty honestly doesn't know, he now says so and offers one-tap 'Research this' buttons \u2014 Warframe Wiki search and web search on your exact question \u2014 instead of a dead end.",
-      "Fixed: Vaulty was missing his guide brain on 11 pages (Archwing, Companions, Damage, Focus, Helminth, Incarnon, Liches, Quests, Railjack, Shards, Syndicates) \u2014 on devices without the full AI he could only say the guide data wasn't available there.",
+      "When Vaulty honestly doesn't know, he now says so and offers one-tap 'Research this' buttons — Warframe Wiki search and web search on your exact question — instead of a dead end.",
+      "Fixed: Vaulty was missing his guide brain on 11 pages (Archwing, Companions, Damage, Focus, Helminth, Incarnon, Liches, Quests, Railjack, Shards, Syndicates) — on devices without the full AI he could only say the guide data wasn't available there.",
       "Fixed: 'where do I farm Kuva' answered with Nova's farm location (a typo-matcher collision), and 'what is Steel Path' returned a build list instead of an explanation. Credits/Endo/Kuva/Focus farm lookups also reach the currency table now."
     ]
   },
@@ -46,11 +54,11 @@
     "notify": true,
     "notes": [
       "Rebrand finished: every user-visible \"Tenno Vault\" string now says The Foundry (install banner/modal, Vault Guide intros, marketplace disclaimer, What's New).",
-      "Fixed a stale version stamp: TV_BUILD_VERSION, the service-worker cache and all ?v= asset stamps were still 2.17.1 while the app was 2.17.5 \u2014 the update self-check could treat fresh pages as stale. All now read 2.18.0.",
+      "Fixed a stale version stamp: TV_BUILD_VERSION, the service-worker cache and all ?v= asset stamps were still 2.17.1 while the app was 2.17.5 — the update self-check could treat fresh pages as stale. All now read 2.18.0.",
       "Fixed the homepage Mods counter: it said 1,757, the library actually holds 1,756 (mods-0..8). Counter corrected; warframes 123, weapons 648, builds 878, videos 106 all re-verified against the data files.",
-      "Vaulty polish: his chat panel close is now a chevron (no \u00d7 anywhere, per his design), and at tablet widths (601\u2013767px) Vaulty now sits level with the chat bubble at bottom:84px instead of 20px higher.",
-      "Motion polish: page fade-in, card hover lift / press feedback, pulsing loading states \u2014 wrapped in prefers-reduced-motion so nothing moves for users who opt out.",
-      "Footer on every page now shows \"The Foundry v2.18.0 \u00b7 Updated Oct 21, 2026\"."
+      "Vaulty polish: his chat panel close is now a chevron (no × anywhere, per his design), and at tablet widths (601–767px) Vaulty now sits level with the chat bubble at bottom:84px instead of 20px higher.",
+      "Motion polish: page fade-in, card hover lift / press feedback, pulsing loading states — wrapped in prefers-reduced-motion so nothing moves for users who opt out.",
+      "Footer on every page now shows \"The Foundry v2.18.0 · Updated Oct 21, 2026\"."
     ]
   },
   {
@@ -58,25 +66,25 @@
     "date": "2026-10-20",
     "notify": true,
     "notes": [
-      "Tuesday audit: 64 missing images filled (42 weapons \u2014 all Archwing + Exalted/Primal weapons, 21 amp parts, Archgun Deployer), every URL verified live via warframestat.us. Removed a wrong duplicate 'Melee Riven Mod' entry (mods-3.json; the correct Rare/Melee one kept). Countdowns: expired Scare-o Ki'Teer removed; Baro Ki'Teer return Oct 23\u201325 and Ghoul Purge (ends Nov 9) added. Also fixed: the 'What's new' pill did nothing when tapped \u2014 it crashed on older changelog entries; it now opens reliably."
+      "Tuesday audit: 64 missing images filled (42 weapons — all Archwing + Exalted/Primal weapons, 21 amp parts, Archgun Deployer), every URL verified live via warframestat.us. Removed a wrong duplicate 'Melee Riven Mod' entry (mods-3.json; the correct Rare/Melee one kept). Countdowns: expired Scare-o Ki'Teer removed; Baro Ki'Teer return Oct 23–25 and Ghoul Purge (ends Nov 9) added. Also fixed: the 'What's new' pill did nothing when tapped — it crashed on older changelog entries; it now opens reliably."
     ]
   },
   {
     "version": "2.17.0",
     "date": "2026-10-20",
     "notify": true,
-    "notes": "Mobile redone \u2014 updates now reach your phone automatically. The app self-checks on every load and clears its own stale cache, so new versions just show up. Mobile layout re-verified clean: Vaulty face button left, chat bubble level right, no overflow."
+    "notes": "Mobile redone — updates now reach your phone automatically. The app self-checks on every load and clears its own stale cache, so new versions just show up. Mobile layout re-verified clean: Vaulty face button left, chat bubble level right, no overflow."
   },
   {
     "version": "2.16.0",
     "date": "2026-10-19",
     "notify": true,
-    "notes": "Mobile rebuilt from scratch \u2014 one clean mobile layout. Vaulty is a single face button on the left, chat bubble level on the right, tab bar redone, no horizontal scrolling, no ghost elements."
+    "notes": "Mobile rebuilt from scratch — one clean mobile layout. Vaulty is a single face button on the left, chat bubble level on the right, tab bar redone, no horizontal scrolling, no ghost elements."
   },
   {
     "version": "2.15.0",
     "date": "2026-10-19",
-    "notes": "Vaulty rebuilt from scratch \u2014 speech bubble system deleted entirely (no bubble, no close button, no \u00d7 anywhere). Mobile: single face button on left edge, level with chat bubble. Desktop: Vaulty stationary by chat bubble.",
+    "notes": "Vaulty rebuilt from scratch — speech bubble system deleted entirely (no bubble, no close button, no × anywhere). Mobile: single face button on left edge, level with chat bubble. Desktop: Vaulty stationary by chat bubble.",
     "notify": true
   },
   {
@@ -91,14 +99,14 @@
     "version": "2.14.1",
     "date": "2026-10-19",
     "notes": [
-      "Report form now live \u2014 send bugs and ideas with screenshots, straight from the app."
+      "Report form now live — send bugs and ideas with screenshots, straight from the app."
     ]
   },
   {
     "version": "2.14.0",
     "date": "2026-10-19",
     "notes": [
-      "Vaulty stays put on PC \u2014 parked next to the chat bubble, no more wandering.",
+      "Vaulty stays put on PC — parked next to the chat bubble, no more wandering.",
       "Bug reports and ideas actually send now, with screenshot attachments."
     ]
   },
@@ -114,7 +122,7 @@
     "date": "Oct 19, 2026",
     "notes": [
       "Vaulty moved to the LEFT edge, level with the blue chat bubble on the right.",
-      "Killed the white \u00d7 pill and white square ghosts near Vaulty \u2014 the speech bubble never shows on mobile now.",
+      "Killed the white × pill and white square ghosts near Vaulty — the speech bubble never shows on mobile now.",
       "Fixed stale cache-busters on all scripts so updates actually reach your phone."
     ]
   },
@@ -123,7 +131,7 @@
     "date": "Oct 19, 2026",
     "notify": true,
     "notes": [
-      "Vaulty cleanup: \u00d7 removed \u2014 tap his face to open the AI chat (squash opening animation kept)",
+      "Vaulty cleanup: × removed — tap his face to open the AI chat (squash opening animation kept)",
       "Vaulty bubble moved below the blue chat button",
       "Removed duplicate leftover elements around Vaulty's bubble"
     ]
@@ -134,7 +142,7 @@
     "notify": true,
     "notes": [
       "Fixed the update popup looping: the running build's version stamp was stuck at 2.13.0 while 2.13.1 was published, so it kept prompting forever.",
-      "Vaulty is his own AI bubble again \u2014 the face-on-the-blue-chat-bubble merge is reverted; the blue chat button is back to its generic icon.",
+      "Vaulty is his own AI bubble again — the face-on-the-blue-chat-bubble merge is reverted; the blue chat button is back to its generic icon.",
       "Vaulty no longer shows the Tenno-online pill (for now)."
     ]
   },
@@ -143,7 +151,7 @@
     "date": "Oct 19, 2026",
     "notify": true,
     "notes": [
-      "Vaulty now rides ON the chat bubble \u2014 his face replaces the generic icon on the blue chat button (bottom-right, stays on top). The old separate face bubble is retired so there's only one Vaulty.",
+      "Vaulty now rides ON the chat bubble — his face replaces the generic icon on the blue chat button (bottom-right, stays on top). The old separate face bubble is retired so there's only one Vaulty.",
       "Fixed white bar behind the status bar on mobile (solid charcoal under the safe area, dark theme-color).",
       "Header rebrand finished: top bar now says THE FOUNDRY (was still TENNOVAULT)."
     ]
@@ -153,7 +161,7 @@
     "date": "Oct 19, 2026",
     "notify": true,
     "notes": [
-      "FORGE UI rework (CSS-only): molten forge art direction \u2014 charcoal blacksmith base, ember orange + molten gold accents, steel-gray text, heat-glow dividers, molten gradient titles. Looks like the app's new name.",
+      "FORGE UI rework (CSS-only): molten forge art direction — charcoal blacksmith base, ember orange + molten gold accents, steel-gray text, heat-glow dividers, molten gradient titles. Looks like the app's new name.",
       "True fullscreen on mobile: viewport-fit=cover, 100dvh layout, safe-area insets on header/tab bar, edge-to-edge hero backgrounds at 390px, no horizontal overflow.",
       "Vaulty face bubble, greeting pill, tip card, update popup all re-tinted to the forge palette. Reduced-motion, 44px targets, holiday themes untouched."
     ]
@@ -163,16 +171,16 @@
     "date": "Oct 19, 2026",
     "notify": true,
     "notes": [
-      "Vaulty mobile redesign: circular face bubble parked on the right edge \u2014 tap opens chat, \u00d7 minimizes to a dot (choice persists). He no longer covers content on phones."
+      "Vaulty mobile redesign: circular face bubble parked on the right edge — tap opens chat, × minimizes to a dot (choice persists). He no longer covers content on phones."
     ]
   },
   {
     "version": "2.12.72",
     "date": "2026-10-19",
     "notes": [
-      "REBRAND: the site is now The Foundry \u2014 \u201cForge your perfect build.\u201d (homepage hero, title, and metadata; in-app only, repo and URLs unchanged; Vaulty stays as the mascot).",
-      "Joy-of-use rework: Vaulty no longer gets in the way on phones \u2014 on \u2264600px he parks as a small 44px bubble bottom-right above the tab bar, with a \u00d7 that minimizes him to a tiny pulsing dot (state remembered). Tapping him still opens chat.",
-      "Delight pass: time-of-day greeting in the hero, \u201cTenno tip of the day\u201d card rotating daily from a built-in list, subtle scroll reveals on cards/panels, celebratory animated-gradient update popup, playful 404 page (\u201cLost in the Void\u201d).",
+      "REBRAND: the site is now The Foundry — “Forge your perfect build.” (homepage hero, title, and metadata; in-app only, repo and URLs unchanged; Vaulty stays as the mascot).",
+      "Joy-of-use rework: Vaulty no longer gets in the way on phones — on ≤600px he parks as a small 44px bubble bottom-right above the tab bar, with a × that minimizes him to a tiny pulsing dot (state remembered). Tapping him still opens chat.",
+      "Delight pass: time-of-day greeting in the hero, “Tenno tip of the day” card rotating daily from a built-in list, subtle scroll reveals on cards/panels, celebratory animated-gradient update popup, playful 404 page (“Lost in the Void”).",
       "All data, counts, and features untouched; reduced-motion disables all new motion; 44px targets kept."
     ],
     "notify": true
@@ -192,7 +200,7 @@
     "version": "2.12.70",
     "date": "2026-10-19",
     "notes": [
-      "2 new Taubound videos: GameTrailers' official Epoch Operation gameplay tease, Voruzhu's 1200 Moonflesh-per-hour solo farm guide. Videos 94 \u2192 96."
+      "2 new Taubound videos: GameTrailers' official Epoch Operation gameplay tease, Voruzhu's 1200 Moonflesh-per-hour solo farm guide. Videos 94 → 96."
     ],
     "notify": false
   },
@@ -208,7 +216,7 @@
     "version": "2.12.68",
     "date": "2026-10-19",
     "notes": [
-      "Vault Guide AI: new Steel Path build doctrine \u2014 a general Steel Path modding guide (damage layers, weapon arcanes, aura/exilus picks, frame arcanes, survival) plus 4 curated frame builds with full 8 mods, aura, exilus and arcanes (Saryn nuke, Rhino Roar buffer, Revenant endurance, Nova nuke). Ask 'build me a general steel path strong build' for the guide. No new hotfix since 44.1.2 + 2.1."
+      "Vault Guide AI: new Steel Path build doctrine — a general Steel Path modding guide (damage layers, weapon arcanes, aura/exilus picks, frame arcanes, survival) plus 4 curated frame builds with full 8 mods, aura, exilus and arcanes (Saryn nuke, Rhino Roar buffer, Revenant endurance, Nova nuke). Ask 'build me a general steel path strong build' for the guide. No new hotfix since 44.1.2 + 2.1."
     ],
     "notify": true
   },
@@ -248,7 +256,7 @@
     "version": "2.12.63",
     "date": "2026-10-17",
     "notes": [
-      "Added 2 videos: Pupsker \u2014 Best Moonflesh Farming Cyte-09! Fast Legendary Core & Cosmetics! (Moonflesh farm, Taubound) and Gaz TTV \u2014 Eskhatos (Spooky Baro) Ki'Teer Has Arrived! Full Inventory Review 10/16/2026 (Baro inventory review). Video library now at 85 total.",
+      "Added 2 videos: Pupsker — Best Moonflesh Farming Cyte-09! Fast Legendary Core & Cosmetics! (Moonflesh farm, Taubound) and Gaz TTV — Eskhatos (Spooky Baro) Ki'Teer Has Arrived! Full Inventory Review 10/16/2026 (Baro inventory review). Video library now at 85 total.",
       "Checked: no new hotfix since 44.1.2 + 2.1; no new warframes/weapons/mods. Counts unchanged: 123 / 648 / 1,757 / 878 / 26 / 85 videos."
     ]
   },
@@ -258,37 +266,37 @@
     "notes": [
       "Fixed: 11 Magus arcanes (Lockdown, Anomaly, Drive, Repair, Destruct, Firewall, Melt, Overload, Accelerant, Glitch, Revert) now correctly list Vox Solaris / Little Duck (Fortuna) instead of Quills; Virtuos Forge/Trojan/Spike/Surge fixed the same way. Source: WARFRAME Wiki arcane-source table.",
       "Fixed: Secondary Encumber now lists Mirror Defense Rotation C (5.7%) + Otak (60 Belric + 60 Rania Fragments) instead of 1999 Nokko bounties. Source: WARFRAME Wiki.",
-      "Fixed: Mod Swaps numbers updated to the Update 34.0 (Oct 2023) stat overhaul \u2014 Vitality +100% (was +440%), Steel Fiber +100% (was +110%), Vigor +50%/+50% (was +220%), Umbral set bonuses +130%/+180%, Umbral Intensify +77% with full 3-mod set; Corrupted mods (Blind Rage, Transient Fortitude, Critical Delay/Deceleration, Spoiled Strike) now list Orokin Vaults only; Galvanized Aptitude effect corrected; Primed Pressure Point is a Daily Tribute milestone, not Baro.",
-      "Fixed: Vaulty AI \u2014 Magus arcanes split correctly (Quills vs Vox Solaris), Amp arcanes (Eternal set is Zariman, not Cavia), Galvanized mods come from Arbitrations (20 Vitus Essence), not Steel Path Acolytes; fixed 'Deep Archimedia' typo.",
-      "Fixed: Charged Chamber corrected to +30% (rank 2; Wiki ranks are 10/20/30/40%, max +40%) \u2014 the +60% value did not exist; tip corrected.",
-      "Fixed: bottom tab bar now only shows on touch devices (CSS) \u2014 PC narrow windows no longer get it via the unconditioned rule; the JS fallback was already hiding it.",
-      "Fixed: Mods page \u2014 'Filter 1,800+ mods' -> '1,700+' (1,757 rows) and removed the '(max rank)' label from the detail view (first matching row isn't always the max-rank value).",
-      "New: Nights of Naberus countdown \u2014 ends Mon Nov 2, 11 AM ET (Daughter's shop + Hallowed Nightmares). Source: warframe.com.",
-      "Added 1 video: Tactical Potato \u2014 Warframes One-Time Event You Can't Ignore! Tau Inbound!",
-      "Checked: no new hotfix since 44.1.2.1; no new warframes/weapons/mods. Counts unchanged: 123 / 648 / 1,757 / 878 / 26 / 83 videos. Baro (Scare-o Ki'Teer) is live until Sun Oct 18, 9 AM ET \u2014 verified via warframestat.us; countdown drops off automatically."
+      "Fixed: Mod Swaps numbers updated to the Update 34.0 (Oct 2023) stat overhaul — Vitality +100% (was +440%), Steel Fiber +100% (was +110%), Vigor +50%/+50% (was +220%), Umbral set bonuses +130%/+180%, Umbral Intensify +77% with full 3-mod set; Corrupted mods (Blind Rage, Transient Fortitude, Critical Delay/Deceleration, Spoiled Strike) now list Orokin Vaults only; Galvanized Aptitude effect corrected; Primed Pressure Point is a Daily Tribute milestone, not Baro.",
+      "Fixed: Vaulty AI — Magus arcanes split correctly (Quills vs Vox Solaris), Amp arcanes (Eternal set is Zariman, not Cavia), Galvanized mods come from Arbitrations (20 Vitus Essence), not Steel Path Acolytes; fixed 'Deep Archimedia' typo.",
+      "Fixed: Charged Chamber corrected to +30% (rank 2; Wiki ranks are 10/20/30/40%, max +40%) — the +60% value did not exist; tip corrected.",
+      "Fixed: bottom tab bar now only shows on touch devices (CSS) — PC narrow windows no longer get it via the unconditioned rule; the JS fallback was already hiding it.",
+      "Fixed: Mods page — 'Filter 1,800+ mods' -> '1,700+' (1,757 rows) and removed the '(max rank)' label from the detail view (first matching row isn't always the max-rank value).",
+      "New: Nights of Naberus countdown — ends Mon Nov 2, 11 AM ET (Daughter's shop + Hallowed Nightmares). Source: warframe.com.",
+      "Added 1 video: Tactical Potato — Warframes One-Time Event You Can't Ignore! Tau Inbound!",
+      "Checked: no new hotfix since 44.1.2.1; no new warframes/weapons/mods. Counts unchanged: 123 / 648 / 1,757 / 878 / 26 / 83 videos. Baro (Scare-o Ki'Teer) is live until Sun Oct 18, 9 AM ET — verified via warframestat.us; countdown drops off automatically."
     ]
   },
   {
     "version": "2.12.61",
     "date": "2026-10-16",
     "notes": [
-      "Added 1 new video: LeyzarGamingViews \u2014 Coda Bubonico build guide (Technocyte Coda shotgun). Video library now at 82 total.",
-      "Checked: the 2 other videos flagged this run (Gaz Moonflesh farm, Hunkpain Taubound guide) were already in the library \u2014 no duplicates added. No new hotfix since Hotfix 44.1.2.1. Two new official news items (Devourer single, Golden Joysticks vote) appear via the live news feed."
+      "Added 1 new video: LeyzarGamingViews — Coda Bubonico build guide (Technocyte Coda shotgun). Video library now at 82 total.",
+      "Checked: the 2 other videos flagged this run (Gaz Moonflesh farm, Hunkpain Taubound guide) were already in the library — no duplicates added. No new hotfix since Hotfix 44.1.2.1. Two new official news items (Devourer single, Golden Joysticks vote) appear via the live news feed."
     ]
   },
   {
     "version": "2.12.60",
     "date": "2026-10-16",
     "notes": [
-      "New: Scare-o Ki'Teer (Baro) visit \u2014 Orcus Relay, Pluto, ends Sun Oct 18, 9 AM ET. Homepage countdown added. Source: warframestat.us voidTrader.",
-      "Checked: the 3 Taubound videos flagged this run were already in v2.12.59 \u2014 no duplicates added. No new hotfix since Hotfix 44.1.2.1."
+      "New: Scare-o Ki'Teer (Baro) visit — Orcus Relay, Pluto, ends Sun Oct 18, 9 AM ET. Homepage countdown added. Source: warframestat.us voidTrader.",
+      "Checked: the 3 Taubound videos flagged this run were already in v2.12.59 — no duplicates added. No new hotfix since Hotfix 44.1.2.1."
     ]
   },
   {
     "version": "2.12.59",
     "date": "2026-10-16",
     "notes": [
-      "Added 3 new videos: MHBlacky \u2014 full Operation: Taubound guide (best Moonflesh farming strategy + reward priorities); Tactical Potato \u2014 Taubound complete guide (Moonflesh farming, reward priorities, daily dialogue, Tau Prologue); Gaz \u2014 Taubound live overview + full quest gameplay. Video library now at 81 total.",
+      "Added 3 new videos: MHBlacky — full Operation: Taubound guide (best Moonflesh farming strategy + reward priorities); Tactical Potato — Taubound complete guide (Moonflesh farming, reward priorities, daily dialogue, Tau Prologue); Gaz — Taubound live overview + full quest gameplay. Video library now at 81 total.",
       "No new hotfix since Hotfix 44.1.2.1; no new warframes/weapons/mods."
     ]
   },
@@ -296,8 +304,8 @@
     "version": "2.12.58",
     "date": "2026-10-15",
     "notes": [
-      "New: Devstream #198 date confirmed \u2014 Fri Oct 30, 2 PM ET (first Tau showcase, Tauforged Archon Shard Grab Bag Twitch drop). Homepage countdown added. Source: warframe.com Devstream 197 overview + official Steam announcement.",
-      "Added 4 new videos: Rainollon \u2014 Scyotid build guide; iFlynn \u2014 Dagath build guide; Pupsker \u2014 Devstream #198 / Tauforged drop; iFlynn \u2014 Warframe news (Riven Splicer nerf, Icebind low-manning, Taubound). Video library now at 78 total.",
+      "New: Devstream #198 date confirmed — Fri Oct 30, 2 PM ET (first Tau showcase, Tauforged Archon Shard Grab Bag Twitch drop). Homepage countdown added. Source: warframe.com Devstream 197 overview + official Steam announcement.",
+      "Added 4 new videos: Rainollon — Scyotid build guide; iFlynn — Dagath build guide; Pupsker — Devstream #198 / Tauforged drop; iFlynn — Warframe news (Riven Splicer nerf, Icebind low-manning, Taubound). Video library now at 78 total.",
       "No new hotfix since Hotfix 44.1.2.1; no new warframes/weapons/mods in this cycle."
     ]
   },
@@ -305,7 +313,7 @@
     "version": "2.12.57",
     "date": "2026-10-15",
     "notes": [
-      "Fixed: Shotgun filter now shows all 53 shotguns (was 47) \u2014 MK1-Strun, Bubonico, Cedo Prime, Coda Bassocyst, Coda Bubonico and Steflos Prime were in the data but missing the Shotgun tag, so the filter hid them. MK1-Strun stats verified against WARFRAME Wiki (18 damage/pellet x 10 pellets = 180 per shot, 7.5% crit, 6% status, MR 0)",
+      "Fixed: Shotgun filter now shows all 53 shotguns (was 47) — MK1-Strun, Bubonico, Cedo Prime, Coda Bassocyst, Coda Bubonico and Steflos Prime were in the data but missing the Shotgun tag, so the filter hid them. MK1-Strun stats verified against WARFRAME Wiki (18 damage/pellet x 10 pellets = 180 per shot, 7.5% crit, 6% status, MR 0)",
       "New: weapon detail view shows Pellets + Damage per shot (all pellets) for multi-pellet weapons, so shotgun damage is no longer understated as per-pellet damage",
       "Fixed: What's New dot now clears as soon as the panel is opened (was: only on close, so Escape / outside-click left the dot stuck on)",
       "Verified live via test-run: countdowns tick + a11y labels sync + Ended/drop-off, Boss Killer filter = 8 builds, homepage counts 123 / 648 / 1,757 / 878 / 26 / 74"
@@ -315,28 +323,28 @@
     "version": "2.12.56",
     "date": "2026-10-15",
     "notes": [
-      "New: Hotfix 44.1.2.1 follow-up (Oct 15) \u2014 fixed crashing / severe performance issues when entering The Dark Refractory as part of the Lua quest in the Prologue to Tau. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
-      "New: Devstream #198 - Tau Part One announced (coming soon, date TBA) \u2014 no countdown added until DE confirms a date.",
-      "New: Epoch Operation: Taubound is now live (Oct 15 \u2013 Nov 17) \u2014 news feed updated; no new warframes/weapons/mods in this hotfix, Taubound rewards are cosmetics + returning items (Haalvu, Spectra Vandal, Basmu).",
-      "Added 4 new videos: Gaz TTV \u2014 'Stop Wasting Time: The Best Way to Farm Moonflesh In Warframe'; Hunkpain Gaming \u2014 'Warframe Taubound Event Guide: Fast Moonflesh Farm & Best Rewards!'; Pupsker \u2014 'Epoch Operation Taubound! New Loot Cosmetics Skins Everything Guide!'; PlayWarframe \u2014 'Devshorts 119: Epoch Operation: Taubound Launches Tomorrow!'"
+      "New: Hotfix 44.1.2.1 follow-up (Oct 15) — fixed crashing / severe performance issues when entering The Dark Refractory as part of the Lua quest in the Prologue to Tau. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
+      "New: Devstream #198 - Tau Part One announced (coming soon, date TBA) — no countdown added until DE confirms a date.",
+      "New: Epoch Operation: Taubound is now live (Oct 15 – Nov 17) — news feed updated; no new warframes/weapons/mods in this hotfix, Taubound rewards are cosmetics + returning items (Haalvu, Spectra Vandal, Basmu).",
+      "Added 4 new videos: Gaz TTV — 'Stop Wasting Time: The Best Way to Farm Moonflesh In Warframe'; Hunkpain Gaming — 'Warframe Taubound Event Guide: Fast Moonflesh Farm & Best Rewards!'; Pupsker — 'Epoch Operation Taubound! New Loot Cosmetics Skins Everything Guide!'; PlayWarframe — 'Devshorts 119: Epoch Operation: Taubound Launches Tomorrow!'"
     ]
   },
   {
     "version": "2.12.55",
     "date": "2026-10-15",
     "notes": [
-      "New: 8 Steel Path Boss Killer builds \u2014 one strong setup per major boss fight (Eidolon Hydrolyst, Archon Hunts, Profit-Taker, Exploiter Orb, Ropalolyst, Acolytes/Liches/Sisters, Murmur/The Fragmented, plus a general Steel Path boss-killer)",
+      "New: 8 Steel Path Boss Killer builds — one strong setup per major boss fight (Eidolon Hydrolyst, Archon Hunts, Profit-Taker, Exploiter Orb, Ropalolyst, Acolytes/Liches/Sisters, Murmur/The Fragmented, plus a general Steel Path boss-killer)",
       "New: Boss Killer filter chip on the builds page (also at builds.html#boss-killer); the new builds also appear under the existing Boss Hunting filter",
       "Every mod in the new builds verified against WARFRAME Wiki mod data for correct slot and weapon type; element mods listed in equip order where combination order matters (Radiation + Cold)",
-      "Honest framing: no one-shot guarantees \u2014 each build is a strong setup with its boss strategy, not a promise"
+      "Honest framing: no one-shot guarantees — each build is a strong setup with its boss strategy, not a promise"
     ]
   },
   {
     "version": "2.12.54",
     "date": "2026-10-15",
     "notes": [
-      "New: Hotfix 44.1.2 (Oct 15) \u2014 Tau Prologue Quest series added to the Codex (requires completing The Hex and The Old Peace), Epoch Operation: Taubound live from 11 AM ET, Riven Splicing shortcut, Bronco Prime Barrel Ducat price cut 45 to 25, Icebind fixes plus Ash/Chroma/Nova/Secondary Enervate fixes. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
-      "Added 5 new videos: Fluffie Michi \u2014 'Dagath is Now S Tier In Warframe! (Godmode ON)'; tosi-chan \u2014 'Fullstatus Alchemist - LAVOS PRIME | Build Guide Warframe 2026'; Spopes \u2014 'Updated Warframe Farming Guide (Comprehensive)'; LYouRYo \u2014 'The Ultimate Endo Farming Guide'; OmniCross \u2014 'Already Making Plat on Day 2 of the New Warframe Account?!'"
+      "New: Hotfix 44.1.2 (Oct 15) — Tau Prologue Quest series added to the Codex (requires completing The Hex and The Old Peace), Epoch Operation: Taubound live from 11 AM ET, Riven Splicing shortcut, Bronco Prime Barrel Ducat price cut 45 to 25, Icebind fixes plus Ash/Chroma/Nova/Secondary Enervate fixes. Full notes: https://www.warframe.com/en/patch-notes/pc/44-1-2",
+      "Added 5 new videos: Fluffie Michi — 'Dagath is Now S Tier In Warframe! (Godmode ON)'; tosi-chan — 'Fullstatus Alchemist - LAVOS PRIME | Build Guide Warframe 2026'; Spopes — 'Updated Warframe Farming Guide (Comprehensive)'; LYouRYo — 'The Ultimate Endo Farming Guide'; OmniCross — 'Already Making Plat on Day 2 of the New Warframe Account?!'"
     ]
   },
   {
@@ -351,27 +359,27 @@
     "version": "2.12.52",
     "date": "2026-10-15",
     "notes": [
-      "New: homepage 'Upcoming launches & events' countdown section \u2014 live ticking countdowns (days/hrs/min/sec) per entry, data-driven from data/site/countdowns.json",
+      "New: homepage 'Upcoming launches & events' countdown section — live ticking countdowns (days/hrs/min/sec) per entry, data-driven from data/site/countdowns.json",
       "Seeded with Epoch Operation: Taubound ending Nov 17, 2026 (date verified on warframe.com; no exact end time published, so it counts to end of that day)",
       "Past events drop off automatically 24h after their target; launches show LIVE NOW and ended events show Ended in the grace window",
-      "No other upcoming Warframe update/event has a confirmed launch date from an official source yet (Warframe: Tau is 'December' with no exact date) \u2014 the data file is ready for future dates"
+      "No other upcoming Warframe update/event has a confirmed launch date from an official source yet (Warframe: Tau is 'December' with no exact date) — the data file is ready for future dates"
     ]
   },
   {
     "version": "2.12.51",
     "date": "2026-10-15",
     "notes": [
-      "Fixed: shotguns are now classified as shotguns \u2014 all 47 shotgun-class weapons (incl. Kuva Sobek) tagged with category 'Shotgun'",
+      "Fixed: shotguns are now classified as shotguns — all 47 shotgun-class weapons (incl. Kuva Sobek) tagged with category 'Shotgun'",
       "Weapons page gains a Shotgun filter tab + Shotgun badge in weapon details",
       "Fixed: Vaulty AI now builds shotgun loadouts with shotgun mods (Primed Point Blank / Point Blank, Galvanized Hell / Hell's Chamber, Blunderbuss, Primed Ravage, shotgun 60/60s) instead of rifle mods (Serration, Split Chamber, Point Strike)",
-      "Known gap: MK1-Strun (starter shotgun) is still missing from the weapons list (resolved in v2.12.57 \u2014 it was in the data, just missing the Shotgun tag)"
+      "Known gap: MK1-Strun (starter shotgun) is still missing from the weapons list (resolved in v2.12.57 — it was in the data, just missing the Shotgun tag)"
     ]
   },
   {
     "version": "2.12.50",
     "date": "2026-10-15",
     "notes": [
-      "Added 3 new videos: LYouRYo - 'Warframe \u2013 Styanax Breakdown | 5 Builds From Beginner to Level Cap'; Rainollon - 'Vadarya Prime Thunder Build Guide' and 'Rubico Prime Field Sniper Build Guide'",
+      "Added 3 new videos: LYouRYo - 'Warframe – Styanax Breakdown | 5 Builds From Beginner to Level Cap'; Rainollon - 'Vadarya Prime Thunder Build Guide' and 'Rubico Prime Field Sniper Build Guide'",
       "No new official news/hotfixes since Hotfix 44.1.1; Epoch Operation: Taubound begins today (Oct 15-Nov 17)"
     ]
   },
@@ -409,8 +417,8 @@
     "version": "2.12.45",
     "date": "2026-10-14",
     "notes": [
-      "Correction: 3 more exalted weapons found on re-check (Glory \u2014 Jade, Noctua \u2014 Dante, Neutralizer \u2014 Cyte-09). Exalted total is 24, not 21.",
-      "Weapons total: 645 \u2192 648"
+      "Correction: 3 more exalted weapons found on re-check (Glory — Jade, Noctua — Dante, Neutralizer — Cyte-09). Exalted total is 24, not 21.",
+      "Weapons total: 645 → 648"
     ]
   },
   {
@@ -419,7 +427,7 @@
     "notes": [
       "Added all 21 exalted weapons with verified stats (WARFRAME Wiki weapon data): Desert Wind + Prime, Diwata + Prime, Exalted Blade + Prime + Umbra, Iron Staff + Prime, Shadow Claws + Prime, Valkyr Talons + Prime, Balefire Charger + Prime, Dex Pixia + Prime, Regulators + Prime, Artemis Bow + Prime",
       "Exalted weapons are now searchable and show stats + which warframe they come with",
-      "Weapons total: 624 \u2192 645"
+      "Weapons total: 624 → 645"
     ]
   },
   {

@@ -15,7 +15,7 @@
 //    always try the network first; Cache Storage is only the offline
 //    fallback. The cache is named per-release (foundry-v<version>) so every
 //    release inherently invalidates the previous app cache.
-var CACHE_NAME = 'foundry-v2.19.3';
+var CACHE_NAME = 'foundry-v2.19.4';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
