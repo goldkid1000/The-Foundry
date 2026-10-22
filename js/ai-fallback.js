@@ -160,14 +160,128 @@
     return null;
   }
 
+  /* ---------- v2.19.4: copyable build cards ----------
+     When the guide brain answers with a build, the answer carries a tidy
+     build card (title, aura/exilus slots, mods in mod-screen order,
+     arcanes, play note) plus Copy buttons. Warframe has NO external build
+     import — build links are minted in-game only — so the honest offer is
+     one-tap copying of a clean text build the Tenno can paste anywhere
+     and slot in order. Payloads live in vbcStore keyed by the button's
+     data-vbc id, so the copied text always matches the card on screen. */
+  var vbcSeq = 0;
+  var vbcStore = {};
+
+  function vbcCleanSlot(v) {
+    var s = String(v == null ? '' : v).trim();
+    return (!s || /^none$/i.test(s)) ? '' : s;
+  }
+
+  function vbcArcanes(arcane) {
+    var s = vbcCleanSlot(arcane);
+    if (!s) return [];
+    return s.split(/\s*\+\s*/).map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+
+  function vbcFullText(d) {
+    var lines = [d.title];
+    if (d.aura) lines.push('Aura: ' + d.aura);
+    if (d.exilus) lines.push('Exilus: ' + d.exilus);
+    lines.push('Mods:');
+    d.mods.forEach(function (m) { lines.push(m); });
+    if (d.arcanes.length) lines.push((d.arcanes.length > 1 ? 'Arcanes: ' : 'Arcane: ') + d.arcanes.join(' + '));
+    if (d.arcanesText) lines.push('Arcanes: ' + d.arcanesText);
+    if (d.note) lines.push('Note: ' + d.note);
+    return lines.join('\n');
+  }
+
+  function vbcCompactText(d) {
+    var parts = [];
+    if (d.aura) parts.push(d.aura + ' (Aura)');
+    if (d.exilus) parts.push(d.exilus + ' (Exilus)');
+    d.mods.forEach(function (m) { parts.push(m); });
+    d.arcanes.forEach(function (a) { parts.push(a + ' (Arcane)'); });
+    if (d.arcanesText) parts.push(d.arcanesText);
+    return d.title + ': ' + parts.join(', ');
+  }
+
+  /* data: {title, aura, exilus, mods:[names], arcanes:[names], note} */
+  function buildCard(d) {
+    var id = 'vbc' + (++vbcSeq);
+    vbcStore[id] = { full: vbcFullText(d), compact: vbcCompactText(d) };
+    var slots = '';
+    if (d.aura) slots += '<div class="vbc-slot"><span>Aura</span>' + esc(d.aura) + '</div>';
+    if (d.exilus) slots += '<div class="vbc-slot"><span>Exilus</span>' + esc(d.exilus) + '</div>';
+    var cells = d.mods.map(function (m) { return '<div class="vbc-mod">' + esc(m) + '</div>'; }).join('');
+    return '<div class="vai-build-card">' +
+      '<div class="vbc-title">' + esc(d.title) + '</div>' +
+      slots +
+      '<div class="vbc-grid">' + cells + '</div>' +
+      (d.arcanes.length ? '<div class="vbc-arcanes"><span>' + (d.arcanes.length > 1 ? 'Arcanes' : 'Arcane') + '</span>' + esc(d.arcanes.join(' + ')) + '</div>' : '') +
+      (d.arcanesText ? '<div class="vbc-arcanes"><span>Arcanes</span>' + esc(d.arcanesText) + '</div>' : '') +
+      (d.note ? '<div class="vbc-note">' + esc(d.note) + '</div>' : '') +
+      '<div class="vbc-actions">' +
+      '<button type="button" class="vbc-copy" data-vbc="' + id + '">Copy build</button>' +
+      '<button type="button" class="vbc-copy vbc-compact-btn" data-vbc="' + id + '" data-compact="1">Copy compact</button>' +
+      '</div>' +
+      '<div class="vbc-sub">Paste it anywhere — Warframe itself only makes build links in-game, so slot the mods in this order.</div>' +
+      '</div>';
+  }
+
+  function vbcFallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    } catch (e) {}
+  }
+
+  function vbcCopied(btn) {
+    if (!btn) return;
+    if (!btn.getAttribute('data-label')) btn.setAttribute('data-label', btn.textContent);
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(function () {
+      btn.textContent = btn.getAttribute('data-label');
+      btn.classList.remove('copied');
+    }, 1600);
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    var btn = (t && typeof t.closest === 'function') ? t.closest('.vbc-copy') : null;
+    if (!btn) return;
+    var rec = vbcStore[btn.getAttribute('data-vbc')];
+    if (!rec) return;
+    var text = btn.hasAttribute('data-compact') ? rec.compact : rec.full;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { vbcCopied(btn); }, function () {
+        vbcFallbackCopy(text); vbcCopied(btn);
+      });
+    } else {
+      vbcFallbackCopy(text); vbcCopied(btn);
+    }
+  });
+
   /* ---------- answer builders (HTML) ---------- */
   function buildAnswer(b) {
-    var mods = (b.mods || []).map(function (m) { return esc(m.name); }).join(', ');
+    var card = buildCard({
+      title: b.name || b.item,
+      aura: vbcCleanSlot(b.aura),
+      exilus: vbcCleanSlot(b.exilus),
+      mods: (b.mods || []).map(function (m) { return m.name; }),
+      arcanes: vbcArcanes(b.arcane),
+      note: b.playstyle || ''
+    });
     return 'Good pick — here\'s the <b>' + esc(b.name || b.item) + '</b> setup:' +
       (window.TV.badge ? ' ' + window.TV.badge(b.tags || []) : '') +
       '<p>' + fmtText(b.description || '') + '</p>' +
-      (mods ? '<p><b>Mods:</b> ' + mods + '</p>' : '') +
-      (b.arcane ? '<p><b>Arcane:</b> ' + esc(b.arcane) + '</p>' : '') +
+      card +
       '<p class="muted small">Want to know where to farm any of these mods? Just ask.</p>' +
       '<p><a href="builds.html#build-' + encodeURIComponent(b.id) + '">Open the full build &rarr;</a></p>';
   }
@@ -348,10 +462,18 @@ function renderLoadout(title, itemName, picks, notes, page, purpose) {
     : purpose && purpose.oneShot
     ? 'This thing\'s going to delete enemies. Enjoy. 💥'
     : 'Solid setup — you\'ll feel the difference right away. 👍';
+  var card = buildCard({
+    title: title,
+    aura: '',
+    exilus: '',
+    mods: picks.map(function (p) { return p.mod.name; }),
+    arcanes: [],
+    note: notes || ''
+  });
   return '<b>' + esc(title) + '</b> <span class="muted small">generated for ' + esc(itemName) + '</span>' +
     '<p>' + cheer + '</p>' +
+    card +
     rows +
-    (notes ? '<p class="muted small">' + notes + '</p>' : '') +
     '<p class="muted small">Want to know where to farm any of these mods? Just ask <i>"where do I farm ' +
     esc(picks[0] ? picks[0].mod.name : 'this mod') + '"</i>.</p>' +
     '<p><a href="' + link(page, itemName) + '">Full ' + esc(itemName) + ' page &rarr;</a> · ' +
@@ -876,13 +998,19 @@ function spFrameBuildAnswer(key) {
     return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(p[0]) + '</b>' +
       '<div class="muted small">' + esc(p[1]) + '</div>' + farm + '</div></div>';
   }).join('');
+  var card = buildCard({
+    title: t.title,
+    aura: vbcCleanSlot(t.aura),
+    exilus: vbcCleanSlot(t.exilus),
+    mods: t.picks.map(function (p) { return p[0]; }),
+    arcanes: [],
+    arcanesText: t.arcanes || '',
+    note: t.play || ''
+  });
   return '<b>' + esc(t.title) + '</b>' +
     '<p class="muted small">Riven-less Steel Path build — aura, exilus, and arcanes included. Every mod has a WHY.</p>' +
-    '<p><b>Aura:</b> ' + esc(t.aura) + '</p>' +
-    '<p><b>Exilus:</b> ' + esc(t.exilus) + '</p>' +
+    card +
     rows +
-    '<p><b>Arcanes:</b> ' + esc(t.arcanes) + '</p>' +
-    '<p class="muted small"><b>How to play:</b> ' + esc(t.play) + '</p>' +
     '<p><a href="builds.html">More builds &rarr;</a></p>';
 }
 
@@ -895,9 +1023,16 @@ function oneShotTemplateAnswer(key) {
     return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(p[0]) + '</b>' +
       '<div class="muted small">' + esc(p[1]) + '</div>' + farm + '</div></div>';
   }).join('');
+  var card = buildCard({
+    title: t.title,
+    aura: '',
+    exilus: '',
+    mods: t.picks.map(function (p) { return p[0]; }),
+    arcanes: [],
+    note: t.notes || ''
+  });
   return '<b>' + esc(t.title) + '</b><p class="muted small">Riven-less. Every mod below has a WHY — ' +
-    'this is the reasoning, not just a list.</p>' + rows +
-    '<p class="muted small">' + esc(t.notes) + '</p>' +
+    'this is the reasoning, not just a list.</p>' + card + rows +
     '<p>Want the theory behind it? Ask <i>"one-shot formula"</i>. Need a primer? Ask <i>"primer"</i>.</p>';
 }
 
@@ -922,10 +1057,16 @@ function oneShotBuildAnswer(t) {
     return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(m.name) + '</b>' +
       (m.note ? '<div class="muted small">' + esc(m.note) + '</div>' : '') + farm + '</div></div>';
   }).join('');
+  var card = buildCard({
+    title: best.name || best.item,
+    aura: vbcCleanSlot(best.aura),
+    exilus: vbcCleanSlot(best.exilus),
+    mods: (best.mods || []).map(function (m) { return m.name; }),
+    arcanes: vbcArcanes(best.arcane),
+    note: best.playstyle || ''
+  });
   return '<b>' + esc(best.name) + '</b><p class="muted small">' + esc(best.description) +
-    ' Riven-less — every mod has a WHY.</p>' + rows +
-    (best.arcane ? '<p class="muted small"><b>Arcane:</b> ' + esc(best.arcane) + '</p>' : '') +
-    '<p class="muted small">' + esc(best.playstyle) + '</p>' +
+    ' Riven-less — every mod has a WHY.</p>' + card + rows +
     '<p>Full build also on the <a href="builds.html#build-' + esc(best.id) + '">builds page</a>. ' +
     'Want the theory? Ask <i>"one-shot formula"</i>.</p>';
 }
