@@ -15,6 +15,26 @@
   var MODEL_ID = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
   var WEBLLM_CDN = 'https://esm.sh/@mlc-ai/web-llm@0.2.85';
   var history = [];           /* recent conversation for context */
+  /* v2.19.2: the ~2GB model lives in Cache Storage ('webllm/model'), which
+     the site's own update machinery used to wipe on every release — the
+     download loop the owner hit. That wipe is fixed in sw.js /
+     update-notify.js / index.html; the state below makes this panel honest
+     and non-looping on its own side too: explicit tap-to-download (never
+     auto-start), persistent-storage request on opt-in, a status derived
+     from a real cache check, and after a failed attempt + one retry the
+     panel settles into quick-answer mode instead of re-prompting. */
+  var webllmPromise = null;   /* the imported web-llm module (code only) */
+  var modelCached = null;     /* null=unchecked, true/false from hasModelInCache */
+  var downloadAttempts = 0;   /* user-tapped download attempts this session */
+  var aiSettled = false;      /* true once we stop offering the download */
+  var greetMsgShown = false;  /* one-time messages: each is said only once */
+  var settleMsgShown = false;
+
+  function greetFallbackOnce() {
+    if (greetMsgShown) return;
+    greetMsgShown = true;
+    addMsg('Hey Tenno! ◈ Running in quick-answer mode on this device. Ask me about builds, farming, mods — anything Warframe.', 'bot');
+  }
 
   function esc(s) {
     if (window.TV) return window.TV.esc(s);
@@ -117,13 +137,97 @@
     if (wrap) wrap.style.display = 'none';
   }
 
-  function loadEngine() {
-    if (engine || engineLoading || engineFailed) return;
-    engineLoading = true;
-    setStatus('Loading AI… (one-time download)', 'loading');
-    showProgress(0, 'Starting AI download…');
+  function getWebLLM() {
+    if (!webllmPromise) webllmPromise = import(WEBLLM_CDN);
+    return webllmPromise;
+  }
 
-    import(WEBLLM_CDN).then(function (m) {
+  /* Ask the browser to treat this origin's storage as persistent, so the
+     downloaded model isn't first in line for eviction. Called only when
+     the user taps Download — i.e. when they've opted in. Not every
+     platform grants it (iOS is the strict one); where it's refused we
+     simply carry on. */
+  function requestPersist() {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persisted().then(function (p) {
+          if (!p) navigator.storage.persist().catch(function () {});
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  /* Is the model actually on this device? Ask web-llm itself
+     (hasModelInCache, exported by @mlc-ai/web-llm 0.2.85); fall back to
+     looking for its 'webllm/model' cache if that export ever moves. */
+  function checkModelCached() {
+    return getWebLLM().then(function (m) {
+      if (m && typeof m.hasModelInCache === 'function') {
+        return m.hasModelInCache(MODEL_ID);
+      }
+      throw new Error('no hasModelInCache');
+    }).catch(function () {
+      if (!('caches' in window)) return false;
+      return caches.has('webllm/model').then(function (has) {
+        if (!has) return false;
+        return caches.open('webllm/model').then(function (c) { return c.keys(); })
+          .then(function (keys) { return keys.length > 0; });
+      }).catch(function () { return false; });
+    });
+  }
+
+  function showDownloadBox(mode) {
+    var box = document.getElementById('vai-dlbox');
+    var txt = document.getElementById('vai-dltxt');
+    var btn = document.getElementById('vai-dlbtn');
+    if (!box || !txt || !btn) return;
+    if (mode === 'retry') {
+      txt.textContent = 'The AI download didn\'t finish. You can try once more — or just keep using the quick guide, it answers without the download.';
+      btn.textContent = 'Try the AI download again';
+    } else {
+      txt.textContent = 'Optional: download the full on-device AI (~2GB, one time). It stays on this device — and the quick guide below works without it.';
+      btn.textContent = 'Download AI (~2GB)';
+    }
+    box.style.display = 'block';
+  }
+
+  function hideDownloadBox() {
+    var box = document.getElementById('vai-dlbox');
+    if (box) box.style.display = 'none';
+  }
+
+  /* First open on a WebGPU device: check what's really on the device
+     before claiming anything in the header. Cached → load it (that's a
+     load, not a download). Not cached → say so and offer the download as
+     an explicit tap; the guide answers in the meantime. */
+  function loadEngine() {
+    if (engine || engineLoading || modelCached !== null) return;
+    setStatus('Checking AI…', 'loading');
+    checkModelCached().then(function (cached) {
+      modelCached = !!cached;
+      if (modelCached) {
+        runEngine('Loading AI from this device…');
+      } else {
+        setStatus('AI not downloaded');
+        if (!aiSettled) showDownloadBox('download');
+      }
+    });
+  }
+
+  function startDownload() {
+    if (engine || engineLoading || aiSettled) return;
+    downloadAttempts++;
+    requestPersist();
+    hideDownloadBox();
+    runEngine('Downloading AI model…');
+  }
+
+  function runEngine(firstLabel) {
+    if (engine || engineLoading) return;
+    engineLoading = true;
+    showProgress(0, firstLabel);
+
+    getWebLLM().then(function (m) {
       return m.CreateMLCEngine(MODEL_ID, {
         initProgressCallback: function (p) {
           showProgress(p.progress || 0, p.text || 'Loading AI model…');
@@ -132,15 +236,38 @@
     }).then(function (eng) {
       engine = eng;
       engineLoading = false;
+      engineFailed = false;
+      modelCached = true;
       hideProgress();
-      setStatus('◈ AI ready — ask me anything', 'ready');
+      hideDownloadBox();
+      setStatus('AI ready ✓', 'ready');
       addMsg('AI engine loaded — ask me anything about builds, mods, farms, or Steel Path. I answer from real Warframe knowledge now, not just keyword matching.', 'bot');
     }).catch(function () {
       engineLoading = false;
       engineFailed = true;
       hideProgress();
-      setStatus('Vault Guide — quick answers', 'fallback');
-      addMsg('Hey Tenno! ◈ Running in quick-answer mode on this device. Ask me about builds, farming, mods — anything Warframe.', 'bot');
+      if (downloadAttempts >= 2) {
+        /* one failed attempt + one failed retry: settle. No more prompts. */
+        aiSettled = true;
+        hideDownloadBox();
+        setStatus('Vault Guide — quick answers', 'fallback');
+        if (!settleMsgShown) {
+          settleMsgShown = true;
+          addMsg('The AI didn\'t start on this device, so I\'m answering in quick-answer mode — no more download prompts. Ask me about builds, farming, mods — anything Warframe.', 'bot');
+        }
+      } else if (downloadAttempts === 1) {
+        setStatus('Vault Guide — quick answers', 'fallback');
+        greetFallbackOnce();
+        showDownloadBox('retry');
+      } else {
+        /* the from-cache load failed (attempts still 0): the stored model
+           may be damaged. Offer ONE deliberate fresh download as the
+           recovery — an explicit tap, never an automatic restart. */
+        modelCached = false;
+        setStatus('AI not downloaded');
+        greetFallbackOnce();
+        showDownloadBox('download');
+      }
     });
   }
 
@@ -258,10 +385,12 @@
     }
     if (engine) {
       askAI(q);
-    } else if (engineFailed || !hasWebGPU()) {
-      askFallback(q);
-    } else {
+    } else if (engineLoading) {
       addMsg('Still loading the AI model — one sec… (or ask again in a moment)', 'bot');
+    } else {
+      /* not downloaded / failed / settled / no WebGPU — the guide answers.
+         v2.19.2: no more "still loading" dead-end when nothing is loading. */
+      askFallback(q);
     }
   }
 
@@ -284,11 +413,14 @@
       try { document.dispatchEvent(new CustomEvent('tv-ai-panel-closed')); } catch (e) {}
     }
     if (els.btn) els.btn.classList.toggle('open', show);
-    /* v2.19.1: on reopen, never strand the header in a stale "Loading AI…"
-       state when the engine isn't coming (failed / no WebGPU) — the panel
-       is in quick-answer mode then, so say so */
-    if (show && opened && !engine && (engineFailed || !hasWebGPU())) {
-      setStatus('Vault Guide — quick answers', 'fallback');
+    /* on reopen, re-assert an honest status from the real engine state —
+       never a stale "Loading AI…" (v2.19.1) and never a claim the cache
+       check hasn't backed up (v2.19.2) */
+    if (show && opened && !engineLoading) {
+      if (engine) setStatus('AI ready ✓', 'ready');
+      else if (!hasWebGPU()) setStatus('AI unavailable on this device', 'fallback');
+      else if (engineFailed) setStatus('Vault Guide — quick answers', 'fallback');
+      else if (modelCached === false) setStatus('AI not downloaded');
     }
     if (show && !opened) {
       opened = true;
@@ -296,7 +428,7 @@
         "Try a suggestion below or just ask.", 'bot');
       if (!hasWebGPU()) {
         engineFailed = true;
-        setStatus('Vault Guide — quick answers', 'fallback');
+        setStatus('AI unavailable on this device', 'fallback');
       } else {
         loadEngine();
       }
@@ -345,7 +477,10 @@
       '<div id="vai-loadtxt" class="muted small">Loading AI model…</div>' +
       '<div style="height:8px;background:var(--bg2);border-radius:99px;margin-top:6px;overflow:hidden">' +
       '<div id="vai-loadbar" style="height:100%;width:0%;background:linear-gradient(135deg,#0090b8,#00d2ff);border-radius:99px;transition:width .2s"></div>' +
-      '</div><p class="muted small" style="margin:6px 0 0">First load downloads ~2GB — once, then it\'s instant.</p></div>' +
+      '</div><p class="muted small" style="margin:6px 0 0">Downloading is a one-time ~2GB — after that the AI loads from this device.</p></div>' +
+      '<div id="vai-dlbox" style="display:none;padding:10px 12px 0">' +
+      '<p id="vai-dltxt" class="muted small" style="margin:0"></p>' +
+      '<button id="vai-dlbtn" type="button" class="btn primary" style="margin-top:8px;width:100%"></button></div>' +
       '<div id="vai-msgs"></div>' +
       '<div class="vai-chips">' +
       CHIPS.map(function (c) { return '<button type="button" class="vai-chip">' + esc(c) + '</button>'; }).join('') +
@@ -364,6 +499,7 @@
     };
 
     panel.querySelector('#vai-close').addEventListener('click', function () { toggle(false); });
+    panel.querySelector('#vai-dlbtn').addEventListener('click', startDownload);
     els.form.addEventListener('submit', function (e) {
       e.preventDefault();
       ask(els.input.value.trim());

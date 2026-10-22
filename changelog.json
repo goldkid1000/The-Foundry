@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.19.2",
+    "date": "2026-10-22",
+    "notify": true,
+    "notes": [
+      "Fixed the AI download loop: the site's update/cache cleaner was deleting EVERY cache on this origin — including the 'webllm' caches where the on-device AI keeps its ~2GB model — so every update (and every homepage self-heal) wiped the AI and the download started over. All cache cleaners (service worker, update flow, boot self-heal) now only delete the site's own 'foundry-' caches.",
+      "The AI download no longer starts by itself when you open the guide: it waits for your tap, states the ~2GB size first, and asks the browser for persistent storage so the model isn't evicted.",
+      "Honest AI status: the guide header now derives from a real on-device check — 'AI ready ✓', 'AI not downloaded', or 'AI unavailable on this device'. If the AI can't start after a try and one retry, the guide settles into quick-answer mode with a plain explanation instead of prompting the download again."
+    ]
+  },
+  {
     "version": "2.19.1",
     "date": "2026-10-22",
     "notify": true,

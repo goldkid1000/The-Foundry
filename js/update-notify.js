@@ -17,7 +17,7 @@
   'use strict';
 
   /* BUMP WITH EVERY RELEASE — this is how the running page knows its own age */
-  var TV_BUILD_VERSION = '2.19.1';
+  var TV_BUILD_VERSION = '2.19.2';
 
   /* v2.17.0 — BOOT SELF-HEAL (the permanent stale-cache fix).
      Problem it ends: Safari's HTTP cache can serve an old index.html, which
@@ -27,7 +27,10 @@
      Fix: on every boot, fetch version.json with cache:'no-store' (always
      hits the network). If the published version differs from this page's
      baked-in TV_BUILD_VERSION, this page IS stale → unregister all service
-     workers, delete ALL Cache Storage caches, and reload once. A
+     workers, delete the site's OWN Cache Storage caches, and reload once.
+     (v2.19.2: only 'foundry-' caches are ever deleted, here and everywhere —
+     the on-device AI's ~2GB model lives in 'webllm/...' caches and the old
+     delete-everything wipe erased it on every update.) A
      sessionStorage guard (shared with the inline boot script in index.html)
      records the version we healed toward, so it can never loop: if the
      reload still serves the old build (deploy still propagating), we wait
@@ -50,7 +53,7 @@
           : Promise.resolve();
         var wipeCaches = ('caches' in window)
           ? caches.keys().then(function (names) {
-              return Promise.all(names.map(function (n) { return caches.delete(n); }));
+              return Promise.all(names.filter(function (n) { return n.indexOf('foundry-') === 0; }).map(function (n) { return caches.delete(n); }));
             }).catch(function () {})
           : Promise.resolve();
         Promise.all([wipeSW, wipeCaches]).then(function () {
@@ -212,10 +215,12 @@
       if (pendingData && pendingData.version) setPending(pendingData.version);
       setTimeout(function () { window.location.reload(); }, 800);
     };
-    /* clear caches + unregister service worker so nothing stale survives */
+    /* clear the site's OWN caches + unregister service worker so nothing
+       stale survives. Foreign caches (the AI's 'webllm/...' model storage)
+       are never touched — v2.19.2. */
     var clearCaches = ('caches' in window)
       ? caches.keys().then(function (names) {
-          return Promise.all(names.map(function (n) { return caches.delete(n); }));
+          return Promise.all(names.filter(function (n) { return n.indexOf('foundry-') === 0; }).map(function (n) { return caches.delete(n); }));
         })
       : Promise.resolve();
     var unregSW = ('serviceWorker' in navigator)
