@@ -1,10 +1,8 @@
 {
- "version": "2.18.0",
+ "version": "2.18.1",
  "updated": "2026-10-21",
- "notify": true,
+ "notify": false,
  "notes": [
-  "Big polish update: the site now says The Foundry everywhere (install prompts, chat, marketplace), Vaulty's chat buttons match his no-× design, and the footer shows the version + last updated date.",
-  "Fixed: the app version check was stuck at 2.17.1, which could keep phones on an old cached copy — the cache and version stamps are now in sync (2.18.0), and the homepage Mods counter now matches the real library (1,756).",
-  "Smoother feel: gentle page fade-ins, cards lift on hover and press, loading text pulses — all disabled if your device prefers reduced motion."
+  "+1 video: iFlynn's 'DE Are Killing Riven Dispositions in Warframe' — a 17-minute Devshorts 120 + Dev Workshop deep-dive on the Riven disposition retirement (all Rivens go to a fixed 1.2) and the 75% Ammo Efficiency cap landing in Thursday's (Oct 22) hotfix, including the free Forma + up to 200k Kuva inbox compensation and which Rivens win/lose. (Beginner) News check: no new official hotfix yet — PC still on Hotfix 44.1.2 + 2.1 (Oct 15); the ammo-efficiency / Riven hotfix is expected tomorrow."
  ]
 }

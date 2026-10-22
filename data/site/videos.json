@@ -952,5 +952,14 @@
   "description": "Gauss Prime + Kuva Zarr zoom-and-boom nuke build for Iceblade of Narin — room-clearing speed combo with an infinite-ammo setup for endless nuking. (Upload ~Oct 13, 2026.)",
   "item": "Gauss Prime / Kuva Zarr",
   "type": "build"
+ },
+ {
+  "id": "0qdoWpguR20",
+  "title": "DE Are Killing Riven Dispositions in Warframe",
+  "channel": "iFlynn",
+  "category": "Beginner",
+  "description": "iFlynn's 17-minute Devshorts 120 + Dev Workshop deep-dive: every Riven moves to a fixed 1.2 disposition in Thursday's hotfix, Ammo Efficiency hard-capped at 75% (new infinite-ammo buffs replace Pistoleer-style setups), Riven trading disabled until the hotfix lands, Acid Shell changes teased, and the free Forma + up to 200k Kuva inbox compensation — plus which Rivens win and lose. (Upload ~Oct 19, 2026.)",
+  "item": "Riven / Ammo Efficiency changes",
+  "type": "guide"
  }
 ]
