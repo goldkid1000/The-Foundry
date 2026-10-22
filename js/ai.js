@@ -278,8 +278,18 @@
       setTimeout(function () {
         if (!els.panel.classList.contains('open')) els.panel.style.display = 'none';
       }, 280);
+      /* v2.19.1: Vaulty hid himself when the panel opened (mentor.js) —
+         tell him the panel closed so he comes back and the next tap on
+         him can reopen the chat */
+      try { document.dispatchEvent(new CustomEvent('tv-ai-panel-closed')); } catch (e) {}
     }
     if (els.btn) els.btn.classList.toggle('open', show);
+    /* v2.19.1: on reopen, never strand the header in a stale "Loading AI…"
+       state when the engine isn't coming (failed / no WebGPU) — the panel
+       is in quick-answer mode then, so say so */
+    if (show && opened && !engine && (engineFailed || !hasWebGPU())) {
+      setStatus('Vault Guide — quick answers', 'fallback');
+    }
     if (show && !opened) {
       opened = true;
       addMsg("Hey Tenno! ◈ I can help with builds, farming, mods — anything Warframe. " +

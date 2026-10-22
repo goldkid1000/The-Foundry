@@ -1492,6 +1492,10 @@ function oneShotBuildAnswer(t) {
     var show = typeof open === 'boolean' ? open : els.panel.style.display !== 'flex';
     els.panel.style.display = show ? 'flex' : 'none';
     if (els.btn) els.btn.classList.toggle('open', show);
+    /* v2.19.1: restore Vaulty on close (see js/ai.js / js/mentor.js) */
+    if (!show) {
+      try { document.dispatchEvent(new CustomEvent('tv-ai-panel-closed')); } catch (e) {}
+    }
     if (show && !opened) {
       opened = true;
       addMsg('Hey Tenno! ◈ Welcome to the Vault — I\'m your built-in guide. ' +

@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.19.1",
+    "date": "2026-10-22",
+    "notify": true,
+    "notes": [
+      "Fixed: after closing the Vault Guide with the chevron, tapping Vaulty didn't reopen the chat — he stayed hidden (invisible and untappable) until the page was reloaded. Vaulty now comes back every time you close the guide, ready for the next tap."
+    ]
+  },
+  {
     "version": "2.19.0",
     "date": "2026-10-22",
     "notify": true,

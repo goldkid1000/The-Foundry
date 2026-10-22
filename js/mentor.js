@@ -477,21 +477,37 @@
     try { if (window.TV && window.TV._vaultyResync) window.TV._vaultyResync(); } catch (e) {}
   }
 
+  var hideSeq = 0;
   function hide() {
     if (!els.wrap) return;
+    var seq = ++hideSeq;
     if (reducedMotion) {
-      finishHide();
+      finishHide(seq);
       return;
     }
     els.wrap.classList.add('exiting');
-    setTimeout(finishHide, 280);
+    setTimeout(function () { finishHide(seq); }, 280);
   }
-  function finishHide() {
+  function finishHide(seq) {
     if (!els.wrap) return;
+    /* v2.19.1: a show() after this hide supersedes it — don't let a stale
+       exit timer hide Vaulty again right after the panel closed */
+    if (typeof seq === 'number' && seq !== hideSeq) return;
     els.wrap.classList.remove('visible', 'exiting');
     els.wrap.style.left = ''; els.wrap.style.top = '';
     els.wrap.style.right = ''; els.wrap.style.bottom = '';
     setChar('idle');
+  }
+
+  /* v2.19.1: counterpart to hide(). openAI() hides Vaulty when the Vault
+     Guide opens; show() brings him back when the panel closes. Without it
+     he stayed opacity:0 / pointer-events:none for the rest of the session
+     and tapping him did nothing until a page reload. */
+  function show() {
+    if (!els.wrap) return;
+    hideSeq++; /* invalidate any pending finishHide */
+    els.wrap.classList.remove('exiting');
+    els.wrap.classList.add('visible');
   }
 
   function resetPosition() {
@@ -594,6 +610,9 @@
       }
     };
     try {
+      /* v2.19.1: the AI panel (js/ai.js / js/ai-fallback.js) fires this when
+         it closes — restore Vaulty so the next tap can reopen the chat */
+      document.addEventListener('tv-ai-panel-closed', show);
       document.addEventListener('tv-anim-toggle', function (e) {
         if (e && e.detail && typeof e.detail.on === 'boolean') onAnimToggle(e.detail.on);
       });
@@ -924,7 +943,7 @@
   window.TV.mentor = {
     /* v2.15.0: say/pointAt removed with the speech bubble. No-op stubs kept
        so any stale caller doesn't throw. */
-    say: function () {}, pointAt: function () {}, hide: hide, init: init, take: vaultyTake, name: VAULTY,
+    say: function () {}, pointAt: function () {}, hide: hide, show: show, init: init, take: vaultyTake, name: VAULTY,
     reset: function () {
       try {
         var old = document.getElementById('tv-mentor');
