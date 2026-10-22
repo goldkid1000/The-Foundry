@@ -31,7 +31,7 @@
     var TV = window.TV;
     loadingPromise = Promise.all([
       TV.getJSONParts('data/site/search-index', 7),
-      TV.getJSONParts('data/site/builds', 10),
+      TV.getJSONParts('data/site/builds', 11),
       TV.getJSONParts('data/site/warframes', 2),
       TV.getJSONParts('data/site/weapons', 3),
       TV.getJSONParts('data/site/mods', 9),
@@ -452,6 +452,153 @@ function modFarmLine(m) {
   return d ? '<span class="muted small">Farm: ' + esc(d) + '</span>' : '';
 }
 
+/* ---------- v2.19.5: validate-on-serve ----------
+   A build may only render if every mod in it is real (present in the mods
+   database under its exact name), fits the item's class, and breaks no slot
+   rule: aura mods live only in a Warframe's aura field — never inside a mod
+   list, and never on a weapon at all; no duplicate mods; 8 regular slots
+   (a 9th entry is allowed only when its note flags it as the Exilus mod —
+   the library's own convention). The same checks guard free-chat AI text
+   via _validateAnswer, and tools/validate-builds.py runs them over the
+   whole library offline. */
+var MOD_TYPE_CLASS = {
+  'Warframe Mod': 'warframe', 'Primary Mod': 'rifle', 'Shotgun Mod': 'shotgun',
+  'Secondary Mod': 'pistol', 'Melee Mod': 'melee', 'Stance Mod': 'stance',
+  'Companion Mod': 'companion', 'Arch-Gun Mod': 'archgun', 'Arch-Melee Mod': 'archmelee',
+  'Archwing Mod': 'archwing', 'Necramech Mod': 'necramech', 'Parazon Mod': 'parazon',
+  'Plexus Mod': 'plexus', 'K-Drive Mod': 'kdrive'
+};
+var SET_COMPAT_CLASS = { 'WARFRAME': 'warframe', 'Rifle': 'rifle', 'Shotgun': 'shotgun', 'Pistol': 'pistol', 'Melee': 'melee', 'COMPANION': 'companion', 'AURA': 'aura', 'ANY': 'any' };
+
+function modEntries(name) {
+  var q = norm(name), out = [];
+  for (var i = 0; i < D.mods.length; i++) if (norm(D.mods[i].name) === q) out.push(D.mods[i]);
+  return out;
+}
+function isAuraMod(name) {
+  var es = modEntries(name);
+  for (var i = 0; i < es.length; i++) if (es[i].compat === 'AURA') return true;
+  return false;
+}
+function isItemName(s) {
+  var q = norm(s), i;
+  for (i = 0; i < D.warframes.length; i++) if (norm(D.warframes[i].name) === q) return true;
+  for (i = 0; i < D.weapons.length; i++) if (norm(D.weapons[i].name) === q) return true;
+  return false;
+}
+function modFitsClass(name, cls, item) {
+  var es = modEntries(name);
+  if (!es.length) return false;
+  /* faction (Bane/Cleanse/Expel/Smite) mods exist per weapon class under one name */
+  if (/^(primed )?(bane of|cleanse|expel|smite) /.test(norm(name))) {
+    return cls === 'rifle' || cls === 'shotgun' || cls === 'pistol' || cls === 'melee';
+  }
+  for (var i = 0; i < es.length; i++) {
+    var e = es[i], c = e.compat || '';
+    if (c === 'AURA') continue;
+    if (c === 'PRIMARY' && (cls === 'rifle' || cls === 'shotgun')) return true;
+    if (c === 'ANY') return true;
+    if (c && isItemName(c)) {
+      /* augment locked to one frame/weapon */
+      var it = norm(item), cc = norm(c);
+      if (it === cc || it.replace(/ prime$/, '') === cc || it.slice(-(cc.length + 1)) === ' ' + cc) return true;
+      continue;
+    }
+    var mc = e.type === 'Mod Set Mod' ? SET_COMPAT_CLASS[c] : MOD_TYPE_CLASS[e.type];
+    if (mc === 'any' || mc === cls) return true;
+  }
+  return false;
+}
+function buildClassOf(b) {
+  var cat = b.category || '';
+  if (cat === 'Warframe') return 'warframe';
+  if (cat === 'Shotgun') return 'shotgun';
+  if (cat === 'Secondary') return 'pistol';
+  if (cat === 'Melee') return 'melee';
+  if (cat === 'Archgun') return 'archgun';
+  if (cat === 'Archmelee') return 'archmelee';
+  if (cat === 'Companion') return 'companion';
+  if (cat === 'Primary') {
+    for (var i = 0; i < D.weapons.length; i++) {
+      if (norm(D.weapons[i].name) === norm(b.item)) {
+        return (D.weapons[i].category || '') === 'Shotgun' ? 'shotgun' : 'rifle';
+      }
+    }
+    return 'rifle';
+  }
+  return '';
+}
+function buildIsValid(b) {
+  if (!D || !b || !b.mods || !b.mods.length) return false;
+  var cls = buildClassOf(b);
+  if (!cls) return false;
+  var seen = {};
+  for (var i = 0; i < b.mods.length; i++) {
+    var n = b.mods[i] && b.mods[i].name;
+    if (!n || !findModExact(n)) return false;
+    if (isAuraMod(n)) return false;
+    if (!modFitsClass(n, cls, b.item)) return false;
+    var k = norm(n);
+    if (seen[k]) return false;
+    seen[k] = 1;
+  }
+  if (b.mods.length !== 8) {
+    var ninth = b.mods[8];
+    if (!(b.mods.length === 9 && ninth && /exilus/i.test(ninth.note || ninth.why || ''))) return false;
+  }
+  if (b.aura && (cls !== 'warframe' || !isAuraMod(b.aura))) return false;
+  if (b.exilus && (!findModExact(b.exilus) || !modFitsClass(b.exilus, cls, b.item))) return false;
+  return true;
+}
+
+/* Validate free-form answer text (the downloaded-AI path in js/ai.js).
+   If the text presents a build (4+ real mod names) for an identifiable
+   item, every named mod must be legal on that item — aura mods and
+   wrong-class mods fail. Returns true when the answer may be shown. */
+function validateAnswerText(text, question) {
+  if (!D || !text) return true;
+  var hay = ' ' + norm(text).replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ') + ' ';
+  /* longest names first, matched spans masked out — otherwise the melee
+     mod "Reach" would "appear" inside "Augur Reach", "Flow" inside
+     "Primed Flow", and legal builds would fail the check */
+  var cands = [], seenC = {};
+  for (var ci = 0; ci < D.mods.length; ci++) {
+    var cnm = norm(D.mods[ci].name).replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (cnm.length < 5 || seenC[cnm]) continue;
+    seenC[cnm] = 1;
+    cands.push({ nm: cnm, name: D.mods[ci].name });
+  }
+  cands.sort(function (a, b) { return b.nm.length - a.nm.length; });
+  var found = [];
+  for (var i = 0; i < cands.length; i++) {
+    var idx = hay.indexOf(' ' + cands[i].nm + ' ');
+    if (idx !== -1) {
+      found.push(cands[i].name);
+      hay = hay.slice(0, idx) + ' ' + new Array(cands[i].nm.length + 1).join(' ') + hay.slice(idx + cands[i].nm.length + 1);
+    }
+  }
+  if (found.length < 4) return true; /* not a build-shaped answer */
+  var qn = norm(question || '');
+  var frame = findItemInText(D.warframes, qn);
+  var cls, itemName;
+  if (frame) { cls = 'warframe'; itemName = frame.name; }
+  else {
+    var wpn = findItemInText(D.weapons, qn);
+    if (!wpn) return true; /* no identifiable subject — the router guard covers these */
+    itemName = wpn.name;
+    var wc = weaponClass(wpn);
+    cls = wc === 'secondary' ? 'pistol' : (wc === 'primary' ? 'rifle' : wc);
+  }
+  for (var j = 0; j < found.length; j++) {
+    if (isAuraMod(found[j])) {
+      if (cls !== 'warframe') return false;
+      continue;
+    }
+    if (!modFitsClass(found[j], cls, itemName)) return false;
+  }
+  return true;
+}
+
 function renderLoadout(title, itemName, picks, notes, page, purpose) {
   var rows = picks.map(function (p, i) {
     return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(p.mod.name) + '</b>' +
@@ -562,7 +709,7 @@ function genWeaponBuild(weapon, purpose) {
     add('Primed Reach', 'Range — hit more enemies per swing.');
     /* elements */
     add('Voltaic Strike', 'Electric 60/60 — pairs toward Corrosive (anti-armor).');
-    add('Vicious Frost', 'Cold 60/60 — completes Corrosive, the Steel Path meta element.');
+    add('Virulent Scourge', 'Toxin 60/60 — completes Corrosive (Electric + Toxin), the Steel Path anti-armor combo.');
     add('Gladiator Might', 'Crit damage + combo duration backup.');
     add('Drifting Contact', 'Combo duration — keeps your counter alive between packs.');
   } else if (cls === 'shotgun') {
@@ -584,8 +731,8 @@ function genWeaponBuild(weapon, purpose) {
       add('Toxic Barrage', 'Toxin 60/60 — start of the Viral combo.');
       add('Frigid Blast', 'Cold 60/60 — Viral (Toxin+Cold) is the meta element.');
     } else {
-      add('Shell Shock', 'Electric 60/60 — toward Corrosive, or swap to Viral 60/60s vs flesh.');
-      add('Scattering Inferno', 'Heat 60/60 — more status and Heat procs.');
+      add('Shell Shock', 'Electric 60/60 — toward Corrosive.');
+      add('Contagious Spread', 'Toxin 90% — completes Corrosive (Electric + Toxin), the anti-armor combo.');
     }
     if (purpose.steelPath) {
       var bane2 = pick('Primed Bane of Grineer', 'Faction damage — the biggest Steel Path multiplier, swap per faction.');
@@ -618,8 +765,12 @@ function genWeaponBuild(weapon, purpose) {
       add(cls === 'secondary' ? 'Pistol Pestilence' : 'Malignant Force', 'Toxin 60/60 — start of the Viral combo.');
       add(cls === 'secondary' ? 'Frostbite' : 'Rime Rounds', 'Cold 60/60 — Viral (Toxin+Cold) is the meta element.');
     } else {
-      add(cls === 'secondary' ? 'Jolt' : 'Stormbringer', 'Electric for Corrosive, or swap to Viral 60/60s vs flesh.');
-      add(cls === 'secondary' ? 'Scorch' : 'Infected Clip', 'Toxin for Corrosive/Viral flexibility.');
+      add(cls === 'secondary' ? 'Jolt' : 'Stormbringer', cls === 'secondary'
+        ? 'Electric 60/60 — pairs with Scorch for Radiation.'
+        : 'Electric for Corrosive, or swap to Viral 60/60s vs flesh.');
+      add(cls === 'secondary' ? 'Scorch' : 'Infected Clip', cls === 'secondary'
+        ? 'Heat 60/60 — completes Radiation (Electric + Heat).'
+        : 'Toxin for Corrosive/Viral flexibility.');
     }
     if (purpose.steelPath) {
       var bane = pick('Primed Bane of Grineer', 'Faction damage — the biggest Steel Path multiplier, swap per faction.');
@@ -734,7 +885,7 @@ var ONE_SHOT_FORMULA =
   '<p><b>1. Hunter Munitions is the engine.</b> It gives your crits a 30% chance to inflict a ' +
   'Slash proc worth 35% of the hit. Slash <i>bleed</i> procs ignore armor entirely and scale with ' +
   'how hard you hit — so big crit + slash = enemy melts regardless of armor.</p>' +
-  '<p><b>2. Viral multiplies it.</b> 10 stacks of Viral = 3.5x damage to enemy health. That\'s why ' +
+  '<p><b>2. Viral multiplies it.</b> 10 stacks of Viral = +325% damage to enemy health (a 4.25x multiplier). That\'s why ' +
   'every one-shot build runs Toxin + Cold 60/60 mods (Viral). The slash procs hit the ' +
   'viral-weakened health pool.</p>' +
   '<p><b>3. Strip armor anyway.</b> Even with slash, less armor = faster kills. Corrosive Projection ' +
@@ -760,10 +911,10 @@ var ONE_SHOT_TEMPLATES = {
       ['Vital Sense', 'WHY: Crit damage multiplier — cashes in on all that crit chance from Critical Delay.'],
       ['Hunter Munitions', 'WHY: THE one-shot engine. Your crits inflict armor-ignoring Slash bleeds that scale with the hit.'],
       ['Infected Clip', 'WHY: Toxin damage — half of the Viral combo.'],
-      ['Cryo Rounds', 'WHY: Cold damage — Toxin + Cold = Viral, which multiplies damage to enemy health up to 3.5x at 10 stacks.'],
+      ['Cryo Rounds', 'WHY: Cold damage — Toxin + Cold = Viral, which multiplies damage to enemy health by up to +325% at 10 stacks.'],
       ['Primed Bane Of Grineer', 'WHY: +55% faction damage — the biggest single-slot Steel Path multiplier. Swap per mission (Corpus/Infested/Murmur).']
     ],
-    notes: 'Run Corrosive Projection in your aura slot for -18% enemy armor. Cannon mode one-shots crowds; Barrage mode for single targets.'
+    notes: 'On your Warframe, run Corrosive Projection as your aura for -18% enemy armor. Cannon mode one-shots crowds; Barrage mode for single targets.'
   },
   'phenmor': {
     title: 'Phenmor — Steel Path one-shot (Incarnon)',
@@ -800,7 +951,7 @@ var ONE_SHOT_TEMPLATES = {
       ['Galvanized Hell', 'WHY: Multishot that stacks on kill. The Plasmor\'s wide projectile loves multishot.'],
       ['Primed Ravage', 'WHY: Shotgun crit damage — the Plasmor has solid crit stats to exploit.'],
       ['Blunderbuss', 'WHY: Crit chance — pairs with Primed Ravage.'],
-      ['Chilling Reload', 'WHY: Cold 60/60 — Viral combo piece with a reload bonus.'],
+      ['Chilling Reload', 'WHY: Cold damage + faster reloads — the Viral combo piece (with Toxic Barrage) that also smooths the downtime.'],
       ['Toxic Barrage', 'WHY: Toxin 60/60 — completes Viral with Chilling Reload.'],
       ['Hunter Munitions', 'WHY: Slash procs from the Plasmor\'s crits melt armored targets.'],
       ['Primed Bane Of Grineer', 'WHY: +55% faction damage. Swap per mission.']
@@ -816,7 +967,7 @@ var ONE_SHOT_TEMPLATES = {
       ['Vital Sense', 'WHY: Crit damage to maximize those charged headshots.'],
       ['Hunter Munitions', 'WHY: Slash procs on crit — charged shots inflict brutal bleeds.'],
       ['Infected Clip', 'WHY: Toxin — Viral combo half.'],
-      ['Cryo Rounds', 'WHY: Cold — completes Viral for 3.5x health damage at 10 stacks.'],
+      ['Cryo Rounds', 'WHY: Cold — completes Viral for up to +325% damage to health at 10 stacks.'],
       ['Primed Bane Of Grineer', 'WHY: +55% faction damage. Swap per mission.']
     ],
     notes: 'The Nataruk\'s perfect-release mechanic (release at the chime) gives bonus crit — learn the timing and everything dies. Silent, so great for stealth Steel Path.'
@@ -828,7 +979,7 @@ var ONE_SHOT_TEMPLATES = {
       ['Galvanized Hell', 'WHY: Multishot stacking on kill — the Felarx devours crowds.'],
       ['Primed Ravage', 'WHY: Crit damage — the Incarnon form crits relentlessly.'],
       ['Blunderbuss', 'WHY: Crit chance to feed Primed Ravage.'],
-      ['Chilling Reload', 'WHY: Cold 60/60 — Viral combo piece.'],
+      ['Chilling Reload', 'WHY: Cold damage + faster reloads — Viral combo piece.'],
       ['Toxic Barrage', 'WHY: Toxin 60/60 — completes Viral.'],
       ['Hunter Munitions', 'WHY: Slash procs from crits — armor becomes irrelevant.'],
       ['Primed Bane Of Grineer', 'WHY: +55% faction damage. Swap per mission.']
@@ -992,6 +1143,10 @@ var SP_FRAME_TEMPLATES = {
 function spFrameBuildAnswer(key) {
   var t = SP_FRAME_TEMPLATES[key];
   if (!t) return null;
+  /* v2.19.5: validate-on-serve — every pick must be a real mod, the aura a real aura */
+  for (var vi = 0; vi < t.picks.length; vi++) { if (!findModExact(t.picks[vi][0])) return null; }
+  if (t.aura && !isAuraMod(t.aura.split(' — ')[0])) return null;
+  if (t.exilus && !findModExact(t.exilus.split(' — ')[0])) return null;
   var rows = t.picks.map(function (p, i) {
     var m = findModExact(p[0]);
     var farm = m ? modFarmLine(m) : '';
@@ -1017,6 +1172,8 @@ function spFrameBuildAnswer(key) {
 function oneShotTemplateAnswer(key) {
   var t = ONE_SHOT_TEMPLATES[key];
   if (!t) return null;
+  /* v2.19.5: validate-on-serve — every pick must be a real mod */
+  for (var vi = 0; vi < t.picks.length; vi++) { if (!findModExact(t.picks[vi][0])) return null; }
   var rows = t.picks.map(function (p, i) {
     var m = findModExact(p[0]);
     var farm = m ? modFarmLine(m) : '';
@@ -1045,6 +1202,7 @@ function oneShotBuildAnswer(t) {
   for (var i = 0; i < D.builds.length; i++) {
     var b = D.builds[i];
     if (!b || (b.tags || []).indexOf('one-shot') === -1) continue;
+    if (!buildIsValid(b)) continue; /* v2.19.5: validate-on-serve */
     var iname = norm(b.item);
     if (iname && iname.length >= 4 && t.indexOf(iname) !== -1 && iname.length > bestLen) {
       best = b; bestLen = iname.length;
@@ -1409,6 +1567,9 @@ function oneShotBuildAnswer(t) {
       }
       var wp2 = findItemInText(D.weapons, t);
       if (wp2) return genWeaponBuild(wp2, { steelPath: /steel/.test(t), oneShot: /one/.test(t) });
+      /* v2.19.5: "how do I make platinum/credits" names no item — that's the
+         trading answer, not a build request (the word "make" used to hijack it) */
+      if (/\b(platinum|plat|credits?)\b/.test(t)) return sellAnswer();
       /* no specific item found — recommend instead of dead-ending */
       return genericBuildAnswer(t, bp.purpose);
     }
@@ -1569,7 +1730,7 @@ function oneShotBuildAnswer(t) {
     if (m) {
       /* try curated build first, then GENERATE one */
       var b = findBuild(m[1]);
-      if (b) return buildAnswer(b);
+      if (b && buildIsValid(b)) return buildAnswer(b); /* v2.19.5: validate-on-serve */
       var gen = generateBuild(t);
       if (gen) return gen;
       /* last resort: suggest closest */
@@ -1707,5 +1868,5 @@ function oneShotBuildAnswer(t) {
     });
   }
 
-  window.TVAI = { init: init, toggle: toggle, _answer: answer, _load: loadData, _research: researchMarkup };
+  window.TVAI = { init: init, toggle: toggle, _answer: answer, _load: loadData, _research: researchMarkup, _validateAnswer: validateAnswerText };
 })();

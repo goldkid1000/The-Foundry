@@ -70,17 +70,17 @@
     'STEEL PATH ONE-SHOT FORMULA (the core of every build below):',
     '1. Hunter Munitions on crit weapons: crits trigger slash procs that IGNORE ARMOR.',
     '2. Viral (60/60 mods): multiplies health damage, making slash ticks hit much harder.',
-    '3. Armor strip: Corrosive Projection aura, Unairu Caustic Strike, or viral+slash bypasses armor anyway.',
+    '3. Armor strip: Corrosive Projection aura (equipped on your Warframe — weapons have no aura slot), Unairu Caustic Strike, or viral+slash bypasses armor anyway.',
     '4. Crit stacking: Critical Delay + Vital Sense (rifles), Primed Ravage + Vigilante Armaments (shotguns), Blood Rush + Weeping Wounds (melee combo).',
     '5. Faction damage: Primed Bane mods (Bane of Grineer/Corpus/Infested/Corrupted) = huge multiplicative damage.',
     '6. Galvanized mods: on-kill stacking damage/multishot that snowballs through crowds.',
     '',
     'CURATED ONE-SHOT BUILDS (8 mods each, riven-less):',
-    'Kuva Zarr: Galvanized Chamber, Critical Delay, Vital Sense, Primed Cryo Rounds, Hunter Munitions, Primed Bane Of Grineer, Primed Firestorm, Vigilante Supplies',
+    'Kuva Zarr: Galvanized Chamber, Semi-Rifle Cannonade, Critical Delay, Vital Sense, Primed Cryo Rounds, Hunter Munitions, Primed Bane Of Grineer, Primed Firestorm',
     'Kuva Bramma: Galvanized Chamber, Serration, Critical Delay, Vital Sense, Primed Cryo Rounds, Hunter Munitions, Primed Bane Of Grineer, Primed Firestorm',
     'Phenmor (Incarnon): Galvanized Chamber, Serration, Critical Delay, Vital Sense, Malignant Force, Rime Rounds, Hunter Munitions, Primed Bane Of Grineer',
     'Laetum (Incarnon pistol): Hornet Strike, Barrel Diffusion, Lethal Torrent, Primed Pistol Gambit, Primed Target Cracker, Pistol Pestilence, Frostbite, Galvanized Shot',
-    'Tenet Arca Plasmor: Galvanized Chamber, Galvanized Aptitude, Critical Delay, Vital Sense, Blunderbuss, Primed Ravage, Toxic Barrage, Frigid Blast',
+    'Tenet Arca Plasmor: Primed Point Blank, Galvanized Hell, Primed Ravage, Blunderbuss, Chilling Reload, Toxic Barrage, Hunter Munitions, Primed Bane Of Grineer',
     'Nataruk: Serration, Galvanized Chamber, Point Strike, Vital Sense, Hunter Munitions, Infected Clip, Cryo Rounds, Primed Bane Of Grineer',
     'Felarx (shotgun): Primed Point Blank, Galvanized Hell, Primed Ravage, Blunderbuss, Chilling Reload, Toxic Barrage, Hunter Munitions, Primed Bane Of Grineer',
     'Steflos (shotgun): Primed Point Blank, Hell\'s Chamber, Galvanized Hell, Primed Ravage, Vigilante Armaments, Hunter Munitions, Contagious Spread, Shell Shock',
@@ -105,11 +105,12 @@
     '',
     'AMPS: 777 (Klamora prism / Phahd scaffold / Certus brace) is the best amp. Use Madurai focus school (amp damage buffs after Void Sling), Virtuos Strike arcane (electric damage on headshot), Eternal Eradicate amp arcane. For Steel Path: Void Sling into enemy, headshot to proc Virtuos, hold Klamora beam point-blank.',
     '',
-    'FARM NOTES: Primed mods come from Baro Ki\'Teer (void trader). Galvanized mods drop from Steel Path Arbitration-style rewards. Hunter Munitions from Ghoul Purge bounties on Cetus. 60/60 elemental mods from Spy missions and Corrupted Vor. Corrupt mods from Orokin Vaults (Deimos).',
+    'FARM NOTES: Primed mods come from Baro Ki\'Teer (void trader). Galvanized mods are bought from the Arbitrations vendor (Arbiters of Hexis room in any Relay) for 20 Vitus Essence each — Vitus Essence drops in Arbitration missions. Hunter Munitions from Ghoul Purge bounties on Cetus. 60/60 elemental mods from Spy missions and Corrupted Vor. Corrupt mods from Orokin Vaults (Deimos).',
     '',
     'LIVE QUESTIONS: if the Tenno asks about RIGHT NOW in-game (Baro Ki\'Teer, current events, fissures, Nightwave, the latest hotfix), the app answers those itself from the live worldstate feed — never guess at timers, dates, or stock lists from memory.',
     'RIVEN STATUS: Riven trading is temporarily disabled in-game right now (DE PSA, Oct 2026). Unveiling, rolling and using your own Rivens still works. DE is also retiring Riven dispositions, so every Riven is settling at a fixed 1.2 disposition.',
-    'HONESTY RULE: if you truly don\'t know a specific fact, say "I don\'t know that one" plainly — the app will offer the Tenno one-tap research buttons. Never invent drop locations, prices, dates, or patch details.'
+    'BUILDS RULE: never write out a mod list for a specific Warframe or weapon yourself — the app intercepts build questions and answers them from its verified build library. If a build request somehow reaches you anyway, explain the FORMULA and point to the Builds page instead of listing mods. Weapons have no aura slot: never put an aura mod in a weapon build.',
+    'HONESTY RULE: if you truly don\'t know a specific fact, say "I don\'t know that one" plainly — the app will offer the Tenno one-tap research buttons. Never invent drop locations, prices, dates, patch details, mod names, mod effects, or farm sources.'
   ].join('\n');
 
   /* ---------- WebGPU / engine ---------- */
@@ -330,6 +331,38 @@
     });
   }
 
+  /* v2.19.5: validate-on-serve. A free-chat answer that presents a build
+     must pass the guide brain's slot / real-mod check against the mods
+     database (TVAI._validateAnswer). A failing answer is replaced by the
+     verified guide answer for the same question — the model's improvised
+     mod list is never the final rendered answer. */
+  function finishAIAnswer(q, full, botEl) {
+    var render = function () {
+      var finalHtml = md(full);
+      /* model admitted it doesn't know → offer real research */
+      if (UNCERTAIN_RE.test(full) && FALLBACK && FALLBACK._research) {
+        finalHtml += FALLBACK._research(q);
+      }
+      if (botEl) botEl.innerHTML = finalHtml;
+      else addMsg(finalHtml, 'bot');
+      history.push({ role: 'user', content: q });
+      history.push({ role: 'assistant', content: full });
+      if (history.length > 12) history = history.slice(-12);
+    };
+    if (FALLBACK && FALLBACK._validateAnswer) {
+      FALLBACK._load().then(function () {
+        if (FALLBACK._validateAnswer(full, q)) { render(); return; }
+        var html = '<p class="muted small">That AI draft didn\'t pass the Vault\'s build check (a mod was wrong for the item), so here\'s the verified answer instead:</p>' +
+          FALLBACK._answer(q);
+        if (botEl) botEl.innerHTML = html;
+        else addMsg(html, 'bot');
+        history.push({ role: 'user', content: q });
+        history.push({ role: 'assistant', content: '(answered from the verified build library)' });
+        if (history.length > 12) history = history.slice(-12);
+      }).catch(render);
+    } else render();
+  }
+
   function askAI(q) {
     addTyping();
     var messages = [{ role: 'system', content: SYSTEM_PROMPT }];
@@ -349,16 +382,7 @@
         return stream.next().then(function (r) {
           if (r.done) {
             removeTyping();
-            var finalHtml = md(full);
-            /* model admitted it doesn't know → offer real research */
-            if (UNCERTAIN_RE.test(full) && FALLBACK && FALLBACK._research) {
-              finalHtml += FALLBACK._research(q);
-            }
-            if (botEl) botEl.innerHTML = finalHtml;
-            else addMsg(finalHtml, 'bot');
-            history.push({ role: 'user', content: q });
-            history.push({ role: 'assistant', content: full });
-            if (history.length > 12) history = history.slice(-12);
+            finishAIAnswer(q, full, botEl);
             return;
           }
           var delta = (r.value.choices[0].delta.content) || '';
@@ -384,6 +408,22 @@
      those answers get one-tap research buttons appended */
   var UNCERTAIN_RE = /i (don'?t|do not) know|i'?m not (sure|certain)|no idea|not familiar with|can'?t (help with|answer)|don'?t have (any )?(info|information|details) (on|about)/i;
 
+  /* v2.19.5: build-intent detection for the router below. Mirrors the
+     guide brain's own build surface (build words, one-shot topics,
+     primers, archon shards, mod-slotting questions, Steel Path builds)
+     so both panels route these questions identically. */
+  function isBuildIntent(q) {
+    var t = String(q || '').toLowerCase().replace(/\?+$/, '').trim();
+    if (!t) return false;
+    if (/\b(build|loadout|setup)\b/.test(t)) return true;
+    if (/one[\s-]?shot/.test(t)) return true;
+    if (/\bprimer\b/.test(t)) return true;
+    if (/archon shards?/.test(t)) return true;
+    if (/\bwhat mods\b/.test(t) || /\bmods? (for|on) my\b/.test(t) || /\bhow (do|should) i mod\b/.test(t)) return true;
+    if (/\bsteel\s?path\b/.test(t) && /\b(build|mod|mods|setup|loadout|guide|strong|damage|best|frame|warframe|weapon)\b/.test(t)) return true;
+    return false;
+  }
+
   function ask(q) {
     if (!q) return;
     addMsg(q, 'user');
@@ -400,6 +440,16 @@
         removeTyping();
         addMsg('The live feed didn\'t answer just now — check the <a href="live.html">Live page</a>, or ask me again in a minute.', 'bot');
       });
+      return;
+    }
+    /* v2.19.5: build questions are answered ONLY from verified data.
+       The free-chat model improvised mod lists — it once put two AURA
+       mods on a shotgun and invented effects and farm sources — so build
+       intent never reaches it. In every mode the guide brain serves the
+       build from the library / templates / generator, whose mods are
+       checked against the mods database. */
+    if (isBuildIntent(q)) {
+      askFallback(q);
       return;
     }
     if (engine) {

@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.19.5",
+    "date": "2026-10-22",
+    "notify": true,
+    "notes": [
+      "Build questions are now answered ONLY from verified data in every chat mode. The downloaded AI improvised a Steflos build with Corrosive Projection + Steel Charge (aura mods) on a shotgun, a wrong effect for Galvanized Hell, and invented farm sources — so build intent is routed to the Vault Guide's verified library before the AI ever sees it, and any build-shaped AI answer is validated against the mods database before it renders (slot validity + real mods); a failing answer is replaced by the verified one.",
+      "Full library audit (880 builds, tools/validate-builds.py added): 7 shotgun builds carried rifle-only mods (Serration, Galvanized Chamber, Vital Sense...) — rebuilt with the correct shotgun mods. Tenet Cycron's 'one-shot' build was 8 rifle mods on a pistol under a false 'equips rifle mods' premise — fully rewritten with real pistol mods. Tenet Arca Plasmor one-shot had 4 rifle mods — replaced. Kuva Zarr had a shotgun Cannonade mod — now Semi-Rifle Cannonade.",
+      "Aura mods in regular slots fixed: Protea Prime and Voruna builds carried Brief Respite inside the mod list — moved to the aura field where it belongs. Voruna gained Equilibrium as its 8th mod.",
+      "8 'boss killer' builds in builds-10 merged a full Warframe build + a full weapon build into one 16-mod list no single item can equip — split into proper paired entries (weapon keeps the original entry; the frame half is its own Warframe build; the two identical Rhino halves share one entry). Library: 878 -> 880 builds.",
+      "Duplicates removed: 5 same-item/same-mod-set pairs (Laetum, Pyrana Prime, Hate, Tenet Grigori, Saryn — merged with arcane folded in). builds.json was a stale 69-entry subset duplicating builds-0; it is now the canonical full library. Duplicate videos: none found (107 checked). Counters re-verified: 123 warframes / 648 weapons / 1,756 mods / 880 builds / 107 videos.",
+      "Text accuracy: the Steflos card claimed Viral while its mods (Contagious Spread + Shell Shock) make Corrosive, called Primed Ravage 'crit chance' (it is crit damage), mislabeled Contagious Spread a 60/60, and credited pellets on a slug weapon — all corrected. Same class of fix in Shedu (corrosive, not viral), Harmony, and the guide's build generator (melee Electric+Cold was labeled Corrosive — now Electric+Toxin; secondary Jolt+Scorch now correctly labeled Radiation). Viral's 10-stack multiplier corrected from 3.5x to +325% (4.25x) everywhere it was stated. 5 builds used shorthand arcane names ('Velocity') — expanded to full 'Arcane ...' names. 5 builds used 'Primed Bane of Grineer' with wrong casing vs the mods DB — normalized.",
+      "Guide brain fixes: it now loads all 11 build shards (it silently missed builds-10's 25 builds), and 'how do I make platinum?' no longer gets hijacked into a build answer by the word 'make'. Builds page now shows a build's Aura and Exilus slots in the detail view (the data was always there; the page hid it).",
+      "Verified clean (0 found): duplicate mods inside a build, aura fields on non-Warframe builds, empty/garbled build fields, duplicate YouTube videos, displayed counters (123/648/1,756 all match the data; the builds counter is live-counted)."
+    ]
+  },
+  {
     "version": "2.19.4",
     "date": "2026-10-22",
     "notes": [
