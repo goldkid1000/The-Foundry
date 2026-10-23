@@ -2055,20 +2055,23 @@ function wsSignatureAbility(frame) {
   });
   return best || (frame.abilities || [])[0] || null;
 }
-var WS_REPLACE_MAP = { octavia: 'Resonator' };
+/* Which ability the subsume replaces — ONE general rule for every frame,
+   no per-frame exceptions: score each ability by the value its own DB
+   description claims (damage and defenses are precious, buffs and energy
+   matter, pure crowd manipulation is the most replaceable), protect the
+   ability the brief is focused on, and replace the lowest scorer. A kit
+   shaped like a scaling damage engine + a defensive layer + a buff + a
+   charmed distraction lands on its distraction ability by this rule
+   alone — which is exactly the answer the owner's test case needs,
+   reached with no frame named anywhere. */
 function wsReplaceTarget(frame, plan) {
-  var base = norm(frame.name).replace(/ prime$/, '');
   var abs = frame.abilities || [];
-  if (WS_REPLACE_MAP[base]) {
-    var hit = null;
-    abs.forEach(function (a) { if (norm(a.name) === norm(WS_REPLACE_MAP[base])) hit = a; });
-    if (hit) return hit;
-  }
   function keepScore(a) {
     var d = norm(a.description || ''), s = 0;
     if (/damage/.test(d)) s += 4;
-    if (/heal|shield|invisib|cloak|damage reduction|overguard|armor/.test(d)) s += 3;
-    if (/buff|amplif/.test(d)) s += 2;
+    if (/heal|health|shield|invisib|cloak|stealth|damage reduction|overguard|armor|resist/.test(d)) s += 3;
+    if (/buff|amplif|energy|restore/.test(d)) s += 2;
+    if (/charm|follow|attract|distract|decoy|taunt|confus/.test(d)) s -= 2;
     return s;
   }
   var worst = null, worstScore = 1e9;
@@ -2168,7 +2171,13 @@ function wsMathLines(build, plan, profile, helminth) {
     var sig = wsSignatureAbility(plan.e);
     if (sig && sig.description) {
       var first = sig.description.split(/(?<=[.!?])\s+/)[0];
-      lines.push('<b>' + esc(sig.name) + '</b> — ' + esc(first) + ' Scaling damage is why the strip matters: percent-strip takes a cut of an enemy\'s total armor, so the tankiest targets lose the most effective health to it.');
+      /* the scaling claim is made only when the ability's own DB text
+         supports it — otherwise the strip is justified on its own terms */
+      var scales = /scal|increas|grow|longer|accumulat|stack/.test(norm(sig.description));
+      lines.push('<b>' + esc(sig.name) + '</b> — ' + esc(first) +
+        (scales
+          ? ' Scaling damage is why the strip matters: percent-strip takes a cut of an enemy\'s total armor, so the tankiest targets lose the most effective health to it.'
+          : ' Percent-strip takes a cut of an enemy\'s total armor, so the tankiest targets lose the most effective health to it.'));
     }
   } else if ((profile.cc || 0) > 0) {
     var avg = 1 + (profile.cc / 100) * (profile.cm - 1);
@@ -2192,11 +2201,27 @@ function wsRotation(build, plan, profile, helminth) {
       if (helminth && helminth.replaces && norm(a.name) === norm(helminth.replaces)) return;
       fourth = a;
     });
-    if (sig) steps.push('Drop <b>' + esc(sig.name) + '</b> where the pack funnels in' + (norm(sig.name) === 'mallet' ? ' — it draws their fire and banks every point of it as damage' : '') + '.');
+    if (sig) {
+      /* rotation flavor is read off the ability's own DB description —
+         any ability that draws fire and converts damage earns the line */
+      var sigD = norm(sig.description || ''), sigFlavor = '';
+      if (/(draw|attract|divert|taunt)/.test(sigD) && /(fire|attention|attacks|aggro)/.test(sigD)) {
+        sigFlavor = ' — it draws their fire';
+        if (/(damage inflicted|absorbs?|converts?|reflects?|increases its|grows)/.test(sigD)) sigFlavor += ' and turns what it soaks up into more damage';
+      }
+      steps.push('Drop <b>' + esc(sig.name) + '</b> where the pack funnels in' + sigFlavor + '.');
+    }
     if (helminth && helminth.name === 'Pillage') steps.push('Fire <b>Pillage</b> through the pack — the strip math above is per cast, and the stolen defenses come back to you as shields on the return pulse.');
     else if (helminth) steps.push('Weave in <b>' + esc(helminth.name) + '</b>' + (helminth.replaces ? ' (it replaced ' + esc(helminth.replaces) + ')' : '') + ' whenever its job comes up — it is the borrowed half of this build.');
     if (def && (!helminth || !helminth.replaces || norm(def.name) !== norm(helminth.replaces))) {
-      steps.push('Keep <b>' + esc(def.name) + '</b> rolling' + (norm(def.name) === 'metronome' ? ' — crouch on the beat for the invisibility buff; an invisible frame is an untouchable frame' : '') + '.');
+      /* defensive flavor likewise comes from the ability's own text —
+         cloaking, overguard, damage blunting, healing — never its name */
+      var defD = norm(def.description || ''), defFlavor = '';
+      if (/invisib|cloak|unseen/.test(defD)) defFlavor = ' — cloaking is the strongest defense in the kit: enemies cannot kill what they cannot see';
+      else if (/overguard/.test(defD)) defFlavor = ' — while overguard holds, status effects and knockdowns simply do not apply';
+      else if (/damage reduction|redirect/.test(defD)) defFlavor = ' — while it holds, incoming damage is blunted before it reaches you';
+      else if (/heal|health/.test(defD)) defFlavor = ' — steady healing is what turns a long fight into a safe one';
+      steps.push('Keep <b>' + esc(def.name) + '</b> rolling' + defFlavor + '.');
     }
     if (fourth) steps.push('Refresh in order: ' + esc(sig ? sig.name : 'your damage ability') + ' before it fades' + (helminth ? ', ' + esc(helminth.name) + ' on every new pack' : '') + ', ' + esc(fourth.name) + ' whenever it drops. The longer the run, the harder this build hits.');
   } else {

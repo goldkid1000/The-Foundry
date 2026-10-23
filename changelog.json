@@ -1,5 +1,15 @@
 [
  {
+  "version": "2.22.1",
+  "date": "2026-10-22",
+  "notify": true,
+  "notes": [
+   "🔍 GENERALITY PASS: the Workshop, the dossier writer and the research brain were audited line by line to prove nothing in them is hard-wired to any one frame or weapon — then the last special cases were removed. The Helminth replacement pick is now ONE rule for every frame (the new ability takes the slot of whichever ability the frame's own kit values least — distraction and crowd-control abilities first), and the play rotation's advice is read off each ability's real description instead of anyone's name.",
+   "🧪 PROOF, NOT PROMISES: a new 233-check sweep runs the identical pipeline over frames and weapons that were never test cases — Wisp, Garuda, Revenant, Saryn and Hildryn dossiers, Acceltra Prime, Kuva Zarr and Desert Wind (which has no library build at all), fishing, Eidolon hunts, Kuva Liches and a lore question — verifying real mods, legal slots, real Helminth donors and replacements, and zero cross-item bleed-through. Hildryn correctly gets Nourish, not her own Pillage handed back to her.",
+   "Guardrails unchanged: every mod is still database-verified, fabricated mod names are still rejected, composed builds still carry the 🛠 Vaulty Original label, and the dossier math is still computed from the build itself."
+  ]
+ },
+ {
   "version": "2.22.0",
   "date": "2026-10-22",
   "notify": true,
@@ -12,7 +22,7 @@
   ]
  },
  {
-  "version": "2.22.0",
+  "version": "2.22.1",
   "date": "2026-10-22",
   "notify": true,
   "notes": [

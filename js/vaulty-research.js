@@ -1,4 +1,4 @@
-/* The Foundry — Vaulty research mode + anonymous miss log (v2.22.0).
+/* The Foundry — Vaulty research mode + anonymous miss log (v2.22.1).
    When the guide brain doesn't know, Vaulty no longer dead-ends: it
    RESEARCHES, in the open, with a staged progress bar the Tenno can
    stop — live game data (warframestat.us) → the Warframe Wiki → a
@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = '2.22.0';
+  var APP_VERSION = '2.22.1';
 
   function esc(s) {
     if (window.TV && window.TV.esc) return window.TV.esc(s);

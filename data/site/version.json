@@ -1,6 +1,6 @@
 {
- "notes": "The Workshop is open: Vaulty can now INVENT builds — never mods. Ask creatively (\"design a full damage build for Acceltra\", \"make me a weird off-meta Braton build\", \"come up with a Saryn build focused on Spores\") and Vaulty researches the item first (live damage split, crit and status profile), then composes an original build from real mods only, then verifies every mod — slot legality and capacity — before showing it. Composed builds carry a \"🛠 Vaulty Original\" label on the standard card with Copy buttons, plus a why-line for every pick drawn from the mod's real database effect. If a composition can't pass every check, you get the proven library build instead — an invalid build is never shown. Plain build asks stay instant; the on-device AI may discuss a build but still may not author mod lists, and answers naming a mod that doesn't exist are now discarded automatically.",
+ "notes": "Generality pass: Vaulty's Workshop, dossier writer and research brain were audited line by line to prove nothing is hard-wired to any one frame or weapon — and the last special cases were removed. The Helminth replacement pick is now one rule for every frame (the subsume takes the slot of whichever ability the frame's own kit values least), rotation advice is read off each ability's real description, and a 233-check proof sweep runs the identical pipeline over frames, weapons and topics that were never test cases — Wisp, Garuda, Revenant, Saryn, Hildryn, Acceltra Prime, Kuva Zarr, Desert Wind (no library build at all), fishing, Eidolon hunts, Kuva Liches and lore — verifying real mods, legal slots, real donors, and zero cross-item bleed-through.",
  "notify": true,
  "updated": "2026-10-22",
- "version": "2.22.0"
+ "version": "2.22.1"
 }

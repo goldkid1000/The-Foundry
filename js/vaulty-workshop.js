@@ -1,4 +1,4 @@
-/* The Foundry — Vaulty Workshop (v2.22.0; created v2.22.0).
+/* The Foundry — Vaulty Workshop (v2.22.1; created v2.22.0).
    Generative build composition, with the owner's rules welded in:
    Vaulty may INVENT BUILDS (original compositions) but may NEVER
    invent MODS. A creative build brief ("design…", "come up with…",
