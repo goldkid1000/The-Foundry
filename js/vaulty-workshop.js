@@ -1,4 +1,4 @@
-/* The Foundry — Vaulty Workshop (v2.22.1; created v2.22.0).
+/* The Foundry — Vaulty Workshop (v2.23.0; created v2.22.0).
    Generative build composition, with the owner's rules welded in:
    Vaulty may INVENT BUILDS (original compositions) but may NEVER
    invent MODS. A creative build brief ("design…", "come up with…",
@@ -220,10 +220,45 @@
       .catch(function () { if (!done && !token.cancelled) fail(); });
   }
 
+  /* ---------- v2.23.0: BUILD CHECKER orchestration ----------
+     The guide brain parsed the Tenno's own pasted build and handed it
+     over (vai-checker-handoff). Checking needs REAL drain data for the
+     capacity verdict, so — exactly like composition — it happens here:
+     a short staged progress, a drain fetch for every named mod, then
+     TVAI._checkBuildReport renders the verdict. If the drain fetch
+     fails entirely, the report still renders with the capacity line
+     honestly marked unchecked. */
+  function handleCheck(q, handoffHtml, msgsEl, render) {
+    var TVAI = window.TVAI;
+    var plan = parsePlan(handoffHtml);
+    if (!plan || !TVAI || !TVAI._checkBuildReport) { render(''); return; }
+    var pel = document.createElement('div');
+    pel.className = 'vai-msg bot vws-progress';
+    pel.innerHTML =
+      '<div class="vres-title">🔎 Checking your ' + esc(plan.item || 'build') + ' build…</div>' +
+      '<div class="vres-barwrap"><div class="vres-bar" style="width:35%"></div></div>' +
+      '<div class="vres-stage muted small">Verifying every mod against the database…</div>';
+    if (msgsEl) {
+      msgsEl.appendChild(pel);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+    var fakeBuild = { mods: (plan.known || []).map(function (k) { return { name: k.name }; }) };
+    fetchDrains(fakeBuild).then(function (drains) {
+      if (pel.parentNode) pel.parentNode.removeChild(pel);
+      var html = TVAI._checkBuildReport(plan, drains);
+      render(html || '');
+    }).catch(function () {
+      if (pel.parentNode) pel.parentNode.removeChild(pel);
+      var html = TVAI._checkBuildReport(plan, null);
+      render(html || '');
+    });
+  }
+
   window.TVWorkshop = {
     isHandoff: isHandoff,
     parsePlan: parsePlan,
     handle: handle,
+    handleCheck: handleCheck,
     _researchItem: researchItem,
     _fetchDrains: fetchDrains,
     stages: ['Researching the item', 'Designing your build', 'Verifying every mod']

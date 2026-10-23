@@ -12,7 +12,12 @@
   var engine = null;          /* MLCEngine once loaded */
   var engineLoading = false;
   var engineFailed = false;
-  var MODEL_ID = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
+  /* v2.23.0: two sizes — the desktop full model (unchanged) and the
+     smallest suitable model for phones, picked by the capability gate
+     below. MODEL_ID is the ACTIVE one; the choice persists on-device. */
+  var MODEL_DESKTOP = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
+  var MODEL_SMALL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+  var MODEL_ID = MODEL_DESKTOP;
   var WEBLLM_CDN = 'https://esm.sh/@mlc-ai/web-llm@0.2.85';
   var history = [];           /* recent conversation for context */
   /* v2.19.2: the ~2GB model lives in Cache Storage ('webllm/model'), which
@@ -29,6 +34,23 @@
   var aiSettled = false;      /* true once we stop offering the download */
   var greetMsgShown = false;  /* one-time messages: each is said only once */
   var settleMsgShown = false;
+  /* v2.23.0: download cancel + the mobile/iOS load guard. The guard is
+     a localStorage flag set BEFORE a phone engine init and cleared on
+     success: if the page is found with the flag still set, the last
+     attempt died mid-load (mobile Safari jetsam) — the panel settles
+     into guide mode and NEVER auto-retries. That is what makes an
+     iOS attempt incapable of recreating the v2.19.3 crash loop. */
+  var dlCancelled = false;
+  var lastQ = '';
+  var offerShown = { ask: false, miss: false };
+  var GUARD_KEY = 'tv-ai-load-guard';
+  var OFF_KEY = 'tv-ai-off';
+  var MODEL_KEY = 'tv-ai-model';
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function aiOff() { return lsGet(OFF_KEY) === '1'; }
+  function guardGet() { return lsGet(GUARD_KEY); }
+  function storedModelId() { return lsGet(MODEL_KEY); }
 
   function greetFallbackOnce() {
     if (greetMsgShown) return;
@@ -135,7 +157,66 @@
     return /Macintosh/.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1;
   }
   function guideOnly() { return isIOS() || !hasWebGPU(); }
-  var GUIDE_ONLY_STATUS = 'Quick-answer mode on iPhone — the full AI model is too heavy for mobile Safari';
+  var GUIDE_ONLY_STATUS = 'Quick-answer mode on iPhone — the AI download is experimental here (button below)';
+
+  /* ---------- v2.23.0: the capability gate ----------
+     Before ANY download is offered or started, the device is checked
+     honestly: WebGPU present? Enough free storage (async estimate)?
+     Enough reported memory? The gate picks the SMALLEST suitable
+     model — phones always get the compact 1B, desktops keep the full
+     3B — and when the device can't run it, the answer is a plain
+     explanation plus guide mode, never a silent dead button. */
+  function isMobileLike() {
+    var ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+    return typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1 &&
+      typeof screen !== 'undefined' && Math.min(screen.width, screen.height) < 820;
+  }
+  function aiCapability() {
+    var ios = isIOS();
+    var mobile = isMobileLike();
+    var tier = ios ? 'ios' : (mobile ? 'mobile' : 'desktop');
+    var mem = (typeof navigator !== 'undefined' && typeof navigator.deviceMemory === 'number') ? navigator.deviceMemory : null;
+    var reasons = [];
+    var ok = true;
+    if (!hasWebGPU()) {
+      ok = false;
+      reasons.push('this browser doesn\'t expose WebGPU, which the on-device AI needs to run at all');
+    }
+    if (mem !== null && mem < 2) {
+      ok = false;
+      reasons.push('the device reports very little memory (' + mem + 'GB), so the model would be killed as soon as it loads');
+    }
+    return {
+      ok: ok, tier: tier, reasons: reasons, mem: mem, experimental: ios,
+      modelId: tier === 'desktop' ? MODEL_DESKTOP : MODEL_SMALL,
+      sizeMB: tier === 'desktop' ? 2200 : 800,
+      modelLabel: tier === 'desktop' ? 'the full Vaulty AI (~2GB, one time)' : 'the compact Vaulty AI (~800MB, sized for phones)'
+    };
+  }
+  function aiCapabilityAsync() {
+    var cap = aiCapability();
+    try {
+      if (!navigator.storage || !navigator.storage.estimate) return Promise.resolve(cap);
+      return navigator.storage.estimate().then(function (est) {
+        if (est && typeof est.quota === 'number' && typeof est.usage === 'number') {
+          var freeMB = Math.round((est.quota - est.usage) / 1048576);
+          cap.freeMB = freeMB;
+          if (freeMB < cap.sizeMB + 350) {
+            cap.ok = false;
+            cap.reasons.push('only about ' + freeMB + 'MB of storage is available to this browser, and the download needs roughly ' + cap.sizeMB + 'MB plus headroom');
+          }
+        }
+        return cap;
+      }).catch(function () { return cap; });
+    } catch (e) { return Promise.resolve(cap); }
+  }
+  function postIncapable(cap) {
+    setStatus('Vault Guide — quick answers', 'fallback');
+    addMsg('I checked this device honestly before offering anything: <b>the Vaulty AI download can\'t run here</b> — ' +
+      cap.reasons.join('; ') + '. No hard feelings and no fake button: the quick guide keeps answering everything it can, ' +
+      'and my live research covers the rest. On a desktop browser the full AI unlocks.', 'bot');
+  }
 
   function setStatus(text, cls) {
     var st = document.getElementById('vai-status');
@@ -181,9 +262,10 @@
      (hasModelInCache, exported by @mlc-ai/web-llm 0.2.85); fall back to
      looking for its 'webllm/model' cache if that export ever moves. */
   function checkModelCached() {
+    var mid = storedModelId() || MODEL_ID;
     return getWebLLM().then(function (m) {
       if (m && typeof m.hasModelInCache === 'function') {
-        return m.hasModelInCache(MODEL_ID);
+        return m.hasModelInCache(mid);
       }
       throw new Error('no hasModelInCache');
     }).catch(function () {
@@ -200,13 +282,18 @@
     var box = document.getElementById('vai-dlbox');
     var txt = document.getElementById('vai-dltxt');
     var btn = document.getElementById('vai-dlbtn');
+    var btn2 = document.getElementById('vai-dlbtn2');
     if (!box || !txt || !btn) return;
+    var cap = aiCapability();
+    if (btn2) btn2.style.display = 'none';
+    btn.onclick = startDownload;
     if (mode === 'retry') {
       txt.textContent = 'The AI download didn\'t finish. You can try once more — or just keep using the quick guide, it answers without the download.';
       btn.textContent = 'Try the AI download again';
     } else {
-      txt.textContent = 'Optional: download the full on-device AI (~2GB, one time). It stays on this device — and the quick guide below works without it.';
-      btn.textContent = 'Download AI (~2GB)';
+      txt.textContent = 'Optional: download ' + cap.modelLabel + '. It stays on this device — and the quick guide below works without it.' +
+        (cap.experimental ? ' On iPhone this is EXPERIMENTAL: if the load fails, Vaulty settles back into quick mode and never loops.' : '');
+      btn.textContent = cap.tier === 'desktop' ? 'Download AI (~2GB)' : 'Download Vaulty AI (~800MB)';
     }
     box.style.display = 'block';
   }
@@ -216,13 +303,112 @@
     if (box) box.style.display = 'none';
   }
 
+  /* v2.23.0: the manage state — the AI is on this device, and the
+     Tenno gets a real off switch and a real delete, in one tap each. */
+  function showManageBox(state) {
+    var box = document.getElementById('vai-dlbox');
+    var txt = document.getElementById('vai-dltxt');
+    var btn = document.getElementById('vai-dlbtn');
+    var btn2 = document.getElementById('vai-dlbtn2');
+    if (!box || !txt || !btn) return;
+    box.style.display = 'block';
+    if (btn2) btn2.style.display = 'block';
+    if (state === 'off') {
+      txt.textContent = 'Vaulty AI is OFF on this device — the quick guide is answering. The download is still stored if you want it back.';
+      btn.textContent = 'Turn Vaulty AI back on';
+      btn.onclick = function () { setAIOff(false); };
+      if (btn2) { btn2.textContent = 'Delete the AI download'; btn2.onclick = deleteAI; }
+    } else if (state === 'downloaded') {
+      txt.textContent = 'Vaulty AI is downloaded on this device but not started.';
+      btn.textContent = 'Start Vaulty AI';
+      btn.onclick = function () { hideDownloadBox(); runEngine('Loading AI from this device…', { guarded: aiCapability().tier !== 'desktop' }); };
+      if (btn2) { btn2.textContent = 'Delete the AI download'; btn2.onclick = deleteAI; }
+    } else { /* running */
+      txt.textContent = 'Vaulty AI is running from this device. Nothing you ask leaves the device.';
+      btn.textContent = 'Turn Vaulty AI off';
+      btn.onclick = function () { setAIOff(true); };
+      if (btn2) { btn2.textContent = 'Delete the AI download'; btn2.onclick = deleteAI; }
+    }
+  }
+
+  function setAIOff(off) {
+    lsSet(OFF_KEY, off ? '1' : null);
+    hideDownloadBox();
+    if (off) {
+      if (engine) {
+        try { if (engine.unload) engine.unload(); } catch (e) {}
+        engine = null;
+      }
+      engineFailed = false;
+      setStatus('Vaulty AI off — guide mode', 'fallback');
+      addMsg('Vaulty AI is off — the quick guide has the wheel. The download stays on this device unless you delete it from the Vaulty AI button below.', 'bot');
+      showManageBox('off');
+    } else {
+      setStatus('Checking AI…', 'loading');
+      modelCached = null;
+      loadEngine();
+    }
+  }
+
+  function deleteAI() {
+    var ids = [MODEL_DESKTOP, MODEL_SMALL];
+    var done = function () {
+      modelCached = false;
+      engine = null;
+      lsSet(MODEL_KEY, null);
+      lsSet(GUARD_KEY, null);
+      hideDownloadBox();
+      setStatus('AI not downloaded');
+      addMsg('Deleted — the AI download is gone from this device, freeing its storage. The quick guide is unaffected, and you can re-download any time from the Vaulty AI button.', 'bot');
+    };
+    getWebLLM().then(function (m) {
+      var jobs = ids.map(function (id) {
+        try { return (m && typeof m.deleteModelInCache === 'function') ? m.deleteModelInCache(id) : Promise.resolve(); }
+        catch (e) { return Promise.resolve(); }
+      });
+      return Promise.all(jobs);
+    }).catch(function () {}).then(function () {
+      /* belt and braces: web-llm's caches go too */
+      if (!('caches' in window)) { done(); return; }
+      Promise.all(['webllm/model', 'webllm/config', 'webllm/wasm'].map(function (n) {
+        return caches.delete(n).catch(function () {});
+      })).then(done).catch(done);
+    });
+  }
+
   /* First open on a WebGPU device: check what's really on the device
      before claiming anything in the header. Cached → load it (that's a
      load, not a download). Not cached → say so and offer the download as
      an explicit tap; the guide answers in the meantime. */
+  /* v2.23.0: load/start logic, tier by tier.
+     DESKTOP: unchanged from v2.20.0 — a cached model loads on open;
+     no cache → the explicit download box.
+     MOBILE (Android etc.): nothing auto-downloads, ever. A model the
+     Tenno deliberately downloaded before may load from cache, behind
+     the load guard. Not cached → the panel button / chat offers.
+     iOS: nothing auto-starts, ever (v2.19.3 stays law). The download
+     exists only as an EXPERIMENTAL explicit opt-in via the button —
+     smallest model, load guard armed, one failure settles it. */
   function loadEngine() {
-    if (guideOnly()) return; /* v2.19.3: WebLLM never loads on iOS / no WebGPU */
+    if (aiOff()) { setStatus('Vaulty AI off — guide mode', 'fallback'); showManageBox('off'); return; }
     if (engine || engineLoading || modelCached !== null) return;
+    var cap = aiCapability();
+    if (cap.tier !== 'desktop' && guardGet() === 'loading') {
+      /* a previous phone attempt died mid-load: settle, don't retry */
+      lsSet(GUARD_KEY, 'failed');
+      aiSettled = true;
+      modelCached = false;
+      engineFailed = true;
+      setStatus('Vault Guide — quick answers', 'fallback');
+      greetFallbackOnce();
+      return;
+    }
+    if (!hasWebGPU() && cap.tier === 'desktop') {
+      engineFailed = true;
+      setStatus('AI unavailable on this device', 'fallback');
+      greetFallbackOnce();
+      return;
+    }
     setStatus('Checking AI…', 'loading');
     checkModelCached().then(function (cached) {
       modelCached = !!cached;
@@ -232,41 +418,85 @@
            NEVER appear for a device that already has the model, across
            any number of app updates (the model cache is version-
            independent and nothing in the update path may evict it). */
+        MODEL_ID = storedModelId() || cap.modelId;
         requestPersist();
-        runEngine('Loading AI from this device…');
+        if (cap.tier === 'desktop') {
+          runEngine('Loading AI from this device…');
+        } else if (cap.tier === 'mobile' && guardGet() !== 'failed') {
+          runEngine('Loading AI from this device…', { guarded: true });
+        } else {
+          /* iOS: cached but never auto-started — a button starts it */
+          setStatus('AI ready on this device', 'ready');
+          showManageBox('downloaded');
+        }
       } else {
-        setStatus('AI not downloaded');
-        if (!aiSettled) showDownloadBox('download');
+        setStatus(cap.tier === 'desktop' ? 'AI not downloaded' : 'Vault Guide — quick answers', cap.tier === 'desktop' ? '' : 'fallback');
+        if (cap.tier === 'desktop' && !aiSettled) showDownloadBox('download');
+        if (cap.tier !== 'desktop') greetFallbackOnce();
       }
+    }).catch(function () {
+      setStatus('Vault Guide — quick answers', 'fallback');
+      greetFallbackOnce();
     });
   }
 
   function startDownload() {
-    if (guideOnly()) return; /* v2.19.3: no download exists on iOS / no WebGPU */
-    if (engine || engineLoading || aiSettled) return;
-    downloadAttempts++;
-    requestPersist();
-    hideDownloadBox();
-    runEngine('Downloading AI model…');
+    if (engine || engineLoading) return;
+    if (aiOff()) lsSet(OFF_KEY, null);
+    aiCapabilityAsync().then(function (cap) {
+      if (!cap.ok) { postIncapable(cap); return; }
+      MODEL_ID = cap.modelId;
+      lsSet(MODEL_KEY, MODEL_ID);
+      downloadAttempts++;
+      requestPersist();
+      hideDownloadBox();
+      runEngine(cap.tier === 'desktop' ? 'Downloading AI model…' : 'Downloading Vaulty AI…', { guarded: cap.tier !== 'desktop' });
+    });
   }
 
-  function runEngine(firstLabel) {
+  function runEngine(firstLabel, opts) {
     if (engine || engineLoading) return;
+    opts = opts || {};
+    var guarded = !!opts.guarded;
+    if (guarded) {
+      if (guardGet() === 'loading' && !opts.userRetry) {
+        /* a guarded load is already (or was last seen) in flight —
+           the page that started it is gone. Settle, never stack. */
+        lsSet(GUARD_KEY, 'failed');
+        aiSettled = true;
+        setStatus('Vault Guide — quick answers', 'fallback');
+        return;
+      }
+      lsSet(GUARD_KEY, 'loading');
+    }
     engineLoading = true;
+    dlCancelled = false;
     showProgress(0, firstLabel);
 
     getWebLLM().then(function (m) {
       return m.CreateMLCEngine(MODEL_ID, {
         initProgressCallback: function (p) {
+          if (dlCancelled) return;
           showProgress(p.progress || 0, p.text || 'Loading AI model…');
         }
       });
     }).then(function (eng) {
-      engine = eng;
       engineLoading = false;
+      hideProgress();
+      if (dlCancelled) {
+        /* the Tenno cancelled mid-flight: discard the engine, keep
+           whatever finished downloading, stay in guide mode */
+        try { if (eng && eng.unload) eng.unload(); } catch (e) {}
+        modelCached = true;
+        if (guarded) lsSet(GUARD_KEY, null);
+        setStatus('Vault Guide — quick answers', 'fallback');
+        showManageBox('downloaded');
+        return;
+      }
+      engine = eng;
       engineFailed = false;
       modelCached = true;
-      hideProgress();
+      if (guarded) lsSet(GUARD_KEY, null);
       hideDownloadBox();
       setStatus('AI ready on this device', 'ready');
       addMsg('AI engine loaded — ask me anything about builds, mods, farms, or Steel Path. I answer from real Warframe knowledge now, not just keyword matching.', 'bot');
@@ -274,6 +504,25 @@
       engineLoading = false;
       engineFailed = true;
       hideProgress();
+      if (dlCancelled) {
+        if (guarded) lsSet(GUARD_KEY, null);
+        setStatus('Vault Guide — quick answers', 'fallback');
+        return;
+      }
+      if (guarded) {
+        /* a phone load failed: settle permanently for this device —
+           no retry boxes, no loops. The button can be tapped again
+           deliberately, but Vaulty never nags. */
+        lsSet(GUARD_KEY, 'failed');
+        aiSettled = true;
+        hideDownloadBox();
+        setStatus('Vault Guide — quick answers', 'fallback');
+        if (!settleMsgShown) {
+          settleMsgShown = true;
+          addMsg('The Vaulty AI didn\'t start on this phone, so I\'m settling into quick-answer mode for good — no more prompts, no loops. Builds, farming, mods, live questions: the guide covers them.', 'bot');
+        }
+        return;
+      }
       if (downloadAttempts >= 2) {
         /* one failed attempt + one failed retry: settle. No more prompts. */
         aiSettled = true;
@@ -310,6 +559,14 @@
     }
     els.msgs.appendChild(d);
     els.msgs.scrollTop = els.msgs.scrollHeight;
+    /* v2.23.0: 👍/👎 feedback, follow-up chips and optional spoken
+       replies ride along on real answers (each module self-qualifies:
+       greetings, progress bars and don't-knows get none of them) */
+    if (who === 'bot') {
+      try { if (window.TVLearn) TVLearn.attachFeedback(d, (lastQ + ' ' + html).slice(0, 900)); } catch (e) {}
+      try { if (window.TVChips) TVChips.attach(d, lastQ, html, function (qq) { ask(qq); }); } catch (e) {}
+      try { if (window.TVVoice) TVVoice.speakAnswer(html); } catch (e) {}
+    }
     return d;
   }
 
@@ -327,7 +584,30 @@
     if (t) t.remove();
   }
 
-  function askFallback(q) {
+  /* v2.23.0: the chat-offered AI download. Two honest triggers: the
+     Tenno asks about the AI itself, or they hit a question the guide
+     missed (where the fuller brain genuinely helps). Capable device →
+     an offer message with a real download button. Incapable → a plain
+     explanation, but ONLY when they asked (never as a miss pile-on). */
+  var AI_ASK_RE = /\b(download|get|install|turn on|enable|use|try) (the |your |me )?(full |real |vaulty )?ai\b|\bfull ai\b|\bsmarter ai\b|why (are you|is vaulty) (so )?(limited|dumb|basic)|upgrade (yourself|vaulty|the ai|your ai)/i;
+  function maybeOfferAI(trigger) {
+    if (engine || aiOff() || offerShown[trigger]) return;
+    offerShown[trigger] = true;
+    aiCapabilityAsync().then(function (cap) {
+      if (engine) return;
+      if (!cap.ok) {
+        if (trigger === 'ask') postIncapable(cap);
+        return;
+      }
+      if (modelCached) { showManageBox('downloaded'); return; }
+      addMsg('<p>💡 <b>Want the fuller brain?</b> This device checks out for the optional on-device Vaulty AI — ' +
+        cap.modelLabel + '. It downloads once, lives only on this device, works offline, and the quick guide keeps answering in the meantime.' +
+        (cap.experimental ? '</p><p>⚠️ On iPhone this is <b>experimental</b>: mobile Safari may refuse the load — if it fails I settle back into quick mode and never loop or nag.' : '') +
+        '</p><p><button type="button" class="vai-aioffer-btn btn primary">Download Vaulty AI</button></p>', 'bot');
+    });
+  }
+
+  function askFallback(q, wantsAI) {
     if (!FALLBACK) {
       addMsg('The guide data isn\'t available right now — try reloading the page.', 'bot');
       return;
@@ -346,6 +626,11 @@
         });
         return;
       }
+      /* v2.23.0: a pasted-build check is a checker handoff in every mode */
+      if (window.TVWorkshop && FALLBACK._checkerIsHandoff && FALLBACK._checkerIsHandoff(html) && TVWorkshop.handleCheck) {
+        TVWorkshop.handleCheck(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+        return;
+      }
       /* v2.20.0: a guide miss is no longer a dead-end. The question is
          logged anonymously (text only) and Vaulty RESEARCHES it live —
          staged progress bar with a Stop button — in guide mode, AI mode,
@@ -353,10 +638,17 @@
          if research finds nothing. */
       if (window.TVResearch && TVResearch.isMiss(html)) {
         /* v2.22.0: research-first — dig deep, then answer in prose */
-        if (TVResearch.handleConverse) TVResearch.handleConverse(q, html, els.msgs, function (h) { addMsg(h, 'bot'); }, { isMiss: true });
-        else TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+        var renderMiss = function (h) {
+          addMsg(h, 'bot');
+          /* v2.23.0: a miss is exactly where the fuller brain helps —
+             offer the download here (capable devices only, once) */
+          maybeOfferAI('miss');
+        };
+        if (TVResearch.handleConverse) TVResearch.handleConverse(q, html, els.msgs, renderMiss, { isMiss: true });
+        else TVResearch.handleMiss(q, html, els.msgs, renderMiss);
       } else {
         addMsg(html, 'bot');
+        if (wantsAI) maybeOfferAI('ask');
       }
     }).catch(function () {
       addMsg('Couldn\'t load the Vault\'s data — try reloading the page.', 'bot');
@@ -454,6 +746,8 @@
     FALLBACK._load().then(function () {
       var html = FALLBACK._answer(q);
       if (FALLBACK._workshopIsHandoff && FALLBACK._workshopIsHandoff(html)) { askFallback(q); return; }
+      /* v2.23.0: build checks route to the checker in AI mode too */
+      if (FALLBACK._checkerIsHandoff && FALLBACK._checkerIsHandoff(html)) { askFallback(q); return; }
       var miss = TVResearch.isMiss(html);
       if (!miss && /^(hi|hey|hello|yo|sup|howdy|thanks|thank you|thx|ty|bye|goodbye|who are you)\b/i.test(q)) {
         addMsg(html, 'bot');
@@ -579,8 +873,14 @@
 
   function ask(q) {
     if (!q) return;
+    lastQ = q;
+    if (window.TVLearn && TVLearn.setContext) TVLearn.setContext(q);
     addMsg(q, 'user');
     els.input.value = '';
+    /* v2.23.0: is the Tenno asking about the AI itself? The download
+       offer (or the honest incapability explanation) rides along with
+       the normal answer in guide mode. */
+    var wantsAI = AI_ASK_RE.test(q) && !engine;
     /* v2.20.0: on-device memory — remember the question (this device
        only, nothing uploaded) and resolve "my usual" to the Tenno's
        most-asked item before routing. */
@@ -610,7 +910,7 @@
        build from the library / templates / generator, whose mods are
        checked against the mods database. */
     if (isBuildIntent(q)) {
-      askFallback(q);
+      askFallback(q, wantsAI);
       return;
     }
     if (engine) {
@@ -622,7 +922,7 @@
          fully ready — still loading, not downloaded, failed, settled, or
          guide-only (iOS / no WebGPU) — the live/guide brain answers right
          now. The old "still loading" dead-end is gone. */
-      askFallback(q);
+      askFallback(q, wantsAI);
     }
   }
 
@@ -654,7 +954,8 @@
        check hasn't backed up (v2.19.2) */
     if (show && opened && !engineLoading) {
       if (engine) setStatus('AI ready on this device', 'ready');
-      else if (isIOS()) setStatus(GUIDE_ONLY_STATUS, 'fallback');
+      else if (aiOff()) setStatus('Vaulty AI off — guide mode', 'fallback');
+      else if (isIOS() && modelCached !== true) setStatus(GUIDE_ONLY_STATUS, 'fallback');
       else if (!hasWebGPU()) setStatus('AI unavailable on this device', 'fallback');
       else if (engineFailed) setStatus('Vault Guide — quick answers', 'fallback');
       else if (modelCached === false) setStatus('AI not downloaded');
@@ -681,18 +982,15 @@
           }
         }
       }
-      if (isIOS()) {
-        /* v2.19.3: iPhone/iPad — guide mode permanently, WebLLM never loads */
-        engineFailed = true;
-        setStatus(GUIDE_ONLY_STATUS, 'fallback');
-        greetFallbackOnce();
-      } else if (!hasWebGPU()) {
-        engineFailed = true;
-        setStatus('AI unavailable on this device', 'fallback');
-        greetFallbackOnce();
-      } else {
-        loadEngine();
-      }
+      /* v2.23.0: loadEngine self-gates per tier — desktop keeps the
+         v2.20.0 behavior; phones never auto-download; iOS never
+         auto-starts (v2.19.3's law) but the experimental opt-in now
+         lives behind the Vaulty AI button + capability gate. */
+      loadEngine();
+      /* v2.23.0: the daily brief (real worldstate only, once a day,
+         dismissible) + a farm-watch check while the Tenno is here */
+      try { if (window.TVDailyBrief) TVDailyBrief.maybeShow(function (h, w) { addMsg(h, w); }); } catch (e) {}
+      try { if (window.TVWatch) TVWatch.checkNow(); } catch (e) {}
     }
     if (show) setTimeout(function () { els.input.focus(); }, 60);
   }
@@ -738,6 +1036,7 @@
     "🌱 I'm new, where do I start?",
     '🔫 How do I farm Sevagoth?',
     '🛡 Best Steel Path warframe?',
+    '🎲 Find me a good warframe to use',
     '💰 How do I make platinum?'
   ];
 
@@ -772,20 +1071,25 @@
       '<div id="vai-loadtxt" class="muted small">Loading AI model…</div>' +
       '<div style="height:8px;background:var(--bg2);border-radius:99px;margin-top:6px;overflow:hidden">' +
       '<div id="vai-loadbar" style="height:100%;width:0%;background:linear-gradient(135deg,#0090b8,#00d2ff);border-radius:99px;transition:width .2s"></div>' +
-      '</div><p class="muted small" style="margin:6px 0 0">Downloading is a one-time ~2GB — after that the AI loads from this device.</p></div>' +
+      '</div><p class="muted small" style="margin:6px 0 0">One-time download — after that the AI loads from this device. You can cancel any time; the quick guide keeps working.</p>' +
+      '<button id="vai-loadcancel" type="button" class="btn warn" style="margin-top:6px">Cancel download</button></div>' +
       '<div id="vai-dlbox" style="display:none;padding:10px 12px 0">' +
       '<p id="vai-dltxt" class="muted small" style="margin:0"></p>' +
-      '<button id="vai-dlbtn" type="button" class="btn primary" style="margin-top:8px;width:100%"></button></div>' +
+      '<button id="vai-dlbtn" type="button" class="btn primary" style="margin-top:8px;width:100%"></button>' +
+      '<button id="vai-dlbtn2" type="button" class="btn warn" style="margin-top:6px;width:100%;display:none"></button></div>' +
       '<div id="vai-msgs"></div>' +
       '<div class="vai-chips">' +
       CHIPS.map(function (c) { return '<button type="button" class="vai-chip">' + esc(c) + '</button>'; }).join('') +
       '</div>' +
       '<div class="vai-foot">' +
-      '<button type="button" id="vai-mem-btn" class="vai-mem-btn">🧠 What Vaulty remembers</button>' +
+      '<button type="button" id="vai-mem-btn" class="vai-mem-btn">🧠 What Vaulty remembers</button> ' +
+      '<button type="button" id="vai-ai-btn" class="vai-mem-btn">⬇ Vaulty AI</button> ' +
+      '<button type="button" id="vai-voice-btn" class="vai-mem-btn" style="display:none">🔊 Spoken replies: Off</button>' +
       '<p class="muted small">Unanswered questions are logged anonymously so Vaulty can learn them. ' +
       'Vaulty\'s memory of you stays on this device — nothing is uploaded.</p></div>' +
       '<form id="vai-form"><input id="vai-input" type="text" autocomplete="off" ' +
       'placeholder="Ask about builds, farms, mods…" aria-label="Ask the Vault">' +
+      '<button type="button" id="vai-mic" aria-label="Voice input" style="display:none">🎤</button>' +
       '<button type="submit" aria-label="Send">➤</button></form>';
 
     document.body.appendChild(panel);
@@ -798,12 +1102,68 @@
     };
 
     panel.querySelector('#vai-close').addEventListener('click', function () { toggle(false); });
-    panel.querySelector('#vai-dlbtn').addEventListener('click', startDownload);
+    /* the download/manage buttons get their handlers from
+       showDownloadBox / showManageBox (their meaning changes by state) */
+    var cancelBtn = panel.querySelector('#vai-loadcancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', function () {
+      /* v2.23.0: cancel is real — the engine promise, if it lands after
+         this, is discarded by runEngine; the guide never waits on it */
+      dlCancelled = true;
+      engineLoading = false;
+      hideProgress();
+      lsSet(GUARD_KEY, null);
+      setStatus('Vault Guide — quick answers', 'fallback');
+      addMsg('Download cancelled — nothing is running in the background. The quick guide has you, and the Vaulty AI button below can restart the download whenever you want.', 'bot');
+    });
     var memBtn = panel.querySelector('#vai-mem-btn');
     if (memBtn) memBtn.addEventListener('click', function () {
-      if (window.TVMemory) addMsg(TVMemory.viewHtml(), 'bot');
-      else addMsg('Memory isn\'t available on this page — it lives in the Vault Guide panel.', 'bot');
+      if (window.TVMemory) {
+        addMsg(TVMemory.viewHtml() + (window.TVLearn ? TVLearn.viewHtml() : ''), 'bot');
+      } else {
+        addMsg('Memory isn\'t available on this page — it lives in the Vault Guide panel.', 'bot');
+      }
     });
+    /* v2.23.0: the panel's Vaulty AI button — capability gate first,
+       then download / manage / explanation, by real device state */
+    var aiBtn = panel.querySelector('#vai-ai-btn');
+    if (aiBtn) aiBtn.addEventListener('click', function () {
+      if (engine) { showManageBox('running'); return; }
+      if (aiOff()) { showManageBox('off'); return; }
+      if (modelCached) { showManageBox('downloaded'); return; }
+      aiCapabilityAsync().then(function (cap) {
+        if (!cap.ok) { postIncapable(cap); return; }
+        showDownloadBox('download');
+        addMsg('Checked this device first: it can run ' + cap.modelLabel + '. Tap the download button above when you\'re ready — explicit tap only, it never starts itself.' +
+          (cap.experimental ? ' On iPhone this is experimental — one failed load settles me back into quick mode, no loops.' : ''), 'bot');
+      });
+    });
+    /* v2.23.0: chat-offered download buttons (delegated — offers are
+       rendered inside chat messages) */
+    panel.addEventListener('click', function (e) {
+      var b = (e.target && typeof e.target.closest === 'function') ? e.target.closest('.vai-aioffer-btn') : null;
+      if (b) startDownload();
+    });
+    /* v2.23.0: voice — mic only when the API exists; spoken replies
+       are an explicit, persisted, off-by-default toggle */
+    var micBtn = panel.querySelector('#vai-mic');
+    var voiceBtn = panel.querySelector('#vai-voice-btn');
+    if (window.TVVoice) {
+      if (TVVoice.available() && micBtn) {
+        micBtn.style.display = '';
+        TVVoice.attachMic(micBtn, els.input, function (text) { if (text) ask(text); }, function () {
+          addMsg('The microphone didn\'t get permission, so I\'ve hidden the mic button — typing works as always.', 'bot');
+        });
+      }
+      if (TVVoice.speechAvailable() && voiceBtn) {
+        voiceBtn.style.display = '';
+        var syncVoice = function () { voiceBtn.textContent = TVVoice.repliesOn() ? '🔊 Spoken replies: On' : '🔊 Spoken replies: Off'; };
+        syncVoice();
+        voiceBtn.addEventListener('click', function () {
+          TVVoice.setReplies(!TVVoice.repliesOn());
+          syncVoice();
+        });
+      }
+    }
     els.form.addEventListener('submit', function (e) {
       e.preventDefault();
       ask(els.input.value.trim());
@@ -825,5 +1185,15 @@
     });
   }
 
-  window.TVAI = { init: init, toggle: toggle };
+  window.TVAI = {
+    init: init, toggle: toggle,
+    /* v2.23.0 test hooks: the capability gate is pure device logic and
+       the fixtures drive it with stubbed navigators */
+    _capability: aiCapability,
+    _capabilityAsync: aiCapabilityAsync,
+    _models: { desktop: MODEL_DESKTOP, small: MODEL_SMALL },
+    _aiAskRe: AI_ASK_RE,
+    _guardGet: guardGet,
+    _aiOff: aiOff
+  };
 })();

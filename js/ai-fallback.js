@@ -419,7 +419,7 @@
       '<li>🧭 <b>Doctrine & guidance</b> — <i>"how do I mod"</i>, <i>"what is a Riven"</i>, <i>"best tank frame"</i>, <i>"how do I raise Mastery Rank"</i></li>' +
       '<li>🌱 <b>New player help</b> — <i>"I\'m new, what should I do first"</i></li></ul>' +
       '<p class="muted small">I\'m the Vault\'s built-in guide — I answer from the Vault\'s own data plus the live worldstate feed. ' +
-      'And if I genuinely don\'t know something, I\'ll say so and give you one-tap research buttons instead of guessing.</p>';
+      'And if I hit something I don\'t know, I research it live first — the honest don\'t-know is my last resort, never my first.</p>';
   }
 
   /* v2.19.0: the honest dead-end. When Vaulty doesn't know, it says so
@@ -433,21 +433,25 @@
       '<a class="vai-research-btn" href="' + web + '" target="_blank" rel="noopener">🌐 Research on the web</a></div>';
   }
 
+  /* v2.23.0 ORDERING RULE: this is the LAST RESORT, and it must read
+     like one in every variant. The panel layer runs the research /
+     compose pipeline (js/vaulty-research.js) BEFORE this text can
+     ever render — it keys off the canonical miss signature below, so
+     BOTH branches carry it. The "did you mean" suggestions ride along
+     inside the miss text: if the dig finds nothing, the Tenno still
+     sees them under the honest don't-know. */
   function fallbackAnswer(q) {
     var hits = D.index.filter(function (e) {
       return e.n && norm(e.n).indexOf(norm(q)) !== -1;
     }).slice(0, 5);
-    if (!hits.length) {
-      return 'Straight up: I don\'t know that one — "' + esc(q) + '" isn\'t in the Vault\'s data, and I won\'t make something up. 🤔 ' +
-        'You can research it in one tap:' + researchMarkup(q) +
-        '<p class="muted small">Or ask me about a warframe, weapon, mod, arcane, or relic by name — or say <i>"help"</i> to see everything I can do.</p>';
-    }
     var rows = hits.map(function (h) {
       return '<li><a href="' + esc(h.u) + '"><b>' + esc(h.n) + '</b></a> ' +
         '<span class="muted small">' + esc(h.t) + '</span></li>';
     }).join('');
-    return 'I didn\'t quite catch that — did you mean one of these?<ul>' + rows + '</ul>' +
-      '<p class="muted small">Or rephrase — I\'m best with things like <i>"make me a Rhino build"</i> or <i>"where do I farm Orokin Cells"</i>.</p>';
+    return 'Straight up: I don\'t know that one — "' + esc(q) + '" isn\'t in the Vault\'s data, and I won\'t make something up. 🤔 ' +
+      (hits.length ? '<p>Closest matches in the Vault:</p><ul>' + rows + '</ul>' : '') +
+      'You can research it in one tap:' + researchMarkup(q) +
+      '<p class="muted small">Or ask me about a warframe, weapon, mod, arcane, or relic by name — or say <i>"help"</i> to see everything I can do.</p>';
   }
 
 /* ---------- GENERATIVE BUILD ENGINE ----------
@@ -3001,6 +3005,552 @@ function oneShotBuildAnswer(t) {
     return null;
   }
 
+/* ---------- v2.23.0: THE RECOMMENDER ----------
+   The owner's live failure: "could you find me a good warframe to use"
+   got the canned don't-know. A recommendation question is not a lookup
+   — it is answered by REASONING over the Vault's own data: every frame
+   and weapon is scored against the stated goal (or spread across roles
+   when no goal is stated) using its role, stats, mastery requirement,
+   acquisition source, the playstyle tags of its library builds, the
+   Tenno's on-device feedback votes (js/vaulty-learn.js) and their
+   arsenal (js/vaulty-memory.js). Picks are always real DB entries,
+   each with a WHY drawn from real fields and one honest trade-off. */
+  function itemBuildTags(itemName) {
+    var set = {};
+    var key = norm(itemName);
+    (D.builds || []).forEach(function (b) {
+      if (norm(b.item) !== key) return;
+      (b.tags || []).forEach(function (tg) { set[norm(tg)] = 1; });
+    });
+    return set;
+  }
+  function baseName(name) { return norm(name).replace(/\s+prime$/, ''); }
+  function fbBoost(name) {
+    try { return (window.TVLearn && TVLearn.boostForItem) ? TVLearn.boostForItem(name) : 0; } catch (e) { return 0; }
+  }
+  function ownsItem(name) {
+    try { return !!(window.TVMemory && TVMemory.owns && TVMemory.owns(name)); } catch (e) { return false; }
+  }
+  function arsenalAny() {
+    try { return !!(window.TVMemory && TVMemory.ownedList && TVMemory.ownedList().length); } catch (e) { return false; }
+  }
+
+  function recoGoalOf(t) {
+    if (/steel\s?path/.test(t)) return 'steelpath';
+    if (/\b(surviv|endless|not die|staying alive|unkillable|tanky|tank)\b/.test(t)) return 'survival';
+    if (/\b(beginner|new player|starter|first (frame|weapon)|easy|simple|starter)\b/.test(t)) return 'beginner';
+    if (/\b(boss|bosses|eidolon|archon hunt boss)\b/.test(t)) return 'boss';
+    if (/\b(stealth|sneak|invisible|spy)\b/.test(t)) return 'stealth';
+    if (/\b(support|heal|buff|team|squad)\b/.test(t)) return 'support';
+    if (/\b(cc|crowd control|control|lock ?down)\b/.test(t)) return 'cc';
+    if (/\b(damage|dps|nuke|kill|melts?|destroy|strongest|powerful|hardest hitting)\b/.test(t)) return 'damage';
+    return null;
+  }
+  var RECO_CLASS_WORDS = [
+    [/warframes?\b/, 'warframe'], [/\bframes?\b/, 'warframe'],
+    [/\bshotguns?\b/, 'shotgun'], [/\brifles?\b/, 'rifle'], [/\bpistols?\b/, 'pistol'],
+    [/\bmelee\b/, 'melee'], [/\bprimary\b/, 'primary'], [/\bsecondary\b/, 'secondary'],
+    [/\bweapons?\b/, 'weapon'], [/\bguns?\b/, 'weapon']
+  ];
+  function recoDetect(t) {
+    if (/\b(build|vs|versus|farm|where|mod)\b/.test(t)) return null;
+    if (!/(find|recommend|suggest|good|best|which|what|pick|choose|should)/.test(t)) return null;
+    var cls = null;
+    for (var i = 0; i < RECO_CLASS_WORDS.length; i++) {
+      if (RECO_CLASS_WORDS[i][0].test(t)) { cls = RECO_CLASS_WORDS[i][1]; break; }
+    }
+    if (!cls) return null;
+    var verb = /\b(find|recommend|suggest|give|show|pick|choose)\b/.test(t) ||
+      /\bwhat('s| is| are)?\b[^.]*\b(good|best)\b/.test(t) ||
+      /\b(good|best|great|strong|solid|fun|easy|decent)\b/.test(t) ||
+      /\bshould (i|we) (use|play|pick|get|run|main)\b/.test(t) ||
+      /\bwhich\b/.test(t);
+    if (!verb) return null;
+    /* a NAMED item is a build/info question, never a recommendation */
+    if (findItemInText(D.warframes, t) || findItemInText(D.weapons, t)) return null;
+    return { cls: cls, goal: recoGoalOf(t) };
+  }
+
+  var RECO_ROLE_WHY = {
+    'Tank': 'a genuine tank — its kit is built around not dying',
+    'DPS/Nuke': 'a damage frame — its kit deletes rooms',
+    'Support': 'a support — it keeps the whole squad stronger and alive',
+    'Crowd Control': 'a controller — it locks rooms down so nothing reaches you',
+    'Stealth': 'a stealth frame — it wins by never being seen',
+    'Mobility': 'all about speed and movement',
+    'Hybrid': 'a flexible hybrid that adapts to the mission'
+  };
+  function recoFrameScore(f, goal) {
+    var tags = itemBuildTags(f.name);
+    var role = f.role || 'Hybrid';
+    var s = 3, why = [];
+    if (tags.strong) { s += 3; }
+    var abText = (f.abilities || []).map(function (a) { return norm((a.name || '') + ' ' + (a.description || '')); }).join(' ');
+    function abHit(re, label) {
+      for (var i = 0; i < (f.abilities || []).length; i++) {
+        if (re.test(norm((f.abilities[i].name || '') + ' ' + (f.abilities[i].description || '')))) return f.abilities[i].name;
+      }
+      return null;
+    }
+    if (goal === 'survival' || goal === 'tank') {
+      if (role === 'Tank') { s += 16; why.push(RECO_ROLE_WHY.Tank); }
+      if (tags.tank) s += 12;
+      var sus = abHit(/(invulnerab|immortal|heal|restore|regenerat|damage reduction|overshield)/, 'sustain');
+      if (sus) { s += 7; why.push('<b>' + esc(sus) + '</b> keeps it alive when missions get long'); }
+    } else if (goal === 'damage' || goal === 'steelpath') {
+      if (role === 'DPS/Nuke') { s += 16; why.push(RECO_ROLE_WHY['DPS/Nuke']); }
+      if (tags.nuke) s += 11;
+      if (tags.dps) s += 9;
+      if (tags.strong) s += 5;
+      if (tags['steel-path']) s += 5;
+      if (goal === 'steelpath') { var sig = abHit(/(damage|nuke|explode|detonat)/); if (sig) { s += 4; why.push('<b>' + esc(sig) + '</b> scales into high-level content'); } }
+    } else if (goal === 'support') {
+      if (role === 'Support') { s += 16; why.push(RECO_ROLE_WHY.Support); }
+      if (tags.support) s += 13;
+    } else if (goal === 'stealth') {
+      if (role === 'Stealth') { s += 16; why.push(RECO_ROLE_WHY.Stealth); }
+      if (tags.stealth) s += 12;
+    } else if (goal === 'cc') {
+      if (role === 'Crowd Control') { s += 16; why.push(RECO_ROLE_WHY['Crowd Control']); }
+      if (tags.cc) s += 13;
+    } else if (goal === 'boss') {
+      if (tags.boss) s += 13;
+      if (role === 'DPS/Nuke') s += 8;
+    } else if (goal === 'beginner') {
+      if (tags.beginner) { s += 18; why.push('it has a beginner-proven build in the library'); }
+      if ((f.masteryReq || 0) === 0) s += 5;
+      if (role === 'Tank') { s += 6; why.push('tanky frames forgive beginner mistakes'); }
+      if (/ prime$/.test(norm(f.name))) s -= 6;
+    }
+    if (!why.length && RECO_ROLE_WHY[role]) why.push(RECO_ROLE_WHY[role]);
+    if (abText && !why.length) why.push('a solid all-round kit');
+    return { score: s, why: why };
+  }
+  function recoFrameTradeoff(f, goal) {
+    if ((f.masteryReq || 0) >= 8) return 'needs MR ' + f.masteryReq + ' — not a tonight pick if you\'re below that';
+    if (/ prime$/.test(norm(f.name))) return 'it\'s a Prime — the relic grind for the parts is real';
+    if ((f.armor || 0) < 150 && (f.health || 0) < 400 && f.role !== 'Tank') return 'glass — positioning matters, it won\'t face-tank for you';
+    if (f.role === 'Tank' && (goal === 'damage' || goal === 'steelpath')) return 'tanky first, damage second — rooms clear slower than a nuke frame';
+    if (f.role === 'DPS/Nuke') return 'squishier than the tanks — it survives by killing first';
+    if (f.role === 'Support') return 'shines brightest with a squad counting on it';
+    if (f.role === 'Stealth') return 'rewards patience — not a face-tank playstyle';
+    if (f.role === 'Crowd Control') return 'controls rooms beautifully, melts bosses slower';
+    return 'needs its build to really shine — which I can compose for you';
+  }
+  function recoWeaponScore(w, goal) {
+    var tags = itemBuildTags(w.name);
+    var s = 3;
+    if (tags.strong) s += 4;
+    if (goal === 'steelpath' || goal === 'survival') {
+      if (tags['steel-path']) s += 6;
+      if (tags.strong) s += 5;
+      if ((w.criticalChance || 0) >= 25) s += 5;
+      if ((w.statusChance || 0) >= 25) s += 4;
+    } else if (goal === 'damage' || goal === 'boss') {
+      if (tags.boss) s += 8;
+      if ((w.totalDamage || 0) >= 300) s += 6;
+      if ((w.criticalChance || 0) * (w.criticalMultiplier || 1) >= 60) s += 6;
+      if (tags.dps) s += 6;
+    } else if (goal === 'beginner') {
+      if (tags.beginner) s += 16;
+      if ((w.masteryReq || 0) <= 4) s += 8;
+      if (/ prime$/.test(norm(w.name))) s -= 5;
+    } else {
+      if ((w.criticalChance || 0) >= 22) s += 4;
+      if ((w.totalDamage || 0) >= 250) s += 3;
+    }
+    return { score: s };
+  }
+  function recoWeaponTradeoff(w, goal) {
+    if ((w.masteryReq || 0) >= 10) return 'needs MR ' + w.masteryReq + ' — a longer road if you\'re below that';
+    if ((w.statusChance || 0) < 10) return 'it won\'t prime statuses on its own — it\'s a finisher, not a primer';
+    if ((w.criticalChance || 0) < 10) return 'not a crit weapon — it mods very differently from the crit staples';
+    if (/ prime$/.test(norm(w.name))) return 'Prime parts mean relic cracking';
+    return 'needs its build to shine — I can compose one from real mods';
+  }
+
+  function recommendAnswer(t, det) {
+    var goal = det.goal;
+    var isFrameAsk = det.cls === 'warframe';
+    var picks = [];
+    if (isFrameAsk) {
+      var scored = D.warframes.map(function (f) {
+        var r = recoFrameScore(f, goal);
+        var sc = r.score + fbBoost(f.name) + (ownsItem(f.name) ? 10 : 0);
+        return { e: f, score: sc, why: r.why };
+      });
+      if (goal) {
+        scored.sort(function (a, b) { return b.score - a.score; });
+        var seenBase = {};
+        for (var i = 0; i < scored.length && picks.length < 3; i++) {
+          var bn = baseName(scored[i].e.name);
+          if (seenBase[bn]) continue;
+          seenBase[bn] = 1;
+          picks.push(scored[i]);
+        }
+      } else {
+        /* no goal stated: spread across roles — survive / delete / support */
+        var lenses = ['survival', 'damage', 'support'];
+        var usedBase = {};
+        lenses.forEach(function (lens) {
+          var ss = D.warframes.map(function (f) {
+            var r = recoFrameScore(f, lens);
+            return { e: f, score: r.score + fbBoost(f.name) + (ownsItem(f.name) ? 10 : 0), why: r.why, lens: lens };
+          }).sort(function (a, b) { return b.score - a.score; });
+          for (var j = 0; j < ss.length; j++) {
+            var b2 = baseName(ss[j].e.name);
+            if (usedBase[b2]) continue;
+            usedBase[b2] = 1;
+            picks.push(ss[j]);
+            break;
+          }
+        });
+      }
+    } else {
+      var typeFilter = null, tagFilter = null;
+      if (det.cls === 'primary') typeFilter = 'Primary';
+      else if (det.cls === 'secondary' || det.cls === 'pistol') typeFilter = 'Secondary';
+      else if (det.cls === 'melee') typeFilter = 'Melee';
+      else if (det.cls === 'shotgun') tagFilter = 'shotgun';
+      else if (det.cls === 'rifle') tagFilter = 'rifle';
+      var pool = D.weapons.filter(function (w) {
+        if (typeFilter && w.type !== typeFilter) return false;
+        if (tagFilter && !itemBuildTags(w.name)[tagFilter]) return false;
+        return w.type === 'Primary' || w.type === 'Secondary' || w.type === 'Melee';
+      });
+      var wscored = pool.map(function (w) {
+        var r = recoWeaponScore(w, goal || 'steelpath');
+        return { e: w, score: r.score + fbBoost(w.name) + (ownsItem(w.name) ? 10 : 0), weapon: true };
+      }).sort(function (a, b) { return b.score - a.score; });
+      var seenW = {};
+      for (var k = 0; k < wscored.length && picks.length < 3; k++) {
+        var bw = baseName(wscored[k].e.name);
+        if (seenW[bw]) continue;
+        seenW[bw] = 1;
+        picks.push(wscored[k]);
+      }
+    }
+    if (!picks.length) return null;
+
+    var goalLine = {
+      steelpath: 'For Steel Path, here\'s what I\'d actually run:',
+      survival: 'Built to not die — my picks for survival:',
+      damage: 'You want rooms deleted. These do that:',
+      support: 'For backing up a squad, these are the real deal:',
+      beginner: 'Starting out? These forgive mistakes and carry early:',
+      stealth: 'Unseen and unbothered — my stealth picks:',
+      cc: 'Lock the whole room down with these:',
+      boss: 'For bosses, bring one of these:'
+    }[goal] || null;
+    var intro = goalLine || (isFrameAsk
+      ? 'Good question — let me answer it properly instead of shrugging. Here are three very different frames, one per job:'
+      : 'Good question — here are my top three picks from the Vault\'s data:');
+    var lensLabel = { survival: '🛡 The survivor', damage: '💥 The deleter', support: '✨ The backbone' };
+    var html = '<div class="vai-reco" data-top="' + esc(picks[0].e.name) + '"><p>' + intro + '</p>';
+    picks.forEach(function (p, idx) {
+      var e = p.e;
+      var page = p.weapon ? 'weapons.html' : 'warframes.html';
+      var head = (p.lens ? lensLabel[p.lens] + ' — ' : (idx + 1) + '. ') +
+        '<a href="' + link(page, e.name) + '"><b>' + esc(e.name) + '</b></a>';
+      var whyTxt;
+      if (p.weapon) {
+        whyTxt = (e.goodAt ? 'Built for ' + esc(e.goodAt) + '. ' : '') +
+          'Profile from the Vault\'s data: ' + (e.criticalChance || 0) + '% crit · ' + (e.statusChance || 0) +
+          '% status · ' + (e.totalDamage || 0) + ' base damage.';
+      } else {
+        whyTxt = 'It\'s ' + esc((p.why && p.why[0]) || 'a solid pick') +
+          (p.why && p.why[1] ? ', and ' + p.why[1] : '') + '.';
+      }
+      var trade = p.weapon ? recoWeaponTradeoff(e, goal) : recoFrameTradeoff(e, goal);
+      var own = ownsItem(e.name);
+      var getLine = '';
+      if (own) getLine = ' <span class="muted small">🎒 Already in your arsenal.</span>';
+      else if (arsenalAny() && e.farm) getLine = ' <span class="muted small">To get it: ' + esc(String(e.farm).slice(0, 110)) + '</span>';
+      html += '<p>' + head + '<br>' + whyTxt +
+        '<br><span class="muted small">Trade-off: ' + esc(trade) + '</span>' + getLine + '</p>';
+    });
+    if (!goal) {
+      html += '<p>One question back so I can sharpen this: mostly <b>surviving</b>, <b>deleting rooms</b>, or <b>backing up a squad</b>?</p>';
+    }
+    html += '<p class="muted small">Want a build for <b>' + esc(picks[0].e.name) + '</b>? Just say <i>"' +
+      esc(picks[0].e.name) + ' build"</i> — or ask me for a build for any of the three.</p></div>';
+    /* the top pick becomes the session's item, so "build for her" lands */
+    sessionCtx.item = picks[0].e.name;
+    sessionCtx.kind = picks[0].weapon ? 'weapon' : 'warframe';
+    return html;
+  }
+
+  /* ---------- v2.23.0: MY ARSENAL by chat ---------- */
+  function arsenalAnswer(t) {
+    if (!window.TVMemory || !TVMemory.addOwned) {
+      if (/^(i (have|own)|add |remove |my arsenal|what do i own)/.test(t)) {
+        return 'My memory of your gear lives in the full Vault Guide panel — open Vaulty there and tell me what you own; this page\'s quick view can\'t store it.';
+      }
+      return null;
+    }
+    var m;
+    if (/^(my arsenal|what do i own|what('s| is) in my arsenal|show (me )?my arsenal)/.test(t)) {
+      var list = TVMemory.ownedList();
+      if (!list.length) return 'Your arsenal is empty so far. Tell me <i>"I have Saryn Prime"</i> (any frame or weapon) and I\'ll remember it — recommendations then start from gear you actually own.';
+      return '<b>🎒 Your arsenal:</b><ul>' + list.map(function (e) {
+        return '<li>' + esc(e.name) + ' <span class="muted small">' + esc(e.kind) + '</span></li>';
+      }).join('') + '</ul><p class="muted small">Stored only on this device. Say <i>"remove X from my arsenal"</i> to take something off.</p>';
+    }
+    m = t.match(/^remove (.+?) from (?:my )?arsenal$/) || t.match(/^(?:remove|delete) (.+?)(?: from my arsenal)?$/);
+    if (m && /arsenal|remove|delete/.test(t)) {
+      var rf = findItemInText(D.warframes, m[1]);
+      var rw = rf ? null : findItemInText(D.weapons, m[1]);
+      var rName = rf ? rf.name : (rw ? rw.name : null);
+      if (rName && TVMemory.removeOwned(rName)) return 'Removed <b>' + esc(rName) + '</b> from your arsenal.';
+      if (rName) return '<b>' + esc(rName) + '</b> wasn\'t in your arsenal — nothing removed.';
+      return null;
+    }
+    m = t.match(/^i (?:have|own|main) (.+)$/) || t.match(/^add (.+?) to (?:my )?arsenal$/) || t.match(/^(.+?) is in my arsenal$/);
+    if (m) {
+      /* short remainders only — "I have a question about Nova" is not
+         an arsenal claim, it's a question that happens to name gear */
+      if (m[1].split(/\s+/).length > 5) return null;
+      var af = findItemInText(D.warframes, m[1]);
+      var aw = af ? null : findItemInText(D.weapons, m[1]);
+      var item = af || aw;
+      if (!item) return null;
+      var kind = af ? 'warframe' : 'weapon';
+      if (TVMemory.owns(item.name)) return 'Already got <b>' + esc(item.name) + '</b> in your arsenal — no double-counting.';
+      TVMemory.addOwned(item.name, kind);
+      return '🎒 Added <b>' + esc(item.name) + '</b> to your arsenal. From now on my recommendations start from what you own. ' +
+        'Want a build for it? Say <i>"' + esc(item.name) + ' build"</i>.';
+    }
+    return null;
+  }
+
+  /* ---------- v2.23.0: FARM WATCH by chat ----------
+     "I'm farming X" stores ONE on-device watch (js/vaulty-watch.js);
+     the best source comes from the Vault's farm data right now, and
+     while the app stays open the watch checks the live feed and nudges
+     when a matching fissure / alert / invasion is live. */
+  function farmWatchAnswer(t) {
+    var m;
+    if (/^(stop|clear|remove|end)( the| my)? (farm )?watch/.test(t) || /^i'?m done farming/.test(t)) {
+      if (window.TVWatch) TVWatch.clear();
+      return 'Farm watch cleared — I\'ll stop keeping an eye out. Tell me <i>"I\'m farming …"</i> any time to start a new one.';
+    }
+    if (/^(what am i farming|farm watch|my farm watch)/.test(t)) {
+      var cur = (window.TVWatch && TVWatch.current) ? TVWatch.current() : null;
+      if (!cur) return 'No farm watch running. Say <i>"I\'m farming Lith A1"</i> or <i>"I\'m farming Argon Crystals"</i> and I\'ll watch the live feed for it.';
+      return 'You\'re farming <b>' + esc(cur.item) + '</b>. Best source: ' + esc(cur.source || 'the Vault\'s farm data') +
+        '. I\'m watching the live feed while the app is open — I\'ll nudge you the moment a matching fissure, alert or invasion is live.';
+    }
+    m = t.match(/^(?:i'?m|im) (?:farming|grinding|hunting for) (.+)$/) ||
+        t.match(/^watch (?:for )?(.+)$/) || t.match(/^set (?:a )?watch (?:for )?(.+)$/) ||
+        t.match(/^farm watch (?:for )?(.+)$/);
+    if (!m) return null;
+    var subj = m[1].replace(/^(the|a|an)\s+/, '').trim();
+    if (subj.split(/\s+/).length > 6) return null;
+    var itemName = null, sourceLine = null;
+    var relicM = subj.match(/^(lith|meso|neo|axi|requiem)\s+([a-z]\d)$/);
+    if (relicM) {
+      itemName = relicM[1].charAt(0).toUpperCase() + relicM[1].slice(1) + ' ' + relicM[2].toUpperCase();
+      sourceLine = 'Crack it in Void Fissure missions of its tier; the relic itself drops from endless missions, bounties and Void captures';
+    } else {
+      var f = findFarm(subj);
+      if (f) {
+        itemName = f.e.name || f.e.what || subj;
+        sourceLine = f.e.farm || f.e.source || (f.e.drops ? fmtDrops(f.e.drops) : '') || 'the Vault\'s farm data';
+      } else {
+        var fi = findItemInText(D.warframes, subj) || findItemInText(D.weapons, subj);
+        if (fi) { itemName = fi.name; sourceLine = fi.farm || 'the Vault\'s farm data'; }
+      }
+    }
+    if (!itemName) {
+      return 'I couldn\'t find "' + esc(subj) + '" in the Vault\'s farm data, so I won\'t pretend to watch for it. ' +
+        'Try the full name — a relic (<i>Lith A1</i>), a resource (<i>Argon Crystals</i>), or a frame/weapon.';
+    }
+    if (window.TVWatch) TVWatch.set(itemName, String(sourceLine).slice(0, 220));
+    return '👁 Farm watch set: <b>' + esc(itemName) + '</b>.<p><b>📍 Best source:</b> ' + esc(String(sourceLine).slice(0, 220)) + '</p>' +
+      '<p>While this app stays open I\'ll check the live feed and nudge you when a matching fissure, alert or invasion is live. ' +
+      'One watch at a time — say <i>"stop watch"</i> to clear it.</p>';
+  }
+
+  /* ---------- v2.23.0: BUILD CHECKER ----------
+     The Tenno pastes THEIR build; Vaulty checks it like a verifier,
+     never a vibes machine: every mod must be a real DB entry, legal
+     for the item's class, non-duplicated, in the right slot kind, and
+     the total max-rank drain must fit the standard capacity budget.
+     The verdict renders through the Workshop module, which fetches
+     REAL drain data (warframestat) exactly like the capacity check in
+     the composer. Unknown names are called unrecognized — never
+     silently "corrected" into a different real mod. */
+  var CHECKER_FILLER = ['and', 'with', 'using', 'on', 'for', 'my', 'the', 'build', 'mods', 'mod', 'is', 'are', 'equipped', 'running', 'currently', 'this', 'setup', 'loadout', 'in', 'a', 'an', 'plus', '+'];
+  function checkerParse(t) {
+    if (!/\bbuild\b/.test(t)) return null;
+    var wants = /\b(check|rate|review|validate|fix|look over|look at|verify|grade)\b/.test(t) ||
+      /^my\b/.test(t) || /\b(my|this|current) build\b/.test(t) || /\bbuild (is|:)\b/.test(t);
+    if (!wants) return null;
+    var itemF = findItemInText(D.warframes, t);
+    var itemW = itemF ? null : findItemInText(D.weapons, t);
+    var item = itemF || itemW;
+    /* known mods, longest names first so multiword names win */
+    var names = [];
+    var seenN = {};
+    (D.mods || []).forEach(function (md) {
+      var n = norm(md.name);
+      if (n.length >= 4 && !seenN[n]) { seenN[n] = 1; names.push({ name: md.name, key: n }); }
+    });
+    names.sort(function (a, b) { return b.key.length - a.key.length; });
+    var padded = ' ' + t.replace(/[^a-z0-9' ]/g, ' ') + ' ';
+    var known = [];
+    names.forEach(function (cand) {
+      var needle = ' ' + cand.key.replace(/-/g, ' ') + ' ';
+      var idx = padded.indexOf(needle);
+      if (idx !== -1) {
+        /* count occurrences for dupe detection */
+        var count = 0, from = 0, hay = padded;
+        while ((from = hay.indexOf(needle, from)) !== -1) { count++; from += needle.length - 1; }
+        known.push({ name: cand.name, count: count });
+      }
+    });
+    if (known.length < 3) return null;
+    /* unknown claimed mods: chunks between separators, with the item
+       name and the command scaffolding stripped first, so what remains
+       is what the Tenno actually claimed was a mod */
+    var unknown = [];
+    var chunkSrc = t;
+    if (item) chunkSrc = chunkSrc.split(norm(item.name)).join(' ');
+    var filler = {};
+    CHECKER_FILLER.forEach(function (w) { filler[w] = 1; });
+    filler.mod = 0; filler.mods = 0; /* "mod" is part of claimed names */
+    chunkSrc.split(/[,+•·\n]|\band\b|\bwith\b|\busing\b/).forEach(function (ch) {
+      var words = ch.trim().split(/\s+/).filter(function (w) {
+        return w && !filler[w] && !/^(check|rate|review|validate|fix|verify|look|over|at|grade|please|what|do|you|think|is|it|legal|ok|good)$/.test(w);
+      });
+      if (!words.length || words.length > 4) return;
+      var candTxt = words.join(' ').replace(/^[:\s]+|[:\s]+$/g, '');
+      if (candTxt.length < 4 || /^\d+$/.test(candTxt)) return;
+      if (known.some(function (k) { return norm(k.name) === candTxt; })) return;
+      unknown.push(candTxt);
+    });
+    unknown = unknown.filter(function (u, i) { return unknown.indexOf(u) === i; }).slice(0, 4);
+    return { item: item, itemKind: itemF ? 'warframe' : (itemW ? 'weapon' : null), known: known, unknown: unknown };
+  }
+  function checkerHandoffHtml(parsed) {
+    var plan = {
+      item: parsed.item ? parsed.item.name : (sessionCtx.item || ''),
+      kind: parsed.itemKind || sessionCtx.kind || '',
+      known: parsed.known, unknown: parsed.unknown
+    };
+    return '<div class="vai-checker-handoff" data-plan="' +
+      esc(JSON.stringify(plan)).replace(/"/g, '&quot;') + '"></div>';
+  }
+  function checkBuildIntent(t) {
+    var parsed = checkerParse(t);
+    if (!parsed) return null;
+    if (!parsed.item && !sessionCtx.item) {
+      return 'I can check that build — but which item is it on? The mod list came through (' +
+        parsed.known.length + ' mods I recognize); tell me the frame or weapon and I\'ll verify every slot, legality and the capacity math.';
+    }
+    return checkerHandoffHtml(parsed);
+  }
+  /* The full report — called by the Workshop orchestrator once real
+     drain data has been fetched (drains may be null → capacity is
+     then honestly reported as unchecked, never guessed). */
+  function checkBuildReport(plan, drains) {
+    var itemName = plan.item || '';
+    var found = findItemForBuild(itemName) || (function () {
+      var f = findByName(D.warframes, itemName); if (f) return { kind: 'warframe', e: f };
+      var w = findByName(D.weapons, itemName); if (w) return { kind: 'weapon', e: w };
+      return null;
+    })();
+    if (!found) return null;
+    var cls = found.kind === 'warframe' ? 'warframe'
+      : (found.e.type === 'Secondary' ? 'pistol' : (found.e.type === 'Melee' ? 'melee'
+      : (itemBuildTags(found.e.name).shotgun ? 'shotgun' : 'rifle')));
+    var problems = [], swaps = [], grid = [], auraName = null;
+    var seen = {};
+    (plan.known || []).forEach(function (k) {
+      var entry = findModExact(k.name);
+      if (!entry) { problems.push('<b>' + esc(k.name) + '</b> isn\'t in the mods database.'); return; }
+      if (k.count > 1) problems.push('<b>' + esc(k.name) + '</b> appears ' + k.count + ' times — a mod can only be slotted once.');
+      if (seen[norm(k.name)]) return;
+      seen[norm(k.name)] = 1;
+      if (isAuraMod(k.name)) {
+        if (found.kind !== 'warframe') problems.push('<b>' + esc(k.name) + '</b> is an AURA mod — weapons have no aura slot.');
+        else if (auraName) problems.push('<b>' + esc(k.name) + '</b> is a second aura — only one aura slot exists.');
+        else auraName = k.name;
+        return;
+      }
+      if (!modFitsClass(k.name, cls, itemName)) {
+        problems.push('<b>' + esc(k.name) + '</b> can\'t go on a ' + cls + ' — it\'s a ' + esc(entry.type || 'different-class') + ' mod (' + esc(entry.compat || '') + ').');
+        var sub = substituteMod(k.name, cls, itemName, {}, seen) ||
+          (FILLER_POOL[cls] || []).filter(function (n) { return !seen[norm(n)] && findModExact(n) && modFitsClass(n, cls, itemName); })[0];
+        if (sub) { swaps.push({ from: k.name, to: sub }); seen[norm(sub)] = 1; }
+        return;
+      }
+      grid.push(k.name);
+    });
+    (plan.unknown || []).forEach(function (u) {
+      problems.push('<b>' + esc(u) + '</b> — I don\'t recognize that as a real mod name. It isn\'t in the Vault\'s database, so I won\'t guess what you meant; check the spelling on the mod card.');
+    });
+    if (grid.length > 8) problems.push('That\'s <b>' + grid.length + ' mods</b> in the grid — only 8 slots exist.');
+    else if (grid.length < 8 && grid.length > 0) problems.push('<span class="muted">You have <b>' + (8 - grid.length) + ' open slot' + (8 - grid.length === 1 ? '' : 's') + '</b> — room to grow.</span>');
+    /* capacity vs REAL drain (same budgets as the Workshop) */
+    var capLine = '';
+    if (drains) {
+      var cap = found.kind === 'warframe' ? 60 + (auraName && drains[norm(auraName)] != null ? drains[norm(auraName)] : 14) : 60;
+      var total = 0, knownAll = true;
+      grid.forEach(function (n) { var d = drains[norm(n)]; if (d == null) knownAll = false; else total += d; });
+      if (auraName && found.kind === 'warframe' && drains[norm(auraName)] == null) knownAll = false;
+      if (!knownAll) {
+        capLine = '<p>⚖️ <b>Capacity:</b> drain data didn\'t come back for every mod, so I won\'t guess the total.</p>';
+      } else if (total <= cap) {
+        capLine = '<p>⚖️ <b>Capacity:</b> ' + total + ' / ' + cap + ' at max rank — fits a standard setup, no Forma needed for capacity.</p>';
+      } else {
+        capLine = '<p>⚖️ <b>Capacity:</b> ' + total + ' / ' + cap + ' at max rank — <b>over by ' + (total - cap) + '</b>. That\'s normal for endgame builds: it means Forma (polarized slots halve drain) is part of the plan.';
+        var maxN = null, maxD = -1;
+        grid.forEach(function (n) { var d = drains[norm(n)] || 0; if (d > maxD) { maxD = d; maxN = n; } });
+        var cheap = (FILLER_POOL[cls] || []).filter(function (n) {
+          return !grid.some(function (g) { return norm(g) === norm(n); }) && drains[norm(n)] != null && findModExact(n) && modFitsClass(n, cls, itemName);
+        }).sort(function (a, b) { return drains[norm(a)] - drains[norm(b)]; })[0];
+        if (maxN && cheap && !swaps.some(function (s) { return s.from === maxN; })) {
+          swaps.push({ from: maxN, to: cheap, capSwap: true });
+        }
+      }
+    } else {
+      capLine = '<p>⚖️ <b>Capacity:</b> live drain data didn\'t answer just now, so the capacity check is honestly skipped — legality above is fully verified.</p>';
+    }
+    var bad = problems.filter(function (p) { return p.indexOf('muted') === -1; }).length;
+    var verdict = bad === 0
+      ? '✅ <b>' + esc(itemName) + '</b> — this build is <b>legal</b>. Every mod is real, class-correct and slotted once.'
+      : '🔎 <b>' + esc(itemName) + '</b> — checked it properly. ' + bad + ' problem' + (bad === 1 ? '' : 's') + ' to fix:';
+    var html = '<div class="vai-check"><p>' + verdict + '</p>';
+    if (problems.length) html += '<ul>' + problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+    html += capLine;
+    if (swaps.length) {
+      html += '<p><b>Suggested swaps</b> <span class="muted small">(every suggestion is a real mod, verified legal for this item):</span></p><ul>' +
+        swaps.map(function (s) {
+          var e2 = findModExact(s.to);
+          return '<li><b>' + esc(s.from) + '</b> → <b>' + esc(s.to) + '</b>' +
+            (e2 ? ' <span class="muted small">' + esc(e2.effect || '') + '</span>' : '') +
+            (s.capSwap ? ' <span class="muted small">(capacity swap — lower drain)</span>' : '') + '</li>';
+        }).join('') + '</ul>';
+    }
+    html += '<p class="muted small">Want the Workshop to compose a clean original for ' + esc(itemName) +
+      ' instead? Say <i>"design a ' + esc(itemName) + ' build"</i>.</p></div>';
+    return html;
+  }
+
+  /* ---------- v2.23.0: how Vaulty learns ---------- */
+  function learnAnswer(t) {
+    if (/what (are|have) you learning|show me what you('re| are) learning|what vaulty is learning/.test(t)) {
+      if (window.TVLearn) return TVLearn.viewHtml();
+      return 'On this page my learning view isn\'t wired up — open the full Vault Guide panel and tap <i>"🧠 What Vaulty remembers"</i>.';
+    }
+    if (/how do you learn|how does vaulty learn|do you (actually )?learn|how do you (get smarter|improve)|how do you remember/.test(t)) {
+      if (window.TVLearn) return TVLearn.explainHtml();
+      return 'Honestly: I remember what you ask about on this device only (nothing is uploaded), questions I can\'t answer are logged anonymously — question text only — so future updates can teach me them, and your 👍/👎 votes on this device re-rank my recommendations. I don\'t retrain a model in your browser.';
+    }
+    return null;
+  }
+
 /* ---------- intent routing ---------- */
   function stripQ(q) { return norm(q).replace(/\?+$/, '').trim(); }
 
@@ -3020,7 +3570,13 @@ function oneShotBuildAnswer(t) {
     var isGoodMatch = t.match(/is ([a-z0-9 '\-]+?) (good|worth it|worth|any good|good\?)/);
     if (isGoodMatch) {
       var item = isGoodMatch[1].trim();
-      return opinionAnswer(item, t);
+      /* v2.23.0: "what is a good <class>…" captures just the article —
+         that's a RECOMMENDATION question, not an opinion about an
+         item. Let it fall through to the recommender. */
+      var bareItem = item.replace(/^(a|an|the)(\s+|$)/, '');
+      if (bareItem && !/^(warframe|frame|weapon|melee|gun|primary|secondary|pistol|rifle|shotgun|mod)s?$/.test(bareItem)) {
+        return opinionAnswer(item, t);
+      }
     }
     /* "should I ..." — advice */
     if (/^should i\b/.test(t)) {
@@ -3135,6 +3691,15 @@ function oneShotBuildAnswer(t) {
     var convo = conversationalAnswer(t, q);
     if (convo) return convo;
 
+    /* v2.23.0: learning, arsenal and farm-watch intents — personal
+       state questions that only these handlers can answer truthfully. */
+    var learnHit = learnAnswer(t);
+    if (learnHit) return learnHit;
+    var arsHit = arsenalAnswer(t);
+    if (arsHit) return arsHit;
+    var watchHit = farmWatchAnswer(t);
+    if (watchHit) return watchHit;
+
     if (/^(hi|hey|hello|yo|sup|howdy)\b/.test(t)) {
       return 'Hey, Tenno. ' + helpAnswer();
     }
@@ -3180,6 +3745,12 @@ function oneShotBuildAnswer(t) {
        everything") is a power fantasy, not a library lookup: it goes to
        the Workshop for a composed power/survival dossier, never the
        stock card. Creative briefs keep the workshop path below. */
+    /* v2.23.0: BUILD CHECKER — "check my <item> build: <mods>" is a
+       verification request, not a build request: it must be caught
+       before the power/workshop/template paths below would happily
+       compose a NEW build and ignore the Tenno's own. */
+    var checkHit = checkBuildIntent(t);
+    if (checkHit) return checkHit;
     var pwPlan = powerPlan(q);
     if (pwPlan) return workshopHandoffHtml(pwPlan);
     var wsPlanFound = workshopPlan(q);
@@ -3246,6 +3817,15 @@ function oneShotBuildAnswer(t) {
       }
       var wp2 = findItemInText(D.weapons, t);
       if (wp2) return genWeaponBuild(wp2, parseQualifiers(t));
+      /* v2.23.0: no item named, but the phrasing is a recommendation
+         ("what's a good weapon for steel path" — "steel path" alone
+         tripped the build intent) → the recommender answers it with
+         reasons, not the generic build list */
+      var recoInBuild = recoDetect(t);
+      if (recoInBuild) {
+        var recoBuildHit = recommendAnswer(t, recoInBuild);
+        if (recoBuildHit) return recoBuildHit;
+      }
       /* v2.19.5: "how do I make platinum/credits" names no item — that's the
          trading answer, not a build request (the word "make" used to hijack it) */
       if (/\b(platinum|plat|credits?)\b/.test(t)) return sellAnswer();
@@ -3262,6 +3842,17 @@ function oneShotBuildAnswer(t) {
         /\bwhat should i do first\b/.test(t) || /\bwhere do i start\b/.test(t) ||
         /\bbeginner (guide|tips|help)\b/.test(t)) {
       return beginnerAnswer();
+    }
+    /* v2.23.0: RECOMMENDATION intent — "find me a good warframe",
+       "what's a good weapon for steel path", "what frame should I
+       play". Runs after the curated knowledge base (doctrine keeps
+       its answers) and before the sell/farm matchers below, which
+       used to swallow these phrasings and dead-end them. The
+       recommender answers from the Vault's data — never a punt. */
+    var recoDet = recoDetect(t);
+    if (recoDet) {
+      var recoHit = recommendAnswer(t, recoDet);
+      if (recoHit) return recoHit;
     }
     if (t.indexOf('sell') !== -1 || t.indexOf('platinum') !== -1 || t.indexOf('trade') !== -1) {
       return sellAnswer();
@@ -3437,6 +4028,7 @@ function oneShotBuildAnswer(t) {
   /* ---------- UI ---------- */
   var els = {};
 
+  var lastAskQ = '';
   function addMsg(html, who) {
     var d = document.createElement('div');
     d.className = 'vai-msg ' + who;
@@ -3447,10 +4039,19 @@ function oneShotBuildAnswer(t) {
     }
     els.msgs.appendChild(d);
     els.msgs.scrollTop = els.msgs.scrollHeight;
+    /* v2.23.0: 👍/👎 + follow-up chips on real answers (both modules
+       self-qualify — greetings, progress and don't-knows get neither) */
+    if (who === 'bot') {
+      try { if (window.TVLearn) TVLearn.attachFeedback(d, (lastAskQ + ' ' + html).slice(0, 900)); } catch (e) {}
+      try { if (window.TVChips) TVChips.attach(d, lastAskQ, html, function (qq) { ask(qq); }); } catch (e) {}
+      try { if (window.TVVoice) TVVoice.speakAnswer(html); } catch (e) {}
+    }
+    return d;
   }
 
   function ask(q) {
     if (!q) return;
+    lastAskQ = q;
     addMsg(q, 'user');
     els.input.value = '';
     /* v2.20.0: on-device memory (this device only) + "my usual" */
@@ -3476,6 +4077,9 @@ function oneShotBuildAnswer(t) {
          miss path: a handoff is not a miss. */
       if (window.TVWorkshop && TVAI._workshopIsHandoff(html)) {
         TVWorkshop.handle(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+      } else if (window.TVWorkshop && TVAI._checkerIsHandoff(html) && TVWorkshop.handleCheck) {
+        /* v2.23.0: build-checker handoff — real drain fetch, then the verdict */
+        TVWorkshop.handleCheck(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
       } else if (window.TVResearch && TVResearch.isMiss(html)) {
         /* v2.22.0: research-first — dig deep, then answer in prose */
         if (TVResearch.handleConverse) TVResearch.handleConverse(q, html, els.msgs, function (h) { addMsg(h, 'bot'); }, { isMiss: true });
@@ -3560,7 +4164,7 @@ function oneShotBuildAnswer(t) {
     panel.querySelector('#vai-close').addEventListener('click', function () { toggle(false); });
     var memBtn2 = panel.querySelector('#vai-mem-btn');
     if (memBtn2) memBtn2.addEventListener('click', function () {
-      if (window.TVMemory) addMsg(TVMemory.viewHtml(), 'bot');
+      if (window.TVMemory) addMsg(TVMemory.viewHtml() + (window.TVLearn ? TVLearn.viewHtml() : ''), 'bot');
     });
     els.form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -3584,6 +4188,11 @@ function oneShotBuildAnswer(t) {
     _workshopDossier: buildDossier,
     _workshopFallback: workshopFallback,
     _workshopIsHandoff: function (html) { return String(html || '').indexOf('vai-workshop-handoff') !== -1; },
+    /* v2.23.0: build checker + recommender hooks */
+    _checkerIsHandoff: function (html) { return String(html || '').indexOf('vai-checker-handoff') !== -1; },
+    _checkBuildReport: checkBuildReport,
+    _recoDetect: recoDetect,
+    _recommend: recommendAnswer,
     _workshopVerify: function (build, drains) {
       if (!build || !buildIsValid(build)) return null;
       return wsCapacity(build, drains);

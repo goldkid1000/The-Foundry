@@ -1,5 +1,18 @@
 [
  {
+  "version": "2.23.0",
+  "date": "2026-10-22",
+  "notify": true,
+  "notes": [
+   "🎲 VAULTY ANSWERS FOR ITSELF: 'could you find me a good warframe to use' used to get the canned don't-know — that failure is fixture #1 now. A new recommender reasons over the whole Vault (roles, stats, mastery, farm sources, build tags): 2–3 real picks, WHY each fits, one honest trade-off each, and a follow-up offer. No goal stated? It spreads across roles — a survivor, a deleter, a backbone — and asks one sharpening question back. And the ordering is fixed everywhere: research and composing run BEFORE the honest don't-know can appear.",
+   "📱 THE VAULTY AI DOWNLOAD COMES TO PHONES — carefully: capability check first (WebGPU, free storage, memory), the smallest phone-sized model, explicit tap only (it NEVER auto-starts), a progress bar with a real Cancel, one-tap off switch and one-tap delete. On iPhone it's labeled EXPERIMENTAL and guarded: if a load dies mid-flight, Vaulty settles into quick mode and never loops — the v2.19.3 crash loop cannot come back. Desktop behavior is unchanged.",
+   "🧠 GROW, LEARN, COMMUNICATE: 👍/👎 now sit under real answers and genuinely re-rank recommendations — on your device only. Missed questions collect in a 'What Vaulty is learning' view (plus the anonymous text-only log, as before), and 'how do you learn?' gets the honest answer: local memory + anonymous misses + your votes, no secret retraining. Recommendations and explanations arrive in the conversational prose you asked for, not cards.",
+   "🔎 BUILD CHECKER: paste YOUR build ('check my Saryn Prime build: …') and Vaulty verifies it — every mod real, class/slot legal, no duplicates, capacity vs REAL drain data — naming exact problems (including mod names it doesn't recognize, never silently 'corrected') and suggesting swaps that are themselves verified legal.",
+   "🎒 MY ARSENAL + 👁 FARM WATCH: say 'I have Saryn Prime' and recommendations start from gear you own (unowned picks say what they take to get). Say 'I'm farming Lith A1' and Vaulty names the best source and watches the live feed while the app is open — nudging you when a matching fissure, alert or invasion is live. One watch at a time, stored on-device, 'stop watch' clears it.",
+   "☀️ DAILY BRIEF, CHIPS, VOICE, LIVE STAMPS: opening the chat shows one compact daily line (Baro, today's Sortie, daily reset) — real worldstate only, once a day, dismissible. Real answers grow follow-up chips ('Steel Path version?', 'Where do I farm it?') — never on a don't-know. Live answers now say when the feed answered ('live as of …') and invasions are covered. Voice is in and out where the browser supports it: a mic button (hidden entirely when unavailable) and spoken replies that are OFF by default with a panel toggle."
+  ]
+ },
+ {
   "version": "2.22.1",
   "date": "2026-10-22",
   "notify": true,

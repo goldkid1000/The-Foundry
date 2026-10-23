@@ -11,6 +11,7 @@
   var TTL = 60 * 1000; /* worldstate changes slowly — cache a minute */
   var cache = null;        /* { ts, data } */
   var inflight = null;
+  var lastFetchTs = 0;     /* v2.23.0: when the feed last actually answered */
 
   function esc(s) {
     if (window.TV && window.TV.esc) return window.TV.esc(s);
@@ -27,6 +28,7 @@
       .then(function (r) { if (!r.ok) throw new Error('bad status'); return r.json(); })
       .then(function (d) {
         cache = { ts: Date.now(), data: d };
+        lastFetchTs = cache.ts;
         inflight = null;
         return d;
       })
@@ -57,8 +59,15 @@
   }
   function inLeft(iso) { return fmtDur(new Date(iso).getTime() - Date.now()); }
 
+  /* v2.23.0: every live answer carries its freshness on its face —
+     "live as of <time>" from the moment the feed last answered. If the
+     feed never answered, no stamp is printed (no fake freshness). */
   function liveTag() {
-    return '<p class="muted small">📡 Live from the worldstate feed — same data as the <a href="live.html">Live page</a>.</p>';
+    var when = '';
+    if (lastFetchTs) {
+      when = ' · live as of ' + new Date(lastFetchTs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    return '<p class="muted small">📡 Live from the worldstate feed — same data as the <a href="live.html">Live page</a>' + esc(when) + '.</p>';
   }
   function failMsg() {
     return 'I tried to pull the live feed just now and it didn\'t answer — so I won\'t guess at this one. ' +
@@ -125,6 +134,29 @@
         (m.faction ? ' vs ' + esc(m.faction) : '') + ' · ends in ' + inLeft(a.expiry) + rew + '</span></li>';
     }).join('');
     return 'Active alerts right now:<ul>' + rows + '</ul>' + liveTag();
+  }
+
+  /* v2.23.0: invasions — notable ones (real rewards, still running) */
+  function invasionsAnswer(d) {
+    var invs = (d.invasions || []).filter(function (i) { return i && !i.completed; });
+    if (!invs.length) return 'No invasions are running right now according to the live feed. ' + liveTag();
+    function rewardOf(side) {
+      try {
+        var items = (side && side.reward && side.reward.countedItems) || [];
+        return items.map(function (x) { return x.type; }).filter(Boolean).join(', ');
+      } catch (e) { return ''; }
+    }
+    var rows = invs.slice(0, 6).map(function (i) {
+      var atk = rewardOf(i.attacker);
+      var def = rewardOf(i.defender);
+      var pct = (typeof i.completion === 'number') ? ' · ' + Math.abs(Math.round(i.completion)) + '% held' : '';
+      return '<li><b>' + esc(i.node || 'Invasion') + '</b> <span class="muted small">' +
+        esc(i.desc || ((i.attacker && i.attacker.faction) || '') + ' vs ' + ((i.defender && i.defender.faction) || '')) +
+        pct +
+        (atk ? ' · ⚔️ ' + esc(atk) : '') + (def ? ' · 🛡 ' + esc(def) : '') + '</span></li>';
+    }).join('');
+    return 'Active invasions right now:<ul>' + rows + '</ul>' +
+      '<p class="muted small">Run 3 missions for one side on the node to claim its battle pay when it resolves.</p>' + liveTag();
   }
 
   function nightwaveAnswer(d) {
@@ -255,6 +287,7 @@
     { key: 'sortie', re: /\b(sortie|archon hunt)\b/, fn: sortieAnswer },
     { key: 'steelpath', re: /steel path (reward|rotation|honors|offering)|\bteshin\b/, fn: steelPathAnswer },
     { key: 'alerts', re: /\balerts?\b/, fn: alertsAnswer },
+    { key: 'invasions', re: /\binvasions?\b/, fn: invasionsAnswer },
     { key: 'news', re: /\b(hotfix|patch notes|latest update|recent update|devstream)\b|latest (warframe )?news|warframe news|what'?s new in warframe/, fn: newsAnswer },
     { key: 'events', re: /\b(events?|tactical alert|naberus|what'?s on)\b/, fn: eventsAnswer },
     { key: 'cycles', re: /is it (day|night)|day or night|cetus|plains.*(day|night)|eidolon.*(when|time)|orb vallis.*(warm|cold)|cycle/, fn: cyclesAnswer },
@@ -287,5 +320,12 @@
     });
   }
 
-  window.TVLive = { isLive: isLive, answer: answer, _detect: detect };
+  window.TVLive = {
+    isLive: isLive, answer: answer, _detect: detect,
+    /* v2.23.0: shared worldstate access for the farm watch + daily brief */
+    _fetchWorld: fetchWorld,
+    _fmtWhen: fmtWhen,
+    _inLeft: inLeft,
+    _lastFetch: function () { return lastFetchTs; }
+  };
 })();

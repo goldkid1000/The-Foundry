@@ -2694,3 +2694,22 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
 .vai-foot .muted{margin:3px 0 5px;line-height:1.4}
 #vmem-view ul{margin:.3em 0;padding-left:1.2em}
 .vmem-clear{margin-top:6px;padding:7px 14px;font-size:.85rem}
+
+/* v2.23.0: feedback votes, follow-up chips, learning view, arsenal,
+   AI download offer, farm-watch toast, voice states */
+.vai-fb{margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.vai-fb-btn{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 10px;cursor:pointer;font-size:.9rem;line-height:1.3}
+.vai-fb-btn:hover{border-color:var(--accent)}
+.vai-followups{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.vai-followup-chip{white-space:normal;text-align:left}
+.vai-aioffer-btn{margin-top:4px}
+#vlearn-view{margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
+#vlearn-view ul{margin:.3em 0;padding-left:1.2em}
+.varm-remove{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:2px 9px;cursor:pointer;font-size:.78rem;margin-left:4px}
+.varm-remove:hover{border-color:#e05252;color:#e05252}
+#tv-watch-toast{position:fixed;right:14px;bottom:96px;z-index:1200;max-width:min(92vw,360px);background:var(--card,#1b1f27);border:1px solid var(--accent,#57c7ff);border-radius:12px;padding:12px 14px;box-shadow:0 10px 34px rgba(0,0,0,.5);font-size:.9rem}
+#tv-watch-toast p{margin:.2em 0}
+.tv-watch-dismiss,.tv-brief-dismiss{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:.8rem}
+#vai-mic.listening{background:#e05252;color:#fff;border-radius:8px;animation:vai-pulse 1s ease-in-out infinite}
+@keyframes vai-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion: reduce){#vai-mic.listening{animation:none}}

@@ -26,7 +26,7 @@
 
   /* ---------- storage ---------- */
   function blank() {
-    return { items: {}, topics: {}, recent: [], exchanges: 0, firstSeen: Date.now() };
+    return { items: {}, topics: {}, recent: [], exchanges: 0, firstSeen: Date.now(), arsenal: [] };
   }
   var mem = blank();
   try {
@@ -34,6 +34,7 @@
     if (raw) {
       var parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && parsed.items && parsed.topics) mem = parsed;
+      if (!Array.isArray(mem.arsenal)) mem.arsenal = [];
     }
   } catch (e) { /* private mode / corrupt value — start blank */ }
 
@@ -150,6 +151,33 @@
       'there\'s a chip below for its build, or ask me anything else.';
   }
 
+  /* ---------- v2.23.0: MY ARSENAL — the gear the Tenno actually owns --
+     Stored in this same on-device memory store (never uploaded). The
+     recommender and the Workshop consult it: owned items are preferred,
+     and picks the Tenno doesn't own say what it takes to get them.
+     Added by chat ("I have Saryn Prime") or the Remove buttons below. */
+  function owns(name) {
+    var k = norm(name);
+    return mem.arsenal.some(function (e) { return norm(e.name) === k; });
+  }
+  function addOwned(name, kind) {
+    if (!name || owns(name)) return false;
+    mem.arsenal.push({ name: String(name), kind: kind || 'gear', added: Date.now() });
+    if (mem.arsenal.length > 80) mem.arsenal = mem.arsenal.slice(-80);
+    save();
+    return true;
+  }
+  function removeOwned(name) {
+    var k = norm(name);
+    var before = mem.arsenal.length;
+    mem.arsenal = mem.arsenal.filter(function (e) { return norm(e.name) !== k; });
+    if (mem.arsenal.length !== before) { save(); return true; }
+    return false;
+  }
+  function ownedList() {
+    return mem.arsenal.slice().sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+  }
+
   /* ---------- the "What Vaulty remembers" view ---------- */
   function viewHtml() {
     var items = sortedItems();
@@ -174,6 +202,16 @@
         }).join('') + '</ul>';
       }
     }
+    var owned = ownedList();
+    if (owned.length) {
+      body += '<p><b>🎒 Your arsenal</b> <span class="muted small">(recommendations prefer gear you own):</span></p><ul>' +
+        owned.map(function (e) {
+          return '<li>' + esc(e.name) + ' <span class="muted small">' + esc(e.kind) + '</span> ' +
+            '<button type="button" class="varm-remove" data-name="' + esc(e.name) + '">Remove</button></li>';
+        }).join('') + '</ul>';
+    } else {
+      body += '<p><b>🎒 Your arsenal:</b> nothing yet — tell me <i>"I have Saryn Prime"</i> and I\'ll remember your gear and recommend from it first.</p>';
+    }
     return '<div id="vmem-view"><b>🧠 What Vaulty remembers</b>' + body +
       '<p class="muted small">This memory lives <b>only on this device</b> (your browser\'s local storage). ' +
       'Nothing here is uploaded, and it never changes what Vaulty knows about Warframe — just what it knows about you, ' +
@@ -190,6 +228,13 @@
 
   document.addEventListener('click', function (e) {
     var t = e.target;
+    var rm = (t && typeof t.closest === 'function') ? t.closest('.varm-remove') : null;
+    if (rm) {
+      removeOwned(rm.getAttribute('data-name') || '');
+      var li = rm.closest ? rm.closest('li') : null;
+      if (li && li.parentNode) li.parentNode.removeChild(li);
+      return;
+    }
     var btn = (t && typeof t.closest === 'function') ? t.closest('.vmem-clear') : null;
     if (!btn) return;
     clear();
@@ -207,7 +252,11 @@
     welcomeBackLine: welcomeBackLine,
     viewHtml: viewHtml,
     clear: clear,
-    _summary: function () { return { items: sortedItems(), topics: mem.topics, recent: mem.recent.slice(), exchanges: mem.exchanges }; },
+    owns: owns,
+    addOwned: addOwned,
+    removeOwned: removeOwned,
+    ownedList: ownedList,
+    _summary: function () { return { items: sortedItems(), topics: mem.topics, recent: mem.recent.slice(), exchanges: mem.exchanges, arsenal: ownedList() }; },
     _ready: loadNames
   };
 })();
