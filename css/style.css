@@ -2684,6 +2684,10 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
 .vres-title{font-weight:700}
 .vres-stop{margin-top:7px;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:5px 14px;cursor:pointer;font-size:.82rem}
 .vres-stop:hover{border-color:var(--accent)}
+
+/* v2.21.0: Vaulty Workshop — the staged progress reuses the .vres-* bar
+   above; only its title tint is Workshop-specific. */
+.vws-progress .vres-title{color:#57c7ff}
 .vai-foot{padding:7px 12px 2px;border-top:1px solid var(--border)}
 .vai-mem-btn{background:none;border:none;color:var(--accent);cursor:pointer;font-size:.82rem;font-weight:600;padding:2px 0}
 .vai-mem-btn:hover{text-decoration:underline}

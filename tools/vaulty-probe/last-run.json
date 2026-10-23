@@ -1,6 +1,6 @@
 {
   "summary": {
-    "when": "2026-10-23T00:59:37.483Z",
+    "when": "2026-10-23T02:15:42.004Z",
     "total": 50,
     "scoredByGuide": 44,
     "liveRouted": 6,
@@ -8,9 +8,9 @@
     "answeredWrong": 0,
     "dontKnow": 3,
     "honestMisses": 4,
-    "researchAttempted": 3,
-    "researchCovered": 3,
-    "stackCovered": 44
+    "researchAttempted": 0,
+    "researchCovered": 0,
+    "stackCovered": 41
   },
   "rows": [
     {
@@ -243,10 +243,7 @@
       "expect": "answer",
       "miss": true,
       "verdict": "dontknow",
-      "research": {
-        "source": "Live game data (warframestat.us)",
-        "chars": 87
-      }
+      "research": null
     },
     {
       "q": "who is the stalker",
@@ -254,10 +251,7 @@
       "expect": "answer",
       "miss": true,
       "verdict": "dontknow",
-      "research": {
-        "source": "Warframe Wiki",
-        "chars": 502
-      }
+      "research": null
     },
     {
       "q": "what does corrosive do",
@@ -273,10 +267,7 @@
       "expect": "answer",
       "miss": true,
       "verdict": "dontknow",
-      "research": {
-        "source": "Warframe Wiki",
-        "chars": 207
-      }
+      "research": null
     },
     {
       "q": "how do incarnon weapons work",

@@ -28,6 +28,7 @@ chain** (`js/vaulty-research.js`):
 node tools/vaulty-probe/run-probe.js            # guide + research scores
 node tools/vaulty-probe/run-probe.js --no-research   # guide only (fast)
 node tools/vaulty-probe/test-research-memory.js      # research + memory regressions
+node tools/vaulty-probe/test-workshop.js             # v2.21.0 Workshop fixtures
 node --experimental-vm-modules tools/vaulty-probe/test-persistence.js
 ```
 
@@ -49,3 +50,38 @@ become regression fixtures.
   remaining misses — full stack 44/44. Added knowledge: Aya, best auras,
   starter frames, Necramech, Incarnon, Archwing, clans. Fixed:
   `findByName` word-boundary rule for short queries (the Aya bug).
+
+## The Workshop (v2.21.0) — invent builds, never mods
+
+Owner rule: Vaulty may invent BUILDS (original compositions) but may
+NEVER invent MODS. **Detection** (`workshopDetect` in
+`js/ai-fallback.js`): creative verbs (design / create / craft / invent /
+come up with / …), novelty asks (weird / off-meta / meme / from scratch /
+surprise me), damage-max asks ("full damage"), ability-focus asks
+("focused on Spores"), and element-only constraints route a named-item
+build ask to the Workshop. Deliberately NOT triggers: bare "make me a
+X build" (canonical phrasing — plain instant library) and
+qualifier-only asks (v2.19.6 keeps its path). **Flow**
+(`js/vaulty-workshop.js`): the research bar gains build stages —
+"Researching <item>…" (warframestat item entry: damage split,
+crit/status profile; the Vault's own data is the offline fallback) →
+"Designing your build…" → "Verifying every mod…" (the `buildIsValid`
+gate plus a capacity sanity check against live drain data; over-budget
+gets one swap attempt, then an honest note). Stop button throughout.
+**Composer** (`wsCompose`): role-driven slot filling — damage core /
+crit core / status-or-element core / frame archetype cores
+(caster/tank/support/melee/weapons-platform/nuker) read from the
+frame's own stats + its augment; aura, exilus and arcane by role —
+every candidate resolved via `findModExact` + class/aura-slot legality,
+and every pick carries a WHY = role label + the mod's real database
+effect. Off-meta steers by library frequency (least-used legal mods
+first). **Honest labeling**: composed builds render on the standard
+card with "🛠 Vaulty Original — composed just now from real mods" and
+"Every mod is real and checked against the database; the combination
+is new." A composition that fails validation twice serves the library
+card or the honest don't-know — an invalid build is never displayed.
+**AI mode**: the model still may not author mod lists (WORKSHOP RULE
+in the prompt), and `_validateAnswer` now also rejects any build-shaped
+answer whose list lines contain a Title-Case name found nowhere in the
+mods / arcanes / items / abilities data — fabricated names are
+impossible to serve.

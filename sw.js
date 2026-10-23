@@ -1,4 +1,4 @@
-// The Foundry service worker — v2.20.0
+// The Foundry service worker — v2.21.0
 // Purpose: PWA install + offline fallback ONLY. It must never strand a
 // phone on stale code, so:
 //  - install: skipWaiting (activate immediately, don't wait for tabs to close)
@@ -15,7 +15,7 @@
 //    always try the network first; Cache Storage is only the offline
 //    fallback. The cache is named per-release (foundry-v<version>) so every
 //    release inherently invalidates the previous app cache.
-var CACHE_NAME = 'foundry-v2.20.0';
+var CACHE_NAME = 'foundry-v2.21.0';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();

@@ -618,6 +618,75 @@ function validateAnswerText(text, question) {
     }
     if (!modFitsClass(found[j], cls, itemName)) return false;
   }
+  /* v2.21.0: fabricated-name scan. The checks above prove every REAL mod
+     named in the answer is legal for the item — but a model can also slip
+     in a mod-shaped name that does not exist at all ("Primed Thunder
+     Rounds"). In a build-shaped answer (4+ real mods and an identifiable
+     item — both already established above), any list-entry line that
+     reads as a mod name (2–4 Title-Case words) must exist somewhere in
+     the Vault's data: mods, arcanes, items, or ability names. A name
+     found nowhere is invented, and the answer is discarded. */
+  var known = {}, ki;
+  for (ki = 0; ki < D.mods.length; ki++) known[norm(D.mods[ki].name)] = 1;
+  for (ki = 0; ki < D.arcanes.length; ki++) known[norm(D.arcanes[ki].name)] = 1;
+  for (ki = 0; ki < D.warframes.length; ki++) {
+    known[norm(D.warframes[ki].name)] = 1;
+    (D.warframes[ki].abilities || []).forEach(function (a) { known[norm(a.name)] = 1; });
+  }
+  for (ki = 0; ki < D.weapons.length; ki++) known[norm(D.weapons[ki].name)] = 1;
+  var LIST_LABELS = { 'mods': 1, 'mod list': 1, 'arcane': 1, 'arcanes': 1, 'aura': 1, 'exilus': 1, 'stance': 1, 'build': 1, 'loadout': 1, 'setup': 1 };
+  var NAME_RE = /^[A-Z][A-Za-z']*(?:\s+(?:[A-Z][A-Za-z']*|of|the|and)){1,3}$/;
+  var lines = String(text).split(/\n/);
+  for (var li = 0; li < lines.length; li++) {
+    var s = lines[li].replace(/[*_`#>]/g, '').trim();
+    if (!s) continue;
+    var isEntry = false;
+    var bm = s.match(/^(?:[-•·]|\d{1,2}[.)])\s+(.*)$/);
+    if (bm) { isEntry = true; s = bm[1].trim(); }
+    var colon = s.indexOf(':');
+    if (colon !== -1 && LIST_LABELS[norm(s.slice(0, colon))]) { isEntry = true; s = s.slice(colon + 1).trim(); }
+    var cand = s.split(/[—–(]/)[0].split(/\s+-\s+/)[0].replace(/[.,;:]+$/, '').trim();
+    if (!isEntry && NAME_RE.test(cand) && cand === s.replace(/[.,;:]+$/, '').trim()) isEntry = true;
+    if (!isEntry) continue;
+    if (!NAME_RE.test(cand)) continue;
+    if (!known[norm(cand)]) return false;
+  }
+  /* v2.21.0 (cont.): comma enumerations. A model that lists mods in
+     prose ("try Serration, Split Chamber, …, and Primed Quantum
+     Splitter") produces no list lines for the scan above. When a text
+     enumerates 3+ KNOWN mods that way, any other Title-Case phrase
+     (2–4 words) found in a segment of the same enumeration is treated
+     as a claimed mod name and must exist in the data too. A small
+     allowlist covers fixed game phrases that are not names at all. */
+  var PHRASE_ALLOW = {
+    'steel path': 1, 'the circuit': 1, 'void cascade': 1, 'void flood': 1,
+    'red veil': 1, 'steel meridian': 1, 'new loka': 1, 'perrin sequence': 1,
+    'cephalon suda': 1, 'arbiters of hexis': 1, 'open world': 1,
+    'plains of eidolon': 1, 'orb vallis': 1, 'cambion drift': 1,
+    'the zariman': 1, 'albrecht labs': 1, 'star chart': 1, 'void relics': 1
+  };
+  var modKnown = {};
+  for (ki = 0; ki < D.mods.length; ki++) modKnown[norm(D.mods[ki].name)] = 1;
+  for (ki = 0; ki < D.arcanes.length; ki++) modKnown[norm(D.arcanes[ki].name)] = 1;
+  var LEAD_TRIM = { 'for': 1, 'the': 1, 'a': 1, 'an': 1, 'try': 1, 'use': 1, 'using': 1, 'with': 1, 'take': 1, 'add': 1, 'slot': 1, 'run': 1, 'equip': 1, 'plus': 1, 'on': 1, 'in': 1, 'to': 1, 'or': 1, 'bring': 1 };
+  var segs = String(text).replace(/\n/g, ', ').split(/,|\band\b/);
+  var knownHits = 0, mystery = null;
+  for (var si = 0; si < segs.length; si++) {
+    var words = segs[si].replace(/[*_`#>]/g, '').trim().split(/\s+/).filter(Boolean);
+    while (words.length && LEAD_TRIM[norm(words[0]).replace(/[.,;:]+$/, '')]) words.shift();
+    var run = [];
+    for (var wi = 0; wi < words.length && run.length < 4; wi++) {
+      var w = words[wi].replace(/[.,;:()]+$/, '');
+      if (/^[A-Z][A-Za-z']*$/.test(w) || (run.length && (w === 'of' || w === 'the' || w === 'and'))) run.push(w);
+      else break;
+    }
+    if (run.length < 2) continue;
+    var phrase = norm(run.join(' '));
+    if (modKnown[phrase]) { knownHits++; continue; }
+    if (known[phrase] || PHRASE_ALLOW[phrase]) continue;
+    if (!mystery) mystery = phrase;
+  }
+  if (knownHits >= 3 && mystery) return false;
   return true;
 }
 
@@ -1298,6 +1367,580 @@ function generateBuild(t) {
   if (!found) return null;
   if (found.kind === 'warframe') return genWarframeBuild(found.e, parsed.purpose);
   return genWeaponBuild(found.e, parsed.purpose);
+}
+
+/* ---------- v2.21.0: THE WORKSHOP — generative build composition ----------
+   The owner opened the creative door: Vaulty may INVENT BUILDS (original
+   compositions) but may NEVER invent MODS. The Workshop composes an
+   original 8-mod build for a creative ask ("design…", "come up with…",
+   "weird off-meta…", "full damage…", "focused on <ability>…"), grounded
+   in the item's researched profile (live item data when available — see
+   js/vaulty-workshop.js for the staged research UI) and composed STRICTLY
+   from the mods database: every pick is resolved through findModExact +
+   modFitsClass, and the finished build must pass buildIsValid() (with one
+   DB-alternative repair pass) or it is never shown — the library card or
+   the honest fallback serves instead. Plain asks keep the instant library
+   path; qualified asks keep the v2.19.6 path; "make me a X build" with no
+   creative/constraint signal is the site's canonical phrasing and also
+   stays instant. */
+var WORKSHOP_MARK = '<!--TVWORKSHOP-->';
+
+function wsHash(s) {
+  var h = 0; s = norm(s);
+  for (var i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+var WS_CREATIVE_VERB = /\b(design|designing|create|creating|craft|crafting|invent|imagine|dream up|cook up|come up with|brew up|conjure|homebrew)\b/;
+var WS_NOVELTY = /\b(weird|off[\s-]?meta|unusual|unconventional|crazy|meme|experimental|unique|original|from scratch|surprise me|something (new|different|fun|weird|else))\b/;
+var WS_DAMAGE_MAX = /\b(full damage|maximum damage|max damage|all[\s-]?out damage|pure damage|highest damage|damage[- ]focused|tons of damage)\b/;
+var WS_ELEMENTS = ['viral', 'corrosive', 'radiation', 'gas', 'magnetic', 'blast'];
+
+/* Detect a Workshop ask. Returns {focus, abilityPhrase, element, quals}
+   or null. A creative signal is required: a creative verb, novelty /
+   off-meta language, a damage-max brief, an ability-focus phrase, or an
+   element-only constraint. Qualifiers alone stay on the v2.19.6 path. */
+function workshopDetect(t) {
+  if (!/\b(build|loadout|setup)\b/.test(t) && !/one[\s-]?shot/.test(t) && !/steel\s?path/.test(t)) return null;
+  var focus = null, abilityPhrase = null, element = null;
+  var mAb = t.match(/\b(?:focused on|focus on|built around|build around|centered on|centred on|all about)\s+(.+)$/);
+  var mEl = t.match(/\b(viral|corrosive|radiation|gas|magnetic|blast)[\s-]?(only|build|focused|focus)?\b/);
+  if (WS_DAMAGE_MAX.test(t)) focus = 'damage';
+  else if (WS_NOVELTY.test(t)) focus = 'offmeta';
+  else if (mAb) { focus = 'ability'; abilityPhrase = mAb[1].replace(/\b(build|please|for me)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
+  else if (mEl && (mEl[2] || WS_CREATIVE_VERB.test(t))) { focus = 'element'; element = mEl[1]; }
+  else if (WS_CREATIVE_VERB.test(t)) focus = /\bstatus\b/.test(t) ? 'status' : (/\bcrit/.test(t) ? 'crit' : 'profile');
+  else if (/\bstatus\b/.test(t) && /\b(design|weird|custom|original|invent|create)\b/.test(t)) focus = 'status';
+  if (!focus) return null;
+  return { focus: focus, abilityPhrase: abilityPhrase, element: element, quals: parseQualifiers(t) };
+}
+
+/* Resolve a Workshop plan for a raw question: detection + the named item.
+   Returns {item, kind, e, focus, abilityPhrase, element, quals, q} | null. */
+function workshopPlan(q) {
+  var t = stripQ(q);
+  var det = workshopDetect(t);
+  if (!det) return null;
+  var f = findItemInText(D.warframes, t);
+  var found = f ? { kind: 'warframe', e: f } : null;
+  if (!found) {
+    var w = findItemInText(D.weapons, t);
+    if (w) found = { kind: 'weapon', e: w };
+  }
+  if (!found) return null;
+  return {
+    item: found.e.name, kind: found.kind, e: found.e,
+    focus: det.focus, abilityPhrase: det.abilityPhrase, element: det.element,
+    quals: det.quals, q: q
+  };
+}
+
+/* The handoff: answer() returns this marker + a short note; the chat
+   wrappers (guide ask + AI-panel askFallback) intercept it and hand the
+   question to js/vaulty-workshop.js, which runs the staged research and
+   calls back in to compose. If the Workshop script is missing (a stale
+   cached page mid-deploy), the note alone is a graceful answer. */
+function workshopHandoffHtml(plan) {
+  var planJson = JSON.stringify({ item: plan.item, kind: plan.kind, focus: plan.focus });
+  return WORKSHOP_MARK +
+    '<div class="vai-workshop-handoff" data-plan="' + esc(planJson) + '" style="display:none"></div>' +
+    '<p>🛠 <b>The Workshop</b> — give me a moment, Tenno: I\'m researching <b>' + esc(plan.item) +
+    '</b> and composing an original build for it from real mods.</p>';
+}
+
+function wsClassOfFound(found) {
+  if (found.kind === 'warframe') return 'warframe';
+  var wc = weaponClass(found.e);
+  return wc === 'primary' ? 'rifle' : wc === 'secondary' ? 'pistol' : wc;
+}
+function wsBuildCategory(found) {
+  if (found.kind === 'warframe') return 'Warframe';
+  var wc = weaponClass(found.e);
+  return wc === 'shotgun' ? 'Shotgun' : wc === 'secondary' ? 'Secondary' : wc === 'melee' ? 'Melee' : 'Primary';
+}
+
+/* The item profile the composition is grounded in: the Vault's own data,
+   enriched by the live research (warframestat damage split / proc chance)
+   when js/vaulty-workshop.js fetched it. */
+function wsProfile(found, researched) {
+  var e = found.e;
+  var p = { cc: 0, sc: 0, cm: 2, innate: [], live: false, arch: null, abilities: [] };
+  if (found.kind === 'weapon') {
+    p.cc = parseFloat(e.criticalChance) || 0;
+    p.sc = parseFloat(e.statusChance) || 0;
+    p.cm = parseFloat(e.criticalMultiplier) || 2;
+  } else {
+    p.arch = frameArchetype(e);
+    p.abilities = (e.abilities || []).map(function (a) { return a.name; });
+  }
+  if (researched) {
+    if (researched.cc != null && !isNaN(researched.cc)) p.cc = researched.cc;
+    if (researched.sc != null && !isNaN(researched.sc)) p.sc = researched.sc;
+    if (researched.cm != null && !isNaN(researched.cm)) p.cm = researched.cm;
+    if (researched.damageTypes && researched.damageTypes.length) p.innate = researched.damageTypes;
+    p.live = true;
+  }
+  return p;
+}
+
+/* elemental mod candidates per class: [60/60 (status), 90% (raw)] */
+var WS_ELEM = {
+  rifle:   { toxin: ['Malignant Force', 'Infected Clip'], cold: ['Rime Rounds', 'Cryo Rounds'], heat: ['Thermite Rounds', 'Hellfire'], electric: ['High Voltage', 'Stormbringer'] },
+  shotgun: { toxin: ['Toxic Barrage', 'Contagious Spread'], cold: ['Frigid Blast', 'Chilling Reload'], heat: ['Scattering Inferno', 'Blaze'], electric: ['Shell Shock', 'Charged Shell'] },
+  pistol:  { toxin: ['Pistol Pestilence', 'Pathogen Rounds'], cold: ['Frostbite', 'Deep Freeze'], heat: ['Scorch', 'Heated Charge'], electric: ['Jolt', 'Convulsion'] },
+  melee:   { toxin: ['Virulent Scourge', 'Fever Strike'], cold: ['Vicious Frost', 'North Wind'], heat: ['Volcanic Edge', 'Molten Impact'], electric: ['Voltaic Strike', 'Shocking Touch'] }
+};
+var WS_COMBO_PARTS = {
+  viral: ['toxin', 'cold'], corrosive: ['electric', 'toxin'], radiation: ['heat', 'electric'],
+  gas: ['heat', 'toxin'], magnetic: ['electric', 'cold'], blast: ['heat', 'cold']
+};
+var WS_COMBO_WHY = {
+  viral: 'Viral (Toxin + Cold) — viral procs amplify damage to health by up to +325%.',
+  corrosive: 'Corrosive (Electric + Toxin) — corrosive procs strip armor, up to 80%.',
+  radiation: 'Radiation (Heat + Electric) — rad procs turn enemies on each other and punish alloy armor.',
+  gas: 'Gas (Heat + Toxin) — gas clouds deal toxin damage over time to the whole pack.',
+  magnetic: 'Magnetic (Electric + Cold) — magnetic procs multiply damage to shields and Overguard.',
+  blast: 'Blast (Heat + Cold) — blast procs knock enemies down and punish crowds.'
+};
+var WS_FLAT_STATUS = { rifle: 'Rifle Aptitude', shotgun: 'Shotgun Savvy', pistol: 'Sure Shot', melee: 'Melee Prowess' };
+var WS_FLEX = {
+  rifle: ['Vigilante Armaments', 'Shred', 'Hammer Shot', 'Heavy Caliber', 'Bladed Rounds', 'Fanged Fusillade', 'Wildfire'],
+  shotgun: ['Vigilante Armaments', 'Seeking Fury', 'Blaze', 'Accelerated Blast', 'Tactical Pump', 'Shotgun Barrage'],
+  pistol: ['Lethal Torrent', 'Gunslinger', 'Anemic Agility', 'Augur Pact', 'Ice Storm', 'Stunning Speed'],
+  melee: ['Berserker Fury', 'Fury', 'Primed Reach', 'Reach', 'Gladiator Might', 'Drifting Contact', 'Quickening', 'Relentless Combination']
+};
+var WS_FRAME_CORES = {
+  caster: ['Blind Rage', 'Transient Fortitude', 'Primed Continuity', 'Stretch', 'Overextended', 'Augur Reach', 'Fleeting Expertise', 'Streamline', 'Vitality', 'Umbral Intensify'],
+  support: ['Umbral Intensify', 'Primed Continuity', 'Primed Flow', 'Stretch', 'Vitality', 'Adaptation', 'Augur Message', 'Natural Talent', 'Blind Rage', 'Redirection'],
+  tank: ['Vitality', 'Steel Fiber', 'Intensify', 'Primed Continuity', 'Adaptation', 'Stretch', 'Primed Flow', 'Augur Secrets', 'Streamline', 'Redirection'],
+  platform: ['Blind Rage', 'Transient Fortitude', 'Umbral Intensify', 'Primed Continuity', 'Narrow Minded', 'Augur Secrets', 'Vitality', 'Adaptation', 'Stretch', 'Fleeting Expertise']
+};
+var WS_FRAME_OFFMETA = ['Quick Thinking', 'Armored Agility', 'Rapid Resilience', 'Diamond Skin', 'Redirection', 'Fast Deflection', 'Flow', 'Constitution', 'Natural Talent', 'Rage', 'Streamline', 'Handspring'];
+
+/* how often each mod appears across the whole library — the data-driven
+   "meta-ness" the off-meta brief steers away from */
+function wsMetaFreq() {
+  var freq = {};
+  (D.builds || []).forEach(function (b) {
+    (b.mods || []).forEach(function (m) { var k = norm(m.name); freq[k] = (freq[k] || 0) + 1; });
+  });
+  return freq;
+}
+
+/* Choose the element combo for a composition: an explicit element
+   constraint wins; status always runs Viral first; off-meta rotates by
+   seed; otherwise the item's own researched innate element leads, with a
+   seeded Viral/Corrosive variation so rephrased asks can differ. */
+function wsComboFor(plan, profile, seed) {
+  if (plan.focus === 'element' && plan.element) return plan.element;
+  if (plan.focus === 'status') return 'viral';
+  if (plan.focus === 'offmeta') return WS_ELEMENTS[seed % WS_ELEMENTS.length];
+  if (profile.innate && profile.innate.length) {
+    var inn = norm(profile.innate[0]);
+    var order = ['viral', 'corrosive', 'radiation', 'magnetic', 'gas', 'blast'];
+    for (var i = 0; i < order.length; i++) {
+      if (WS_COMBO_PARTS[order[i]].indexOf(inn) !== -1) return order[i];
+    }
+  }
+  return seed % 3 === 0 ? 'corrosive' : 'viral';
+}
+
+/* THE COMPOSER. Role-driven slot filling over DB-verified candidates.
+   Every WHY is the mod's real database effect, prefixed only by a
+   structural role label (no invented effects). Returns a library-shaped
+   build object (validated by the caller) or null. */
+function wsCompose(found, plan, researched) {
+  var cls = wsClassOfFound(found);
+  var profile = wsProfile(found, researched);
+  var seed = wsHash(plan.q || found.e.name);
+  var quals = plan.quals || {};
+  var used = {}, picks = [];
+
+  function whyFor(m, roleLabel) {
+    var eff = (m.effect || m.tip || '').trim();
+    return (roleLabel ? roleLabel + ' ' : '') + eff;
+  }
+  function tryAdd(name, roleLabel) {
+    if (!name || picks.length >= 8) return false;
+    var k = norm(name);
+    if (used[k]) return false;
+    if (modBannedFor(name, quals)) {
+      var rep = substituteMod(name, cls, found.e.name, quals, used);
+      if (!rep) return false;
+      name = rep; k = norm(rep);
+      if (used[k]) return false;
+    }
+    var m = findModExact(name);
+    if (!m || isAuraMod(m.name)) return false;
+    if (!modFitsClass(m.name, cls, found.e.name)) return false;
+    used[k] = 1;
+    picks.push({ name: m.name, note: whyFor(m, roleLabel), mod: m });
+    return true;
+  }
+  function slot(cands, roleLabel) {
+    for (var i = 0; i < cands.length; i++) if (tryAdd(cands[i], roleLabel)) return true;
+    return false;
+  }
+  function elemSlots(combo, rawFirst, label) {
+    var parts = WS_COMBO_PARTS[combo];
+    if (!parts) return;
+    parts.forEach(function (el) {
+      var pair = (WS_ELEM[cls] || {})[el] || [];
+      var ordered = rawFirst ? [pair[1], pair[0]] : [pair[0], pair[1]];
+      slot(ordered, (label || 'Element') + ' — ' + WS_COMBO_WHY[combo]);
+    });
+  }
+  function flexSlot(extra) {
+    var pool = (WS_FLEX[cls] || []).concat(extra || []);
+    if (!pool.length) return;
+    var rot = seed % pool.length;
+    var ordered = pool.slice(rot).concat(pool.slice(0, rot));
+    slot(ordered, 'Flex slot —');
+  }
+
+  var focus = plan.focus;
+  var isCritProfile = profile.cc >= 18, isStatusProfile = profile.sc >= 18;
+
+  if (found.kind === 'warframe') {
+    var arch = profile.arch || 'platform';
+    var aug = null, augWhy = '';
+    if (focus === 'ability' && plan.abilityPhrase) {
+      var abName = plan.abilityPhrase.replace(/^(her|his|its|the)\s+/, '');
+      var abHit = null;
+      (found.e.abilities || []).forEach(function (a) {
+        if (norm(a.name) === norm(abName) || norm(abName).indexOf(norm(a.name)) !== -1 || norm(a.name).indexOf(norm(abName)) !== -1) abHit = a;
+      });
+      var preferRe = abHit ? new RegExp(norm(abHit.name).replace(/[^a-z0-9 ]/g, ''), 'i') : null;
+      aug = frameAugment(found.e, preferRe);
+      plan._abilityName = abHit ? abHit.name : null;
+      plan._abilityText = abHit ? (abHit.description || '') : '';
+    }
+    if (!aug && focus !== 'offmeta') aug = frameAugment(found.e, null);
+    if (aug) augWhy = 'Signature augment.';
+
+    var core;
+    if (focus === 'damage') core = ['Blind Rage', 'Transient Fortitude', 'Umbral Intensify', 'Primed Continuity', 'Augur Secrets', 'Stretch', 'Vitality', 'Fleeting Expertise', 'Adaptation', 'Primed Flow'];
+    else if (focus === 'offmeta') {
+      var freq = wsMetaFreq();
+      core = WS_FRAME_OFFMETA.filter(function (n) { return (freq[norm(n)] || 0) < 25; });
+      core = core.concat(WS_FRAME_CORES[arch]);
+    } else if (focus === 'ability') {
+      var abTxt = norm(plan._abilityText || '');
+      var statFirst = /radius|area|range|nearby|around/.test(abTxt)
+        ? ['Stretch', 'Overextended', 'Augur Reach']
+        : /second|duration|lasts|over time/.test(abTxt)
+        ? ['Primed Continuity', 'Narrow Minded', 'Constitution']
+        : ['Blind Rage', 'Transient Fortitude', 'Umbral Intensify'];
+      core = statFirst.concat(WS_FRAME_CORES[arch]);
+    } else core = WS_FRAME_CORES[focus === 'crit' ? 'platform' : arch];
+
+    if (aug) tryAdd(aug.name, augWhy);
+    for (var ci = 0; ci < core.length && picks.length < 8; ci++) tryAdd(core[ci], '');
+    if (quals.steelPath) { tryAdd('Adaptation', 'Steel Path survival.'); tryAdd('Rolling Guard', 'Steel Path survival.'); }
+    flexSlot([]);
+  } else if (cls === 'melee') {
+    var mBase = focus === 'status'
+      ? ['Condition Overload', 'Primed Pressure Point', 'Pressure Point']
+      : ['Primed Pressure Point', 'Pressure Point'];
+    slot(mBase, 'Base damage —');
+    if (focus === 'status') {
+      tryAdd('Weeping Wounds', 'Status engine —');
+      elemSlots('viral', false, 'Status element');
+      elemSlots('corrosive', false, 'Second combo');
+      tryAdd(WS_FLAT_STATUS.melee, 'Flat status —');
+      tryAdd('Drifting Contact', 'Combo uptime —');
+    } else if (focus === 'offmeta') {
+      slot(['Spoiled Strike', 'Heavy Trauma', 'Buzz Kill'], 'Off-meta pick —');
+      slot(['True Steel', 'Sacrificial Steel'], 'Crit chance —');
+      elemSlots(wsComboFor(plan, profile, seed), seed % 2 === 0, 'Element');
+      flexSlot(['Collision Force', 'Primed Heavy Trauma']);
+    } else {
+      if (isCritProfile || focus === 'crit' || focus === 'damage') {
+        slot(['Blood Rush', 'True Steel', 'Sacrificial Steel'], 'Crit chance —');
+        slot(['Organ Shatter', 'Gladiator Might'], 'Crit damage —');
+      }
+      if (isStatusProfile || quals.steelPath) tryAdd('Condition Overload', 'Status payoff —');
+      elemSlots(wsComboFor(plan, profile, seed), focus === 'damage', 'Element');
+      if (focus === 'damage' || quals.steelPath) slot(['Primed Smite Grineer', 'Smite Grineer'], 'Faction damage —');
+      flexSlot([]);
+    }
+    flexSlot([]);
+  } else {
+    /* guns: rifle / shotgun / pistol */
+    var baseCands = cls === 'shotgun' ? ['Primed Point Blank', 'Point Blank']
+      : cls === 'pistol' ? ['Hornet Strike', 'Magnum Force'] : ['Serration', 'Heavy Caliber'];
+    var msCands = cls === 'shotgun' ? ['Galvanized Hell', "Hell's Chamber"]
+      : cls === 'pistol' ? ['Galvanized Diffusion', 'Barrel Diffusion'] : ['Galvanized Chamber', 'Split Chamber'];
+    var ccCands = cls === 'shotgun' ? ['Blunderbuss', 'Laser Sight']
+      : cls === 'pistol' ? ['Primed Pistol Gambit', 'Pistol Gambit', 'Creeping Bullseye'] : ['Point Strike', 'Critical Delay', 'Argon Scope'];
+    var cdCands = cls === 'shotgun' ? ['Primed Ravage', 'Ravage']
+      : cls === 'pistol' ? ['Primed Target Cracker', 'Target Cracker'] : ['Vital Sense', 'Hammer Shot'];
+    var hmCands = cls === 'pistol' ? ['Hemorrhage'] : ['Hunter Munitions'];
+    var baneCands = cls === 'shotgun' || cls === 'rifle' || cls === 'pistol' ? ['Primed Bane of Grineer', 'Bane of Grineer'] : [];
+
+    if (focus === 'offmeta') {
+      slot(baseCands.slice().reverse(), 'Base damage —');
+      slot(msCands.slice().reverse(), 'Multishot —');
+      elemSlots(wsComboFor(plan, profile, seed), seed % 2 === 0, 'Element');
+      slot(['Bladed Rounds', 'Fanged Fusillade', 'Wildfire', 'Seeking Force', 'Metal Auger', 'Crash Course'], 'Off-meta pick —');
+      flexSlot(['Tainted Mag', 'Stabilizer', 'Sure Shot']);
+    } else if (focus === 'status') {
+      slot(baseCands, 'Base damage —');
+      slot(msCands, 'Multishot —');
+      elemSlots('viral', false, 'Status element');
+      elemSlots('radiation', false, 'Second combo');
+      tryAdd(WS_FLAT_STATUS[cls], 'Flat status —');
+      flexSlot([]);
+    } else {
+      slot(baseCands, 'Base damage —');
+      slot(msCands, 'Multishot —');
+      var critLean = focus === 'crit' || focus === 'damage' || isCritProfile || (!isStatusProfile && focus === 'profile');
+      if (critLean) {
+        if (seed % 2 === 0 && focus === 'damage') ccCands = ccCands.slice().reverse();
+        slot(ccCands, 'Crit chance —');
+        slot(cdCands, 'Crit damage —');
+        slot(hmCands, 'Slash engine —');
+      }
+      elemSlots(wsComboFor(plan, profile, seed), focus === 'damage', 'Element');
+      if ((focus === 'damage' || quals.steelPath) && seed % 2 === 0) slot(baneCands, 'Faction damage —');
+      else if (quals.steelPath) slot(baneCands, 'Faction damage —');
+      if (isStatusProfile && !critLean) tryAdd(WS_FLAT_STATUS[cls], 'Flat status —');
+      flexSlot([]);
+    }
+    flexSlot([]);
+  }
+
+  /* top up to a full 8 from the class filler pool (all DB-verified) */
+  var fillPool = FILLER_POOL[cls] || [];
+  for (var fi = 0; fi < fillPool.length && picks.length < 8; fi++) tryAdd(fillPool[fi], 'Workshop filler — a strong legal staple for the slot.');
+  if (picks.length !== 8) return null;
+
+  var aura = '', exilus = '', arcane = '';
+  if (found.kind === 'warframe') {
+    aura = wsAuraFor(found, plan, profile, seed);
+    exilus = wsExilusFor(found, plan, seed);
+    arcane = wsArcaneFor(found, plan, profile);
+  } else {
+    arcane = wsWeaponArcaneFor(cls, plan);
+  }
+
+  var focusTitles = {
+    damage: 'Full Damage', status: 'Status Storm', crit: 'Crit Hunter',
+    offmeta: 'Off-Meta Experiment', profile: 'Original Mix', element: (plan.element ? plan.element.charAt(0).toUpperCase() + plan.element.slice(1) : 'Element') + ' Mix',
+    ability: (plan._abilityName ? plan._abilityName + ' Focus' : 'Ability Focus')
+  };
+  var build = {
+    name: found.e.name + ' — ' + (focusTitles[focus] || 'Workshop Original'),
+    item: found.e.name,
+    category: wsBuildCategory(found),
+    tags: ['workshop'],
+    description: '',
+    playstyle: '',
+    aura: aura, exilus: exilus, arcane: arcane,
+    mods: picks.map(function (p) { return { name: p.name, note: p.note }; })
+  };
+  return { build: build, profile: profile };
+}
+
+/* aura for a Workshop frame build — a real aura mod from the database */
+function wsAuraFor(found, plan, profile, seed) {
+  var byArch = {
+    caster: ['Growing Power', 'Corrosive Projection'],
+    support: ['Energy Siphon', 'Rejuvenation', 'Growing Power'],
+    tank: ['Steel Charge', 'Physique', 'Rejuvenation'],
+    platform: ['Growing Power', 'Corrosive Projection']
+  };
+  var cands = [];
+  if (plan.focus === 'offmeta') cands = ['Loot Detector', 'Enemy Sense', 'Sprint Boost', 'Physique', 'Dead Eye'];
+  if (plan.focus === 'damage' || plan.focus === 'ability') cands = cands.concat(['Growing Power']);
+  cands = cands.concat(byArch[profile.arch] || [], ['Corrosive Projection', 'Brief Respite', 'Energy Siphon']);
+  for (var i = 0; i < cands.length; i++) {
+    if (findModExact(cands[i]) && isAuraMod(cands[i])) return cands[i];
+  }
+  return '';
+}
+
+/* exilus for a Workshop frame build — verified against the DB + class */
+function wsExilusFor(found, plan, seed) {
+  var cands = plan.focus === 'offmeta'
+    ? ['Rush', 'Mobilize', 'Firewalker', 'Lightning Dash', 'Ice Spring', 'Toxic Flight']
+    : ['Power Drift', 'Cunning Drift', 'Coaction Drift', 'Rush', 'Mobilize'];
+  for (var i = 0; i < cands.length; i++) {
+    if (findModExact(cands[i]) && modFitsClass(cands[i], 'warframe', found.e.name) && !isAuraMod(cands[i])) return cands[i];
+  }
+  return '';
+}
+
+/* arcane for a Workshop frame build — must exist in the arcanes DB */
+function wsArcaneFor(found, plan, profile) {
+  var byArch = {
+    caster: ['Arcane Energize', 'Arcane Steadfast', 'Molt Augmented'],
+    support: ['Arcane Energize', 'Arcane Guardian', 'Molt Efficiency'],
+    tank: ['Arcane Guardian', 'Arcane Grace', 'Arcane Tanker'],
+    platform: ['Arcane Avenger', 'Arcane Fury', 'Molt Augmented']
+  };
+  var cands = (byArch[profile.arch] || []).concat(['Arcane Energize', 'Molt Augmented']);
+  for (var i = 0; i < cands.length; i++) {
+    if (findByName(D.arcanes, cands[i])) return cands[i];
+  }
+  return '';
+}
+function wsWeaponArcaneFor(cls, plan) {
+  var cands = cls === 'melee' ? ['Melee Influence', 'Melee Crescendo', 'Melee Exposure']
+    : cls === 'pistol' ? ['Secondary Merciless', 'Secondary Deadhead', 'Secondary Encumber']
+    : ['Primary Merciless', 'Primary Deadhead', 'Primary Blight'];
+  for (var i = 0; i < cands.length; i++) {
+    if (findByName(D.arcanes, cands[i])) return cands[i];
+  }
+  return '';
+}
+
+/* One repair pass: drop any mod that fails the real-mod / class / dupe /
+   aura checks, refill from DB-legal filler, fix aura/exilus. Returns the
+   repaired build or null — an invalid build is never displayed. */
+function wsRepair(build) {
+  var cls = buildClassOf(build);
+  if (!cls) return null;
+  var used = {}, mods = [];
+  (build.mods || []).forEach(function (m) {
+    var n = m && m.name;
+    if (!n || used[norm(n)]) return;
+    if (!findModExact(n) || isAuraMod(n) || !modFitsClass(n, cls, build.item)) return;
+    used[norm(n)] = 1;
+    mods.push({ name: n, note: m.note || '' });
+  });
+  var pool = FILLER_POOL[cls] || [];
+  for (var i = 0; i < pool.length && mods.length < 8; i++) {
+    var pn = pool[i];
+    if (used[norm(pn)] || !findModExact(pn) || !modFitsClass(pn, cls, build.item)) continue;
+    used[norm(pn)] = 1;
+    mods.push({ name: pn, note: 'Workshop repair — a verified legal staple swapped in to keep this build legal.' });
+  }
+  if (mods.length !== 8) return null;
+  var out = {
+    name: build.name, item: build.item, category: build.category, tags: build.tags || ['workshop'],
+    description: '', playstyle: build.playstyle || '',
+    aura: build.aura || '', exilus: build.exilus || '', arcane: build.arcane || '',
+    mods: mods
+  };
+  if (out.aura && (cls !== 'warframe' || !isAuraMod(out.aura))) out.aura = '';
+  if (out.exilus && (!findModExact(out.exilus) || !modFitsClass(out.exilus, cls, out.item))) out.exilus = '';
+  return buildIsValid(out) ? out : null;
+}
+
+/* Capacity sanity check (v2.21.0): drains come from the live item data
+   fetched during the research stage ({normName: maxDrain}). Budgets are
+   the standard no-Forma ones — 60 for a Catalyst weapon, 60 + aura bonus
+   for a Reactor frame. One swap attempt (highest-drain pick → lowest-
+   drain legal filler); the outcome is reported honestly on the card:
+   'ok' (verified fits), 'over' (a Forma is part of the plan), or
+   'unknown' (drain data incomplete — no claim is made). */
+function wsCapacity(build, drains) {
+  if (!drains) return 'unknown';
+  var cls = buildClassOf(build);
+  var cap = cls === 'warframe' ? 60 + (drains[norm(build.aura || '')] || 14) : 60;
+  function total(b) {
+    var sum = 0, known = true;
+    b.mods.forEach(function (m) {
+      var d = drains[norm(m.name)];
+      if (d == null) known = false; else sum += d;
+    });
+    if (b.exilus) { var dx = drains[norm(b.exilus)]; if (dx == null) known = false; else sum += dx; }
+    return known ? sum : -1;
+  }
+  var t = total(build);
+  if (t === -1) return 'unknown';
+  if (t <= cap) { build._capNote = 'ok'; return build; }
+  /* one repair attempt: swap the priciest pick for the cheapest legal filler */
+  var pool = (FILLER_POOL[cls] || []).filter(function (n) {
+    return drains[norm(n)] != null && !build.mods.some(function (m) { return norm(m.name) === norm(n); }) &&
+      findModExact(n) && modFitsClass(n, cls, build.item);
+  }).sort(function (a, b) { return drains[norm(a)] - drains[norm(b)]; });
+  if (pool.length) {
+    var idx = -1, maxD = -1;
+    build.mods.forEach(function (m, i) { var d = drains[norm(m.name)] || 0; if (d > maxD) { maxD = d; idx = i; } });
+    var clone = JSON.parse(JSON.stringify(build));
+    clone.mods[idx] = { name: pool[0], note: 'Capacity swap — the Workshop traded this slot to a lower-drain staple so the build fits a standard setup.' };
+    if (buildIsValid(clone) && total(clone) !== -1 && total(clone) <= cap) { clone._capNote = 'ok'; return clone; }
+  }
+  build._capNote = 'over';
+  return build;
+}
+
+/* Compose + validate (+ one repair). Returns {build, profile} or null. */
+function workshopCompose(q, researched) {
+  var plan = workshopPlan(q);
+  if (!plan) return null;
+  var found = { kind: plan.kind, e: plan.e };
+  var res = wsCompose(found, plan, researched);
+  if (!res) return null;
+  var build = res.build;
+  if (!buildIsValid(build)) {
+    build = wsRepair(build);
+    if (!build) return null;
+  }
+  return { build: build, profile: res.profile, plan: plan };
+}
+
+/* Render a composed build on the standard card, with the Workshop label.
+   Copy payloads come from buildCard's store, so Copy always matches the
+   mods on screen. */
+function workshopRender(build, plan, profile) {
+  var focusLines = {
+    damage: 'You asked for <b>full damage</b> — no survival padding, no half measures.',
+    status: 'You asked for <b>status</b> — this composition stacks procs first and asks questions later.',
+    crit: 'You asked for <b>crit</b> — this composition lives on crit chance and crit damage.',
+    offmeta: 'You asked for <b>weird / off-meta</b> — this composition deliberately steps off the beaten path (every mod still real, still legal).',
+    element: 'You asked for a <b>' + esc(plan.element || 'element') + '</b> composition.',
+    ability: 'You asked for a build <b>focused on ' + esc(plan._abilityName || plan.abilityPhrase || 'its signature ability') + '</b>.',
+    profile: 'An original composition, built around what the research says this item actually does.'
+  };
+  var ground = '';
+  if (plan.kind === 'weapon') {
+    ground = 'Research first: <b>' + esc(plan.item) + '</b> rolls <b>' + profile.cc + '% crit</b> (×' + profile.cm +
+      ' damage) and <b>' + profile.sc + '% status</b>' +
+      (profile.innate.length ? ', dealing mostly <b>' + esc(profile.innate.slice(0, 3).join(' / ')) + '</b>' : '') +
+      (profile.live ? ' — live item data, pulled just now.' : ' — from the Vault\'s data.');
+  } else {
+    ground = 'Research first: <b>' + esc(plan.item) + '</b> is a <b>' + esc(profile.arch || 'versatile') +
+      '-archetype frame' + (plan._abilityName ? ', and this brief centers <b>' + esc(plan._abilityName) + '</b>' : '') +
+      (profile.live ? ' — kit confirmed against live data just now.' : ' — from the Vault\'s data.');
+  }
+  var capLine = build._capNote === 'ok'
+    ? ' Capacity-verified against live drain data: fits a standard Catalyst/Reactor setup, no Forma assumed.'
+    : build._capNote === 'over'
+    ? ' Heads-up: at max rank this set runs over a no-Forma capacity — a Forma or two is part of the plan.'
+    : '';
+  var card = buildCard({
+    title: build.name,
+    aura: vbcCleanSlot(build.aura),
+    exilus: vbcCleanSlot(build.exilus),
+    mods: build.mods.map(function (m) { return m.name; }),
+    arcanes: vbcArcanes(build.arcane),
+    note: 'Composed in the Workshop for this brief.' + capLine
+  });
+  var rows = build.mods.map(function (m, i) {
+    var fm = findModExact(m.name);
+    return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(m.name) + '</b>' +
+      (m.note ? '<div class="muted small">' + esc(m.note) + '</div>' : '') +
+      (fm ? modFarmLine(fm) : '') + '</div></div>';
+  }).join('');
+  return '<p>🛠 <b>Vaulty Original</b> — composed just now from real mods.</p>' +
+    '<p>' + (focusLines[plan.focus] || focusLines.profile) + ' ' + ground + '</p>' +
+    card + rows +
+    '<p class="muted small">Every mod is real and checked against the database; the combination is new — this build is not from the library.</p>' +
+    alternativesHtml(build.item, null) +
+    '<p class="muted small">Want a different flavor? Rephrase the brief — <i>"design a status ' + esc(plan.item) +
+    ' build"</i>, <i>"weird off-meta ' + esc(plan.item) + '"</i> — and the Workshop will compose again.</p>';
+}
+
+/* Workshop failure path: the item's library card if one exists (proven
+   beats invented), else null so the caller can serve the honest
+   don't-know + research buttons. */
+function workshopFallback(itemName) {
+  var libs = libraryBuildsFor(itemName);
+  if (libs.length) return buildAnswer(libs[0]);
+  return null;
 }
 
   /* ===== STEEL PATH ONE-SHOT KNOWLEDGE BASE =====
@@ -2009,6 +2652,16 @@ function oneShotBuildAnswer(t) {
       var spItem = findItemInText(D.warframes, t) || findItemInText(D.weapons, t);
       if (!spItem) return STEEL_PATH_GENERAL;
     }
+    /* v2.21.0: THE WORKSHOP — a creative build brief ("design…", "come up
+       with…", "weird off-meta…", "full damage…", "focused on <ability>…")
+       for a named item is handed to the Workshop (js/vaulty-workshop.js),
+       which researches the item and composes an ORIGINAL build from real
+       mods. This runs before the qualifier interception and the library:
+       a creative brief is a request for invention, and the Workshop
+       honors qualifiers itself. Plain asks and qualifier-only asks keep
+       their instant paths below. */
+    var wsPlanFound = workshopPlan(q);
+    if (wsPlanFound) return workshopHandoffHtml(wsPlanFound);
     /* v2.19.6: qualifiers are enforced, not decorative. A budget / beginner /
        status / crit ask for a named item is answered by qualifiedBuildAnswer
        BEFORE the one-shot templates and library interception below, which
@@ -2295,10 +2948,13 @@ function oneShotBuildAnswer(t) {
     }
     loadData().then(function () {
       var html = answer(q);
-      /* v2.20.0: guide misses get logged anonymously and researched live
-         (staged progress + Stop) instead of dead-ending — see
-         js/vaulty-research.js. The don't-know remains the last resort. */
-      if (window.TVResearch && TVResearch.isMiss(html)) {
+      /* v2.21.0: a creative build brief is a Workshop handoff — the
+         Workshop researches the item (staged progress + Stop) and
+         composes an original build from real mods. Checked before the
+         miss path: a handoff is not a miss. */
+      if (window.TVWorkshop && TVAI._workshopIsHandoff(html)) {
+        TVWorkshop.handle(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+      } else if (window.TVResearch && TVResearch.isMiss(html)) {
         TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
       } else {
         addMsg(html, 'bot');
@@ -2394,5 +3050,18 @@ function oneShotBuildAnswer(t) {
     });
   }
 
-  window.TVAI = { init: init, toggle: toggle, _answer: answer, _load: loadData, _research: researchMarkup, _validateAnswer: validateAnswerText };
+  window.TVAI = {
+    init: init, toggle: toggle, _answer: answer, _load: loadData, _research: researchMarkup,
+    _validateAnswer: validateAnswerText,
+    /* v2.21.0: Workshop hooks for js/vaulty-workshop.js */
+    _workshopPlan: workshopPlan,
+    _workshopCompose: workshopCompose,
+    _workshopRender: workshopRender,
+    _workshopFallback: workshopFallback,
+    _workshopIsHandoff: function (html) { return String(html || '').indexOf('vai-workshop-handoff') !== -1; },
+    _workshopVerify: function (build, drains) {
+      if (!build || !buildIsValid(build)) return null;
+      return wsCapacity(build, drains);
+    }
+  };
 })();

@@ -110,6 +110,7 @@
     'LIVE QUESTIONS: if the Tenno asks about RIGHT NOW in-game (Baro Ki\'Teer, current events, fissures, Nightwave, the latest hotfix), the app answers those itself from the live worldstate feed — never guess at timers, dates, or stock lists from memory.',
     'RIVEN STATUS: Riven trading is temporarily disabled in-game right now (DE PSA, Oct 2026). Unveiling, rolling and using your own Rivens still works. DE is also retiring Riven dispositions, so every Riven is settling at a fixed 1.2 disposition.',
     'BUILDS RULE: never write out a mod list for a specific Warframe or weapon yourself — the app intercepts build questions and answers them from its verified build library. If a build request somehow reaches you anyway, explain the FORMULA and point to the Builds page instead of listing mods. Weapons have no aura slot: never put an aura mod in a weapon build.',
+    'WORKSHOP RULE: the app also composes ORIGINAL builds in its Workshop — but composition is done by the app\'s engine from its verified mod database, never by you. You may discuss archetypes and emphasis in prose around an engine-made build; you may not author, add to, or "improve" a mod list. Any mod name you write must be a real, existing mod — an invented mod name gets the whole answer discarded and replaced.',
     'HONESTY RULE: if you truly don\'t know a specific fact, say "I don\'t know that one" plainly — the app will offer the Tenno one-tap research buttons. Never invent drop locations, prices, dates, patch details, mod names, mod effects, or farm sources.'
   ].join('\n');
 
@@ -332,6 +333,13 @@
     }
     FALLBACK._load().then(function () {
       var html = FALLBACK._answer(q);
+      /* v2.21.0: a creative build brief is a Workshop handoff in every
+         mode — the Workshop researches the item and composes an original
+         build from real mods (the model never authors the mod list). */
+      if (window.TVWorkshop && FALLBACK._workshopIsHandoff && FALLBACK._workshopIsHandoff(html)) {
+        TVWorkshop.handle(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+        return;
+      }
       /* v2.20.0: a guide miss is no longer a dead-end. The question is
          logged anonymously (text only) and Vaulty RESEARCHES it live —
          staged progress bar with a Stop button — in guide mode, AI mode,
