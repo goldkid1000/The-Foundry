@@ -68,6 +68,21 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    /* ---------- Vaulty anonymous miss log (no login, v2.20.0) ----------
+       Questions Vaulty couldn't answer, logged so the guide can learn
+       them. Question TEXT ONLY by rule: the only keys a client may write
+       are q (the question), ts (timestamp) and v (app version). No
+       identifiers, no IP, no account or device fields are permitted. */
+    match /vaulty-misses/{missId} {
+      allow read: if false;   // owner reads in Firebase console
+      allow create: if true
+        && request.resource.data.keys().hasOnly(['q', 'ts', 'v'])
+        && request.resource.data.q is string
+        && request.resource.data.q.size() > 0
+        && request.resource.data.q.size() <= 300;
+      allow update, delete: if false;
+    }
+
     /* ---------- community chat (no login) ---------- */
     match /chat/{messageId} {
       allow read: if true;

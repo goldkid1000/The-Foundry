@@ -225,6 +225,12 @@
     checkModelCached().then(function (cached) {
       modelCached = !!cached;
       if (modelCached) {
+        /* v2.20.0: the model is already on this device — say so, keep the
+           storage persistent, and load from cache. The download box must
+           NEVER appear for a device that already has the model, across
+           any number of app updates (the model cache is version-
+           independent and nothing in the update path may evict it). */
+        requestPersist();
         runEngine('Loading AI from this device…');
       } else {
         setStatus('AI not downloaded');
@@ -260,7 +266,7 @@
       modelCached = true;
       hideProgress();
       hideDownloadBox();
-      setStatus('AI ready ✓', 'ready');
+      setStatus('AI ready on this device', 'ready');
       addMsg('AI engine loaded — ask me anything about builds, mods, farms, or Steel Path. I answer from real Warframe knowledge now, not just keyword matching.', 'bot');
     }).catch(function () {
       engineLoading = false;
@@ -325,7 +331,17 @@
       return;
     }
     FALLBACK._load().then(function () {
-      addMsg(FALLBACK._answer(q), 'bot');
+      var html = FALLBACK._answer(q);
+      /* v2.20.0: a guide miss is no longer a dead-end. The question is
+         logged anonymously (text only) and Vaulty RESEARCHES it live —
+         staged progress bar with a Stop button — in guide mode, AI mode,
+         and on iOS alike. The honest don't-know stays as the last resort
+         if research finds nothing. */
+      if (window.TVResearch && TVResearch.isMiss(html)) {
+        TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+      } else {
+        addMsg(html, 'bot');
+      }
     }).catch(function () {
       addMsg('Couldn\'t load the Vault\'s data — try reloading the page.', 'bot');
     });
@@ -339,9 +355,17 @@
   function finishAIAnswer(q, full, botEl) {
     var render = function () {
       var finalHtml = md(full);
-      /* model admitted it doesn't know → offer real research */
-      if (UNCERTAIN_RE.test(full) && FALLBACK && FALLBACK._research) {
-        finalHtml += FALLBACK._research(q);
+      /* v2.20.0: model admitted it doesn't know → don't just append
+         research buttons; actually research it (staged progress), with
+         the draft + buttons as the fallback if research finds nothing. */
+      if (UNCERTAIN_RE.test(full) && window.TVResearch) {
+        if (FALLBACK && FALLBACK._research) finalHtml += FALLBACK._research(q);
+        if (botEl) { botEl.remove(); botEl = null; }
+        TVResearch.handleMiss(q, finalHtml, els.msgs, function (h) { addMsg(h, 'bot'); });
+        history.push({ role: 'user', content: q });
+        history.push({ role: 'assistant', content: '(researched live — not in the verified data)' });
+        if (history.length > 12) history = history.slice(-12);
+        return;
       }
       if (botEl) botEl.innerHTML = finalHtml;
       else addMsg(finalHtml, 'bot');
@@ -428,6 +452,14 @@
     if (!q) return;
     addMsg(q, 'user');
     els.input.value = '';
+    /* v2.20.0: on-device memory — remember the question (this device
+       only, nothing uploaded) and resolve "my usual" to the Tenno's
+       most-asked item before routing. */
+    if (window.TVMemory) {
+      TVMemory.recordExchange(q);
+      var usual = TVMemory.resolveUsual(q);
+      if (usual) q = usual;
+    }
     /* v2.19.0: time-sensitive questions are answered from the live
        worldstate feed (same data as the Live page), never from the
        model's memory — timers and stock change too fast to guess at. */
@@ -490,7 +522,7 @@
        never a stale "Loading AI…" (v2.19.1) and never a claim the cache
        check hasn't backed up (v2.19.2) */
     if (show && opened && !engineLoading) {
-      if (engine) setStatus('AI ready ✓', 'ready');
+      if (engine) setStatus('AI ready on this device', 'ready');
       else if (isIOS()) setStatus(GUIDE_ONLY_STATUS, 'fallback');
       else if (!hasWebGPU()) setStatus('AI unavailable on this device', 'fallback');
       else if (engineFailed) setStatus('Vault Guide — quick answers', 'fallback');
@@ -500,6 +532,24 @@
       opened = true;
       addMsg("Hey Tenno! ◈ I can help with builds, farming, mods — anything Warframe. " +
         "Try a suggestion below or just ask.", 'bot');
+      /* v2.20.0: on-device memory personalization — a welcome-back line
+         and a "your usual" chip for the Tenno's most-asked item. */
+      if (window.TVMemory) {
+        var wb = TVMemory.welcomeBackLine();
+        if (wb) addMsg(wb, 'bot');
+        var mMain = TVMemory.main();
+        if (mMain) {
+          var chipsEl = els.panel.querySelector('.vai-chips');
+          if (chipsEl && !chipsEl.querySelector('.vai-chip-usual')) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'vai-chip vai-chip-usual';
+            chip.textContent = '⭐ My usual: ' + mMain.name + ' build';
+            chip.addEventListener('click', function () { ask(mMain.name + ' build'); });
+            chipsEl.insertBefore(chip, chipsEl.firstChild);
+          }
+        }
+      }
       if (isIOS()) {
         /* v2.19.3: iPhone/iPad — guide mode permanently, WebLLM never loads */
         engineFailed = true;
@@ -599,6 +649,10 @@
       '<div class="vai-chips">' +
       CHIPS.map(function (c) { return '<button type="button" class="vai-chip">' + esc(c) + '</button>'; }).join('') +
       '</div>' +
+      '<div class="vai-foot">' +
+      '<button type="button" id="vai-mem-btn" class="vai-mem-btn">🧠 What Vaulty remembers</button>' +
+      '<p class="muted small">Unanswered questions are logged anonymously so Vaulty can learn them. ' +
+      'Vaulty\'s memory of you stays on this device — nothing is uploaded.</p></div>' +
       '<form id="vai-form"><input id="vai-input" type="text" autocomplete="off" ' +
       'placeholder="Ask about builds, farms, mods…" aria-label="Ask the Vault">' +
       '<button type="submit" aria-label="Send">➤</button></form>';
@@ -614,6 +668,11 @@
 
     panel.querySelector('#vai-close').addEventListener('click', function () { toggle(false); });
     panel.querySelector('#vai-dlbtn').addEventListener('click', startDownload);
+    var memBtn = panel.querySelector('#vai-mem-btn');
+    if (memBtn) memBtn.addEventListener('click', function () {
+      if (window.TVMemory) addMsg(TVMemory.viewHtml(), 'bot');
+      else addMsg('Memory isn\'t available on this page — it lives in the Vault Guide panel.', 'bot');
+    });
     els.form.addEventListener('submit', function (e) {
       e.preventDefault();
       ask(els.input.value.trim());

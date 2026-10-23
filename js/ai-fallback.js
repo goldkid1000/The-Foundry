@@ -80,7 +80,18 @@
       n = norm(list[i].name);
       if (n.indexOf(q) === 0 && q.length >= 4) return list[i];
     }
-    for (i = 0; i < list.length; i++) { if (norm(list[i].name).indexOf(q) !== -1) return list[i]; }
+    for (i = 0; i < list.length; i++) {
+      n = norm(list[i].name);
+      var idx = n.indexOf(q);
+      if (idx === -1) continue;
+      /* v2.20.0: short queries must match at a word boundary — "aya" used
+         to fuzzy-hit "Gnashing Payara" (a fish mod) and answer an Aya farm
+         question with fish drop tables. Mid-word matches on ≤4-letter
+         queries are almost never the intent. */
+      if (q.length <= 4 && idx > 0 && n.charAt(idx - 1) !== ' ') continue;
+      return list[i];
+    }
+
     /* fuzzy: allow 1-2 typos on names of similar length.
        v2.19.0: for short queries the first letter must match — otherwise
        "kuva" typo-matched "Nova" (distance 2) and farm questions about
@@ -1654,6 +1665,64 @@ function oneShotBuildAnswer(t) {
    generator, before the generic farm intent — patterns are kept narrow so
    specific item lookups still win. */
   var KNOWLEDGE = [
+    /* v2.20.0 training pass 1: entries added from the probe battery's top
+       misses (tools/vaulty-probe). Facts verified against the Warframe
+       Wiki — keep them evergreen (no dates, no prices). */
+    {
+      re: /\baya\b/,
+      html: '<b>Aya</b> is the Prime Resurgence currency — you spend it at <b>Varzia</b> (Maroo\'s Bazaar, Mars) ' +
+        'on Void Relics and returning Prime gear.<p><b>Best farm:</b> high-level open-world bounties — the top-tier ' +
+        'bounties on the <b>Zariman</b>, with the <b>Cavia</b> (Sanctum Anatomica), <b>Hex</b> (Höllvania), Cetus, Fortuna ' +
+        'and Deimos bounties close behind. <b>Void missions</b> (fast captures like Ukko and Hepit) are a steady solo alternative.</p>' +
+        '<p class="muted small">Regal Aya is the paid twin — Aya itself is 100% farmable. What\'s in stock rotates with Prime Resurgence.</p>'
+    },
+    {
+      re: /best (aura|auras)|which aura|top aura|good aura/,
+      html: '<b>Aura mods</b> — the short list that matters (auras slot on your <i>Warframe</i>, never on a weapon):' +
+        '<p>🛡 <b>Corrosive Projection</b> — reduces enemy armor for the whole squad; the Steel Path default.</p>' +
+        '<p>💪 <b>Growing Power</b> — +Power Strength whenever you inflict a status proc; great on status-heavy frames.</p>' +
+        '<p>🌀 <b>Brief Respite</b> — converts energy spent into shields; the shield-gating aura.</p>' +
+        '<p>🔋 <b>Energy Siphon</b> — passive energy regen; the comfort pick for ability-hungry frames.</p>' +
+        '<p>⚔️ <b>Steel Charge</b> — +melee damage and the highest capacity of any aura (polarity space for pricey builds).</p>' +
+        '<p class="muted small">Match the aura\'s polarity to your frame\'s aura slot and it <i>adds</i> mod capacity instead of costing it.</p>'
+    },
+    {
+      re: /best (starter|starting|first) (frame|warframe)|starter frame|which (frame|warframe).*(start with|beginner|first)/,
+      html: '<b>Best starter frames:</b>' +
+        '<p>⚔️ <b>Excalibur</b> — the starter pick for a reason: simple, strong, and his Exalted Blade carries you deep into the star chart.</p>' +
+        '<p>🦏 <b>Rhino</b> — the beginner tank. Farm his parts from the <b>Jackal on Fossa, Venus</b>; Iron Skin makes early mistakes free.</p>' +
+        '<p>🧲 <b>Mag</b> — squishier starter, huge payoff once you learn her bubble combos.</p>' +
+        '<p>⚡ <b>Volt</b> — a starter pick too, and later his parts come from any clan dojo\'s Tenno Lab.</p>' +
+        '<p class="muted small">Honest answer: pick whichever starter looks fun — Rhino is your first big upgrade either way. Ask <i>"make me a Rhino build"</i> when you have him.</p>'
+    },
+    {
+      re: /necramech/,
+      html: '<b>Necramechs</b> are the Entrati\'s Old War walking tanks — you\'ll want one before <b>The New War</b> quest, and they shine in Orphix missions where Warframes get shut down.' +
+        '<p><b>How to get one:</b> go to the <b>Necralisk on Deimos</b> and rank up the <b>Necraloid</b> syndicate (talk to Loid) for the main blueprints — <b>Voidrig</b> first, <b>Bonewidow</b> second. ' +
+        'The <b>Damaged Necramech parts</b> drop from enemy Necramechs in <b>Isolation Vault bounties</b> on the Cambion Drift.</p>' +
+        '<p class="muted small">Build the parts in your Foundry like a Warframe, then deploy the mech from your gear wheel in open worlds and Railjack missions.</p>'
+    },
+    {
+      re: /incarnon/,
+      html: '<b>Incarnon</b> weapons evolve mid-mission: build charge (headshots and kills), then hit <b>alt-fire</b> to transform into the weapon\'s Incarnon Form — new stats, new fire mode, a few seconds of delete.' +
+        '<p><b>Natural Incarnons</b> (Phenmor, Laetum, Felarx, Praedos, Innodem) come from the <b>Zariman</b> — buy their blueprints from <b>Cavalero</b> aboard the Chrysalith.</p>' +
+        '<p><b>Incarnon Genesis adapters</b> graft the system onto older weapons (Braton, Lex, Latron and more): earn them in <b>The Circuit on Steel Path</b> (Duviri), then install at Cavalero with <b>Pathos Clamps</b> and Duviri resources. Each adapter unlocks a perk tree you level by using the weapon.</p>' +
+        '<p class="muted small">Ask <i>"Phenmor build"</i> or <i>"Laetum build"</i> — the Vault\'s one-shot library is built around these.</p>'
+    },
+    {
+      re: /archwing/,
+      html: '<b>Archwing</b> — your flight rig for space and open-world flight.' +
+        '<p><b>How to get it:</b> finish <b>The Archwing</b> quest (it unlocks early, off the Mars path) — you\'ll build the <b>Odonata</b> piece by piece during the quest itself.</p>' +
+        '<p><b>Flying in open worlds</b> needs the <b>Archwing Launcher</b> in your gear wheel: the segment comes from your clan dojo\'s <b>Tenno Lab</b> (or the Market), and launchers are built in the Foundry.</p>' +
+        '<p class="muted small">Favorites once you have options: <b>Amesha</b> (near-unkillable) and <b>Itzal</b> (fast, vacuum looting). Archwing levels also feed your Mastery Rank.</p>'
+    },
+    {
+      re: /\bclan\b/,
+      html: '<b>Clans</b> — joining one is close to mandatory: the clan <b>Dojo</b> is where Tenno Lab research lives (frames like <b>Volt, Wukong, Nezha and Banshee</b>, plus dozens of weapons), and it\'s a trading post too.' +
+        '<p><b>To join:</b> get an invite — ask in <b>Recruiting chat</b> ("LF active clan") or accept any player\'s clan invite, then craft the <b>Clan Key</b> (blueprint from the Market, 12h build) to walk into the Dojo.</p>' +
+        '<p><b>Starting your own</b> is free to create, but you fund every research project solo — most Tenno join an established clan first.</p>' +
+        '<p class="muted small">Check a clan\'s research completion before joining — a finished Tenno Lab saves you weeks.</p>'
+    },
     {
       re: /\brivens?\b.*\b(trade|trading|sell|buy)\b|\b(trade|trading|sell|buy)\b.*\brivens?\b/,
       html: '<b>⚠️ Riven trading is temporarily disabled in-game right now</b> — DE posted a PSA about it (Oct 20), ' +
@@ -2209,6 +2278,12 @@ function oneShotBuildAnswer(t) {
     if (!q) return;
     addMsg(q, 'user');
     els.input.value = '';
+    /* v2.20.0: on-device memory (this device only) + "my usual" */
+    if (window.TVMemory) {
+      TVMemory.recordExchange(q);
+      var usualQ = TVMemory.resolveUsual(q);
+      if (usualQ) q = usualQ;
+    }
     /* v2.19.0: live questions go to the worldstate feed, not stored data */
     if (window.TVLive && window.TVLive.isLive(q)) {
       window.TVLive.answer(q).then(function (html) {
@@ -2219,7 +2294,15 @@ function oneShotBuildAnswer(t) {
       return;
     }
     loadData().then(function () {
-      addMsg(answer(q), 'bot');
+      var html = answer(q);
+      /* v2.20.0: guide misses get logged anonymously and researched live
+         (staged progress + Stop) instead of dead-ending — see
+         js/vaulty-research.js. The don't-know remains the last resort. */
+      if (window.TVResearch && TVResearch.isMiss(html)) {
+        TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+      } else {
+        addMsg(html, 'bot');
+      }
     }).catch(function () {
       addMsg('Couldn\'t load the Vault\'s data — try the retry button on the page, or reload.', 'bot');
     });
@@ -2277,6 +2360,10 @@ function oneShotBuildAnswer(t) {
       '<div class="vai-chips">' +
       CHIPS.map(function (c) { return '<button type="button" class="vai-chip">' + esc(c) + '</button>'; }).join('') +
       '</div>' +
+      '<div class="vai-foot">' +
+      '<button type="button" id="vai-mem-btn" class="vai-mem-btn">🧠 What Vaulty remembers</button>' +
+      '<p class="muted small">Unanswered questions are logged anonymously so Vaulty can learn them. ' +
+      'Vaulty\'s memory of you stays on this device — nothing is uploaded.</p></div>' +
       '<form id="vai-form"><input id="vai-input" type="text" autocomplete="off" ' +
       'placeholder="Ask about builds, farms, mods…" aria-label="Ask the Vault">' +
       '<button type="submit" aria-label="Send">➤</button></form>';
@@ -2291,6 +2378,10 @@ function oneShotBuildAnswer(t) {
     };
 
     panel.querySelector('#vai-close').addEventListener('click', function () { toggle(false); });
+    var memBtn2 = panel.querySelector('#vai-mem-btn');
+    if (memBtn2) memBtn2.addEventListener('click', function () {
+      if (window.TVMemory) addMsg(TVMemory.viewHtml(), 'bot');
+    });
     els.form.addEventListener('submit', function (e) {
       e.preventDefault();
       ask(els.input.value.trim());

@@ -1,0 +1,426 @@
+{
+  "summary": {
+    "when": "2026-10-23T00:59:37.483Z",
+    "total": 50,
+    "scoredByGuide": 44,
+    "liveRouted": 6,
+    "answeredWell": 41,
+    "answeredWrong": 0,
+    "dontKnow": 3,
+    "honestMisses": 4,
+    "researchAttempted": 3,
+    "researchCovered": 3,
+    "stackCovered": 44
+  },
+  "rows": [
+    {
+      "q": "make me a nova prime steel path build",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "budget steflos build with no primed mods",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "status build for kuva zarr",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "make me a saryn build",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "wisp build",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "best beginner build",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what mods for my kuva nukor",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "kronen prime build",
+      "cat": "builds",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "where do i farm argon crystals",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i get orokin cells",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "where can i find tellurium",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "farm neurodes",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "where do i farm plastids",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "best endo farm",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i farm kuva",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "where do i get aya",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i farm sevagoth",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "where do i farm wisp",
+      "cat": "farming",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "when is baro back",
+      "cat": "live",
+      "expect": "live",
+      "miss": true,
+      "verdict": "live-route",
+      "research": null
+    },
+    {
+      "q": "what fissures are active",
+      "cat": "live",
+      "expect": "live",
+      "miss": true,
+      "verdict": "live-route",
+      "research": null
+    },
+    {
+      "q": "nightwave challenges",
+      "cat": "live",
+      "expect": "live",
+      "miss": true,
+      "verdict": "live-route",
+      "research": null
+    },
+    {
+      "q": "what events are on right now",
+      "cat": "live",
+      "expect": "live",
+      "miss": true,
+      "verdict": "live-route",
+      "research": null
+    },
+    {
+      "q": "whats the sortie today",
+      "cat": "live",
+      "expect": "live",
+      "miss": true,
+      "verdict": "live-route",
+      "research": null
+    },
+    {
+      "q": "is it day or night on the plains",
+      "cat": "live",
+      "expect": "live",
+      "miss": false,
+      "verdict": "live-route",
+      "research": null
+    },
+    {
+      "q": "what is a riven",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i unlock steel path",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what is the helminth",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i get a necramech",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what is duviri",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": true,
+      "verdict": "dontknow",
+      "research": {
+        "source": "Live game data (warframestat.us)",
+        "chars": 87
+      }
+    },
+    {
+      "q": "who is the stalker",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": true,
+      "verdict": "dontknow",
+      "research": {
+        "source": "Warframe Wiki",
+        "chars": 502
+      }
+    },
+    {
+      "q": "what does corrosive do",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what is overguard",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": true,
+      "verdict": "dontknow",
+      "research": {
+        "source": "Warframe Wiki",
+        "chars": 207
+      }
+    },
+    {
+      "q": "how do incarnon weapons work",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what are archon shards",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i get an archwing",
+      "cat": "mechanics",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "i'm new what should i do first",
+      "cat": "beginner",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "best starter frame",
+      "cat": "beginner",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i raise my mastery rank",
+      "cat": "beginner",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i join a clan",
+      "cat": "beginner",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what should i spend my starting platinum on",
+      "cat": "beginner",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "how do i make platinum",
+      "cat": "beginner",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what does hunter munitions do",
+      "cat": "mods",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what does adaptation do",
+      "cat": "mods",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "where do i get primed continuity",
+      "cat": "mods",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "best aura mods",
+      "cat": "mods",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "asdfgh qwerty",
+      "cat": "nonsense",
+      "expect": "dontknow",
+      "miss": true,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "what is the best pizza topping",
+      "cat": "nonsense",
+      "expect": "dontknow",
+      "miss": true,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "give me free platinum codes",
+      "cat": "nonsense",
+      "expect": "answer",
+      "miss": false,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "can you beat the game for me",
+      "cat": "nonsense",
+      "expect": "dontknow",
+      "miss": true,
+      "verdict": "well",
+      "research": null
+    },
+    {
+      "q": "will warframe come to switch 3",
+      "cat": "nonsense",
+      "expect": "dontknow",
+      "miss": true,
+      "verdict": "well",
+      "research": null
+    }
+  ]
+}

@@ -1,0 +1,418 @@
+[
+ {
+  "card": true,
+  "cat": "builds",
+  "expect": "answer",
+  "q": "make me a nova prime steel path build"
+ },
+ {
+  "card": true,
+  "cardExcludes": [
+   "Primed",
+   "Galvanized"
+  ],
+  "cat": "builds",
+  "expect": "answer",
+  "q": "budget steflos build with no primed mods"
+ },
+ {
+  "card": true,
+  "cat": "builds",
+  "expect": "answer",
+  "q": "status build for kuva zarr"
+ },
+ {
+  "card": true,
+  "cat": "builds",
+  "expect": "answer",
+  "q": "make me a saryn build"
+ },
+ {
+  "card": true,
+  "cat": "builds",
+  "expect": "answer",
+  "q": "wisp build"
+ },
+ {
+  "any": [
+   "Rhino",
+   "Excalibur",
+   "starter"
+  ],
+  "cat": "builds",
+  "expect": "answer",
+  "q": "best beginner build"
+ },
+ {
+  "any": [
+   "Nukor"
+  ],
+  "cat": "builds",
+  "expect": "answer",
+  "q": "what mods for my kuva nukor"
+ },
+ {
+  "card": true,
+  "cat": "builds",
+  "expect": "answer",
+  "q": "kronen prime build"
+ },
+ {
+  "cat": "farming",
+  "expect": "answer",
+  "has": [
+   "Void"
+  ],
+  "q": "where do i farm argon crystals"
+ },
+ {
+  "any": [
+   "Ceres",
+   "Saturn",
+   "Gabii",
+   "Helene",
+   "Deimos"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "how do i get orokin cells"
+ },
+ {
+  "any": [
+   "Uranus",
+   "Kuva Fortress",
+   "Railjack",
+   "Ophelia"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "where can i find tellurium"
+ },
+ {
+  "any": [
+   "Earth",
+   "Deimos",
+   "Eris",
+   "Lua"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "farm neurodes"
+ },
+ {
+  "any": [
+   "Saturn",
+   "Uranus",
+   "Phobos",
+   "Eris",
+   "Deimos"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "where do i farm plastids"
+ },
+ {
+  "any": [
+   "Arbitration",
+   "Vodyanoi",
+   "Sedna",
+   "Ayatan",
+   "Rathuum",
+   "endo"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "best endo farm"
+ },
+ {
+  "any": [
+   "Kuva",
+   "Survival",
+   "Flood",
+   "Siphon"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "how do i farm kuva"
+ },
+ {
+  "any": [
+   "bounties",
+   "Bounties",
+   "Void",
+   "relic"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "where do i get aya"
+ },
+ {
+  "any": [
+   "Void Storm",
+   "Railjack",
+   "Fissure"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "how do i farm sevagoth"
+ },
+ {
+  "any": [
+   "Ropalolyst",
+   "Jupiter"
+  ],
+  "cat": "farming",
+  "expect": "answer",
+  "q": "where do i farm wisp"
+ },
+ {
+  "cat": "live",
+  "expect": "live",
+  "q": "when is baro back"
+ },
+ {
+  "cat": "live",
+  "expect": "live",
+  "q": "what fissures are active"
+ },
+ {
+  "cat": "live",
+  "expect": "live",
+  "q": "nightwave challenges"
+ },
+ {
+  "cat": "live",
+  "expect": "live",
+  "q": "what events are on right now"
+ },
+ {
+  "cat": "live",
+  "expect": "live",
+  "q": "whats the sortie today"
+ },
+ {
+  "cat": "live",
+  "expect": "live",
+  "q": "is it day or night on the plains"
+ },
+ {
+  "any": [
+   "Riven"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "what is a riven"
+ },
+ {
+  "any": [
+   "star chart",
+   "Steel Path",
+   "Teshin"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "how do i unlock steel path"
+ },
+ {
+  "any": [
+   "Helminth",
+   "Deimos",
+   "ability",
+   "abilities"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "what is the helminth"
+ },
+ {
+  "any": [
+   "Necramech",
+   "Deimos",
+   "Isolation Vault",
+   "Father"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "how do i get a necramech"
+ },
+ {
+  "any": [
+   "Duviri"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "what is duviri"
+ },
+ {
+  "any": [
+   "Stalker"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "who is the stalker"
+ },
+ {
+  "any": [
+   "armor",
+   "Corrosive"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "what does corrosive do"
+ },
+ {
+  "any": [
+   "Overguard"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "what is overguard"
+ },
+ {
+  "any": [
+   "Incarnon"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "how do incarnon weapons work"
+ },
+ {
+  "any": [
+   "shard"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "what are archon shards"
+ },
+ {
+  "any": [
+   "Archwing",
+   "quest"
+  ],
+  "cat": "mechanics",
+  "expect": "answer",
+  "q": "how do i get an archwing"
+ },
+ {
+  "any": [
+   "Excalibur",
+   "star chart"
+  ],
+  "cat": "beginner",
+  "expect": "answer",
+  "q": "i'm new what should i do first"
+ },
+ {
+  "any": [
+   "Excalibur",
+   "Rhino",
+   "Mag"
+  ],
+  "cat": "beginner",
+  "expect": "answer",
+  "q": "best starter frame"
+ },
+ {
+  "any": [
+   "Mastery",
+   "level",
+   "weapons"
+  ],
+  "cat": "beginner",
+  "expect": "answer",
+  "q": "how do i raise my mastery rank"
+ },
+ {
+  "any": [
+   "clan",
+   "Clan"
+  ],
+  "cat": "beginner",
+  "expect": "answer",
+  "q": "how do i join a clan"
+ },
+ {
+  "any": [
+   "slot",
+   "platinum",
+   "Slots"
+  ],
+  "cat": "beginner",
+  "expect": "answer",
+  "q": "what should i spend my starting platinum on"
+ },
+ {
+  "any": [
+   "warframe.market",
+   "prime parts"
+  ],
+  "cat": "beginner",
+  "expect": "answer",
+  "q": "how do i make platinum"
+ },
+ {
+  "any": [
+   "slash",
+   "crit"
+  ],
+  "cat": "mods",
+  "expect": "answer",
+  "q": "what does hunter munitions do"
+ },
+ {
+  "any": [
+   "damage",
+   "resistance",
+   "Adaptation"
+  ],
+  "cat": "mods",
+  "expect": "answer",
+  "q": "what does adaptation do"
+ },
+ {
+  "any": [
+   "Baro"
+  ],
+  "cat": "mods",
+  "expect": "answer",
+  "q": "where do i get primed continuity"
+ },
+ {
+  "any": [
+   "Corrosive Projection",
+   "aura"
+  ],
+  "cat": "mods",
+  "expect": "answer",
+  "q": "best aura mods"
+ },
+ {
+  "cat": "nonsense",
+  "expect": "dontknow",
+  "q": "asdfgh qwerty"
+ },
+ {
+  "cat": "nonsense",
+  "expect": "dontknow",
+  "q": "what is the best pizza topping"
+ },
+ {
+  "cat": "nonsense",
+  "expect": "answer",
+  "q": "give me free platinum codes",
+  "any": [
+   "warframe.market",
+   "prime parts"
+  ]
+ },
+ {
+  "cat": "nonsense",
+  "expect": "dontknow",
+  "q": "can you beat the game for me"
+ },
+ {
+  "cat": "nonsense",
+  "expect": "dontknow",
+  "q": "will warframe come to switch 3"
+ }
+]

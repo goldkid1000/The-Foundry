@@ -2677,3 +2677,16 @@ a.card:hover,a.video-card:hover{border-color:var(--accent);filter:drop-shadow(0 
    chaining through to the page behind the panel. */
 #vault-ai-panel{overscroll-behavior:contain}
 #vai-msgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
+/* v2.20.0: Vaulty research mode + on-device memory */
+.vres-barwrap{height:8px;background:var(--bg2);border-radius:99px;margin:7px 0 5px;overflow:hidden}
+.vres-bar{height:100%;background:linear-gradient(135deg,#0090b8,#00d2ff);border-radius:99px;transition:width .35s ease}
+.vres-title{font-weight:700}
+.vres-stop{margin-top:7px;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:5px 14px;cursor:pointer;font-size:.82rem}
+.vres-stop:hover{border-color:var(--accent)}
+.vai-foot{padding:7px 12px 2px;border-top:1px solid var(--border)}
+.vai-mem-btn{background:none;border:none;color:var(--accent);cursor:pointer;font-size:.82rem;font-weight:600;padding:2px 0}
+.vai-mem-btn:hover{text-decoration:underline}
+.vai-foot .muted{margin:3px 0 5px;line-height:1.4}
+#vmem-view ul{margin:.3em 0;padding-left:1.2em}
+.vmem-clear{margin-top:6px;padding:7px 14px;font-size:.85rem}
