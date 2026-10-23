@@ -2,5 +2,5 @@
  "notes": "The Workshop is open: Vaulty can now INVENT builds — never mods. Ask creatively (\"design a full damage build for Acceltra\", \"make me a weird off-meta Braton build\", \"come up with a Saryn build focused on Spores\") and Vaulty researches the item first (live damage split, crit and status profile), then composes an original build from real mods only, then verifies every mod — slot legality and capacity — before showing it. Composed builds carry a \"🛠 Vaulty Original\" label on the standard card with Copy buttons, plus a why-line for every pick drawn from the mod's real database effect. If a composition can't pass every check, you get the proven library build instead — an invalid build is never shown. Plain build asks stay instant; the on-device AI may discuss a build but still may not author mod lists, and answers naming a mod that doesn't exist are now discarded automatically.",
  "notify": true,
  "updated": "2026-10-22",
- "version": "2.21.0"
+ "version": "2.22.0"
 }

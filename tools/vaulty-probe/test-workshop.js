@@ -1,4 +1,4 @@
-/* v2.21.0 fixtures: THE WORKSHOP — generative build composition.
+/* v2.22.0 fixtures: THE WORKSHOP — generative build composition.
    Loads the REAL js/ai-fallback.js (detection + composer) and
    js/vaulty-workshop.js (research → design → verify orchestration) in a
    Node vm with the site's real data and a canned warframestat fetch.

@@ -618,7 +618,7 @@ function validateAnswerText(text, question) {
     }
     if (!modFitsClass(found[j], cls, itemName)) return false;
   }
-  /* v2.21.0: fabricated-name scan. The checks above prove every REAL mod
+  /* v2.22.0: fabricated-name scan. The checks above prove every REAL mod
      named in the answer is legal for the item — but a model can also slip
      in a mod-shaped name that does not exist at all ("Primed Thunder
      Rounds"). In a build-shaped answer (4+ real mods and an identifiable
@@ -651,7 +651,7 @@ function validateAnswerText(text, question) {
     if (!NAME_RE.test(cand)) continue;
     if (!known[norm(cand)]) return false;
   }
-  /* v2.21.0 (cont.): comma enumerations. A model that lists mods in
+  /* v2.22.0 (cont.): comma enumerations. A model that lists mods in
      prose ("try Serration, Split Chamber, …, and Primed Quantum
      Splitter") produces no list lines for the scan above. When a text
      enumerates 3+ KNOWN mods that way, any other Title-Case phrase
@@ -1369,7 +1369,53 @@ function generateBuild(t) {
   return genWeaponBuild(found.e, parsed.purpose);
 }
 
-/* ---------- v2.21.0: THE WORKSHOP — generative build composition ----------
+/* ---------- v2.22.0: POWER INTENT ----------
+   The owner's test: "what's like the best Octavia prime build where she
+   just kills anything in he way or even like survival and destroying
+   everything" used to return the stock library card — the phrasing has
+   no creative verb, so v2.22.0's Workshop detection never fired. Power
+   intent = superlatives + outcome language on a build ask. It routes to
+   the Workshop with a damage / survival / mixed-power emphasis profile
+   and renders as a full dossier (concept, Helminth, shards, verified
+   math, rotation) — NEVER the stock library card for that item. */
+var POWER_SUPER_RE = /\b(best|strongest|most powerful|ultimate|god[\s-]?tier|meta|top[\s-]?tier|optimal|perfect|max(imum)? (damage|power)|full damage)\b/;
+var POWER_KILL_RE = /\b(kills? (anything|everything|all)|kill everything|destroy(s|ing)? (anything|everything)|melts?|shreds?|wipes?|nukes?|deletes?|one[\s-]?taps?|room[\s-]?clear\w*|unstoppable|broken|annihilat\w+|slaughter\w*|massacre|obliterat\w+)\b/;
+var POWER_SURVIVE_RE = /\b(survival|survive|surviving|unkillable|never (die|dies)|can'?t die|cannot die|immortal|invincible|endless)\b/;
+function powerDetect(t) {
+  if (!/\b(build|loadout|setup)\b/.test(t) && !/one[\s-]?shot/.test(t)) return null;
+  var kill = POWER_SUPER_RE.test(t) || POWER_KILL_RE.test(t);
+  var surv = POWER_SURVIVE_RE.test(t);
+  if (!kill && !surv) return null;
+  /* "best beginner build" is the beginner path, not a power fantasy */
+  if (/\b(beginner|starter|new player)\b/.test(t) && !POWER_KILL_RE.test(t) && !surv) return null;
+  return { emphasis: kill && surv ? 'power' : surv ? 'survival' : 'damage', kill: kill, surv: surv };
+}
+function powerPlan(q) {
+  var t = stripQ(q);
+  var pw = powerDetect(t);
+  if (!pw) return null;
+  /* Creative briefs keep the v2.22.0 workshop path — unless the ask
+     carries strong outcome language (kills / destroys / unkillable /
+     survival), which is the more specific intent and claims the ask. */
+  if (workshopDetect(t) && !POWER_KILL_RE.test(t) && !POWER_SURVIVE_RE.test(t)) return null;
+  var found = null;
+  var f = findItemInText(D.warframes, t);
+  if (f) found = { kind: 'warframe', e: f };
+  else {
+    var w = findItemInText(D.weapons, t);
+    if (w) found = { kind: 'weapon', e: w };
+  }
+  if (!found) return null;
+  return {
+    item: found.e.name, kind: found.kind, e: found.e,
+    focus: pw.emphasis, abilityPhrase: null, element: null,
+    quals: parseQualifiers(t), q: q,
+    power: true, kill: pw.kill, surv: pw.surv,
+    ctxNote: pendingCtxNote || null
+  };
+}
+
+/* ---------- v2.22.0: THE WORKSHOP — generative build composition ----------
    The owner opened the creative door: Vaulty may INVENT BUILDS (original
    compositions) but may NEVER invent MODS. The Workshop composes an
    original 8-mod build for a creative ask ("design…", "come up with…",
@@ -1431,7 +1477,7 @@ function workshopPlan(q) {
   return {
     item: found.e.name, kind: found.kind, e: found.e,
     focus: det.focus, abilityPhrase: det.abilityPhrase, element: det.element,
-    quals: det.quals, q: q
+    quals: det.quals, q: q, ctxNote: pendingCtxNote || null
   };
 }
 
@@ -1441,7 +1487,7 @@ function workshopPlan(q) {
    calls back in to compose. If the Workshop script is missing (a stale
    cached page mid-deploy), the note alone is a graceful answer. */
 function workshopHandoffHtml(plan) {
-  var planJson = JSON.stringify({ item: plan.item, kind: plan.kind, focus: plan.focus });
+  var planJson = JSON.stringify({ item: plan.item, kind: plan.kind, focus: plan.focus, power: !!plan.power, ctxNote: plan.ctxNote || null, steelPath: !!(plan.quals && plan.quals.steelPath) });
   return WORKSHOP_MARK +
     '<div class="vai-workshop-handoff" data-plan="' + esc(planJson) + '" style="display:none"></div>' +
     '<p>🛠 <b>The Workshop</b> — give me a moment, Tenno: I\'m researching <b>' + esc(plan.item) +
@@ -1635,9 +1681,21 @@ function wsCompose(found, plan, researched) {
     } else core = WS_FRAME_CORES[focus === 'crit' ? 'platform' : arch];
 
     if (aug) tryAdd(aug.name, augWhy);
-    for (var ci = 0; ci < core.length && picks.length < 8; ci++) tryAdd(core[ci], '');
-    if (quals.steelPath) { tryAdd('Adaptation', 'Steel Path survival.'); tryAdd('Rolling Guard', 'Steel Path survival.'); }
-    flexSlot([]);
+    if (focus === 'power' || focus === 'survival') {
+      /* v2.22.0 dossier cores — every pick carries a WHY tied to the concept */
+      var labeled = focus === 'power'
+        ? [['Blind Rage', 'Raw power —'], ['Transient Fortitude', 'Raw power —'], ['Umbral Intensify', 'Raw power —'], ['Augur Secrets', 'Raw power —'],
+           ['Adaptation', 'Survival layer —'], ['Rolling Guard', 'Survival layer —'],
+           ['Primed Continuity', 'Keeps the engine running —'], ['Stretch', 'Room-clearing reach —'], ['Primed Flow', 'Energy buffer —']]
+        : [['Adaptation', 'Survival layer —'], ['Rolling Guard', 'Survival layer —'], ['Umbral Vitality', 'Survival layer —'], ['Umbral Fiber', 'Survival layer —'],
+           ['Primed Continuity', 'Keeps defenses up —'], ['Umbral Intensify', 'Defensive scaling —'], ['Stretch', 'Breathing room —'], ['Primed Flow', 'Energy buffer —']];
+      for (var li = 0; li < labeled.length && picks.length < 8; li++) tryAdd(labeled[li][0], labeled[li][1]);
+      flexSlot([]);
+    } else {
+      for (var ci = 0; ci < core.length && picks.length < 8; ci++) tryAdd(core[ci], '');
+      if (quals.steelPath) { tryAdd('Adaptation', 'Steel Path survival.'); tryAdd('Rolling Guard', 'Steel Path survival.'); }
+      flexSlot([]);
+    }
   } else if (cls === 'melee') {
     var mBase = focus === 'status'
       ? ['Condition Overload', 'Primed Pressure Point', 'Pressure Point']
@@ -1719,12 +1777,13 @@ function wsCompose(found, plan, researched) {
   if (found.kind === 'warframe') {
     aura = wsAuraFor(found, plan, profile, seed);
     exilus = wsExilusFor(found, plan, seed);
-    arcane = wsArcaneFor(found, plan, profile);
+    arcane = wsArcanesFor(found, plan, profile).join(' + ');
   } else {
     arcane = wsWeaponArcaneFor(cls, plan);
   }
 
   var focusTitles = {
+    power: 'Full Power', survival: 'Survival Fortress',
     damage: 'Full Damage', status: 'Status Storm', crit: 'Crit Hunter',
     offmeta: 'Off-Meta Experiment', profile: 'Original Mix', element: (plan.element ? plan.element.charAt(0).toUpperCase() + plan.element.slice(1) : 'Element') + ' Mix',
     ability: (plan._abilityName ? plan._abilityName + ' Focus' : 'Ability Focus')
@@ -1739,6 +1798,9 @@ function wsCompose(found, plan, researched) {
     aura: aura, exilus: exilus, arcane: arcane,
     mods: picks.map(function (p) { return { name: p.name, note: p.note }; })
   };
+  /* v2.22.0: a power build gets a named concept of its own, never a
+     library card's name */
+  if (plan.power) build.name = found.e.name + ' — ' + wsConceptName(found, plan, profile);
   return { build: build, profile: profile };
 }
 
@@ -1753,6 +1815,8 @@ function wsAuraFor(found, plan, profile, seed) {
   var cands = [];
   if (plan.focus === 'offmeta') cands = ['Loot Detector', 'Enemy Sense', 'Sprint Boost', 'Physique', 'Dead Eye'];
   if (plan.focus === 'damage' || plan.focus === 'ability') cands = cands.concat(['Growing Power']);
+  if (plan.focus === 'power') cands = cands.concat(['Growing Power']);
+  if (plan.focus === 'survival') cands = cands.concat(['Physique', 'Rejuvenation', 'Growing Power']);
   cands = cands.concat(byArch[profile.arch] || [], ['Corrosive Projection', 'Brief Respite', 'Energy Siphon']);
   for (var i = 0; i < cands.length; i++) {
     if (findModExact(cands[i]) && isAuraMod(cands[i])) return cands[i];
@@ -1784,6 +1848,25 @@ function wsArcaneFor(found, plan, profile) {
     if (findByName(D.arcanes, cands[i])) return cands[i];
   }
   return '';
+}
+/* v2.22.0: dossier frame builds carry TWO arcanes, picked by role and
+   verified against the arcanes DB (Energize / Molt-class for casters,
+   Guardian-class for survival). build.arcane stays a ' + '-joined string —
+   vbcArcanes splits it back into the card's two arcane slots. */
+function wsArcanesFor(found, plan, profile) {
+  var arch = profile.arch || 'platform';
+  var pair;
+  if (plan.focus === 'survival') pair = ['Arcane Guardian', 'Arcane Energize'];
+  else if (plan.focus === 'power' || plan.focus === 'damage') pair = arch === 'tank' ? ['Arcane Guardian', 'Molt Augmented'] : ['Arcane Energize', 'Molt Augmented'];
+  else if (arch === 'support') pair = ['Arcane Energize', 'Arcane Guardian'];
+  else if (arch === 'tank') pair = ['Arcane Guardian', 'Arcane Grace'];
+  else if (arch === 'platform') pair = ['Arcane Avenger', 'Arcane Energize'];
+  else pair = ['Arcane Energize', 'Molt Efficiency'];
+  var out = [];
+  pair.concat(['Arcane Energize', 'Arcane Guardian', 'Arcane Aegis', 'Molt Efficiency', 'Molt Augmented']).forEach(function (n) {
+    if (out.length < 2 && out.indexOf(n) === -1 && findByName(D.arcanes, n)) out.push(n);
+  });
+  return out;
 }
 function wsWeaponArcaneFor(cls, plan) {
   var cands = cls === 'melee' ? ['Melee Influence', 'Melee Crescendo', 'Melee Exposure']
@@ -1828,7 +1911,7 @@ function wsRepair(build) {
   return buildIsValid(out) ? out : null;
 }
 
-/* Capacity sanity check (v2.21.0): drains come from the live item data
+/* Capacity sanity check (v2.22.0): drains come from the live item data
    fetched during the research stage ({normName: maxDrain}). Budgets are
    the standard no-Forma ones — 60 for a Catalyst weapon, 60 + aura bonus
    for a Reactor frame. One swap attempt (highest-drain pick → lowest-
@@ -1867,9 +1950,29 @@ function wsCapacity(build, drains) {
   return build;
 }
 
-/* Compose + validate (+ one repair). Returns {build, profile} or null. */
-function workshopCompose(q, researched) {
-  var plan = workshopPlan(q);
+/* Compose + validate (+ one repair). Returns {build, profile} or null.
+   v2.22.0: also resolves power plans, and accepts the handoff's plan hint
+   (item / focus / power / ctxNote) for session follow-ups whose raw text
+   names no item — the hint comes from the handoff answer() itself made. */
+function workshopCompose(q, researched, hint) {
+  var plan = null;
+  if (hint && hint.power) plan = powerPlan(q);
+  if (!plan) plan = workshopPlan(q) || powerPlan(q);
+  if (!plan && hint && hint.item) {
+    var hf = findByName(D.warframes, hint.item);
+    var he = hf || findByName(D.weapons, hint.item);
+    if (he) {
+      var hq = parseQualifiers(q);
+      if (hint.steelPath) hq.steelPath = true;
+      plan = {
+        item: he.name, kind: hf ? 'warframe' : 'weapon', e: he,
+        focus: hint.focus || 'profile', abilityPhrase: null, element: null,
+        quals: hq, q: q, power: !!hint.power,
+        kill: false, surv: /\bsurvival\b/.test(String(hint.focus || '') + ' ' + q),
+        ctxNote: hint.ctxNote || null
+      };
+    }
+  }
   if (!plan) return null;
   var found = { kind: plan.kind, e: plan.e };
   var res = wsCompose(found, plan, researched);
@@ -1882,10 +1985,335 @@ function workshopCompose(q, researched) {
   return { build: build, profile: res.profile, plan: plan };
 }
 
+/* ---------- v2.22.0: THE DOSSIER — power / survival build answers ----
+   The owner's style spec (from a Google AI answer he held up as the bar):
+   a named concept, an intro on how it destroys / survives, the full
+   layout with concept-tied WHYs, a Helminth line with reasoning, two
+   arcanes, an Archon Shard setup, a "why this works — the math" section
+   whose numbers are COMPUTED from the build and the real formulas (the
+   exemplar he pasted was sloppy here — ours may not be), a numbered
+   play rotation, and a closing follow-up offer. Everything named —
+   subsume, donor, shards, arcanes — is verified against the database
+   or the site's verified shards data before it is printed. */
+function wsStripTags(s) { return String(s || '').replace(/<[^>]+>/g, ''); }
+function wsFmtNum(x) { var r = Math.round(x * 10) / 10; return (r % 1 === 0) ? String(Math.round(r)) : String(r); }
+
+var WS_CONCEPTS = {
+  power:    { caster: 'Room Melter', support: 'Deathless Engine', tank: 'The Immovable Object', platform: 'Room Melter' },
+  damage:   { caster: 'Room Melter', support: 'The Amplifier', tank: 'The Wrecking Ball', platform: 'Room Melter' },
+  survival: { caster: 'The Untouchable', support: 'The Lifeline', tank: 'The Immovable Object', platform: 'The Untouchable' },
+  profile:  { caster: 'Workshop Original', support: 'Workshop Original', tank: 'Workshop Original', platform: 'Workshop Original' }
+};
+function wsConceptName(found, plan, profile) {
+  if (found.kind === 'weapon') {
+    if ((profile.cc || 0) >= 25) return 'The Headtaker';
+    if ((profile.sc || 0) >= 25) return 'The Plaguebearer';
+    return 'The Deleter';
+  }
+  var table = WS_CONCEPTS[plan.focus] || WS_CONCEPTS.profile;
+  return table[profile.arch || 'platform'] || 'Workshop Original';
+}
+
+/* real Ability Strength of a composed build, parsed from the mods DB's
+   own effect strings ("+99% Ability Strength | -55% Ability Efficiency") */
+function wsStrengthOf(name) {
+  var m = findModExact(name);
+  if (!m) return 0;
+  var mt = String(m.effect || '').match(/([+-]?\d+(?:\.\d+)?)%\s*Ability Strength/);
+  return mt ? parseFloat(mt[1]) : 0;
+}
+function wsBuildStrength(build) {
+  var parts = [], total = 100;
+  (build.mods || []).forEach(function (md) {
+    var s = wsStrengthOf(md.name);
+    if (s) { parts.push({ name: md.name, s: s }); total += s; }
+  });
+  return { total: total, parts: parts, exilus: build.exilus ? wsStrengthOf(build.exilus) : 0 };
+}
+
+/* the Helminth subsume pool the composer may reach for — every entry is
+   re-verified at compose time against the donor frame's real ability
+   list in the database before it can be printed */
+var WS_SUBSUMES = [
+  { name: 'Pillage', donor: 'Hildryn' },
+  { name: 'Nourish', donor: 'Grendel' },
+  { name: 'Roar', donor: 'Rhino' },
+  { name: 'Eclipse', donor: 'Mirage' },
+  { name: 'Gloom', donor: 'Sevagoth' },
+  { name: 'Dispensary', donor: 'Protea' },
+  { name: 'Elemental Ward', donor: 'Chroma' }
+];
+function wsSubsumeVerified(s) {
+  var donor = findByName(D.warframes, s.donor);
+  if (!donor) return false;
+  return (donor.abilities || []).some(function (a) { return norm(a.name) === norm(s.name); });
+}
+function wsSignatureAbility(frame) {
+  var best = null;
+  (frame.abilities || []).forEach(function (a) {
+    if (!best && /damage/.test(norm(a.description || ''))) best = a;
+  });
+  return best || (frame.abilities || [])[0] || null;
+}
+var WS_REPLACE_MAP = { octavia: 'Resonator' };
+function wsReplaceTarget(frame, plan) {
+  var base = norm(frame.name).replace(/ prime$/, '');
+  var abs = frame.abilities || [];
+  if (WS_REPLACE_MAP[base]) {
+    var hit = null;
+    abs.forEach(function (a) { if (norm(a.name) === norm(WS_REPLACE_MAP[base])) hit = a; });
+    if (hit) return hit;
+  }
+  function keepScore(a) {
+    var d = norm(a.description || ''), s = 0;
+    if (/damage/.test(d)) s += 4;
+    if (/heal|shield|invisib|cloak|damage reduction|overguard|armor/.test(d)) s += 3;
+    if (/buff|amplif/.test(d)) s += 2;
+    return s;
+  }
+  var worst = null, worstScore = 1e9;
+  abs.forEach(function (a) {
+    if (plan._abilityName && norm(a.name) === norm(plan._abilityName)) return;
+    var s = keepScore(a);
+    if (s < worstScore) { worstScore = s; worst = a; }
+  });
+  return worst;
+}
+function wsHelminth(found, plan, profile) {
+  if (found.kind !== 'warframe') return null;
+  var frame = found.e;
+  var arch = profile.arch || frameArchetype(frame);
+  var abText = (frame.abilities || []).map(function (a) { return norm((a.name || '') + ' ' + (a.description || '')); }).join(' ');
+  var hasStrip = /(strip|reduc\w+|remov\w+)[^.]{0,40}armor|armor[^.]{0,40}(strip|reduc|remov)/.test(abText);
+  var want;
+  if ((plan.power || (plan.quals && plan.quals.steelPath)) && !hasStrip) want = 'Pillage';
+  else if (plan.focus === 'survival') want = 'Gloom';
+  else if (arch === 'support') want = 'Nourish';
+  else if (arch === 'tank') want = 'Elemental Ward';
+  else if (arch === 'platform') want = 'Roar';
+  else want = 'Nourish';
+  var base = norm(frame.name).replace(/ prime$/, '');
+  var chosen = null;
+  var order = [want];
+  WS_SUBSUMES.forEach(function (s) { if (s.name !== want) order.push(s.name); });
+  for (var i = 0; i < order.length && !chosen; i++) {
+    var cand = null;
+    WS_SUBSUMES.forEach(function (s) { if (s.name === order[i]) cand = s; });
+    if (!cand) continue;
+    if (norm(cand.donor).replace(/ prime$/, '') === base) continue; /* already hers */
+    if ((frame.abilities || []).some(function (a) { return norm(a.name) === norm(cand.name); })) continue;
+    if (wsSubsumeVerified(cand)) chosen = cand;
+  }
+  if (!chosen) return null;
+  var rep = wsReplaceTarget(frame, plan);
+  var sig = wsSignatureAbility(frame);
+  var why = {
+    'Pillage': 'Pillage strips a percentage of enemy armor and shields that scales with Ability Strength, then pays the stolen defenses back to you as shields on the return pulse. ' + (sig ? '<b>' + esc(sig.name) + '</b> damage scales the longer a fight runs — against stripped armor, every point of it lands in full. Strip first, then let ' + esc(sig.name) + ' cash out on bare health: that is the whole loop.' : 'Percent-strip is the great equalizer at high level — tanky enemies stop being tanky.'),
+    'Gloom': 'Gloom slows everything that walks into its aura and pays life steal on every hit landed inside it — a survival engine that also soft-locks melee rushes before they reach you.',
+    'Nourish': 'Nourish multiplies the energy you gain and adds viral damage to your weapons — the sustain a casting build burns through, plus a damage type the whole squad benefits from.',
+    'Roar': 'Roar is a flat damage multiplier for you and your squad — the highest-value button a weapon platform can borrow.',
+    'Eclipse': 'Eclipse is a damage buff in the light and damage reduction in the dark — one slot that swings between output and survival as the fight moves.',
+    'Dispensary': 'Dispensary prints health, energy and ammo on demand — the sustain anchor for a frame that wants to hold one position and never leave it.',
+    'Elemental Ward': 'Elemental Ward converts your energy color into a standing health or armor buff — passive toughness that is simply on.'
+  };
+  return { name: chosen.name, donor: chosen.donor, replaces: rep ? rep.name : null, why: why[chosen.name] || '' };
+}
+
+/* Archon Shard recommendations — bonus values verified against the
+   site's own shards data (data/site/shards.json); 5 slots per frame */
+var WS_SHARD_STATS = {
+  Crimson: { strength: '+10% Ability Strength (+15% Tauforged)', duration: '+10% Ability Duration (+15% Tauforged)', meleeCd: '+25% Melee Critical Damage (+37.5% Tauforged)' },
+  Amber: { casting: '+25% Casting Speed (+37.5% Tauforged)', orbEnergy: '+45% Energy Orb Effectiveness (+67.5% Tauforged)' },
+  Azure: { armor: '+150 Armor (+225 Tauforged)', health: '+150 Max Health (+225 Tauforged)', energy: '+50 Max Energy (+75 Tauforged)' },
+  Violet: { meleeCd: '+25% Melee Critical Damage — doubles while max energy is over 500' }
+};
+function wsShardRec(found, plan, profile) {
+  if (found.kind !== 'warframe') return null;
+  var arch = profile.arch || 'platform';
+  var rec;
+  if (plan.focus === 'survival') rec = [{ n: 2, c: 'Azure', s: 'armor' }, { n: 1, c: 'Azure', s: 'health' }, { n: 1, c: 'Crimson', s: 'duration' }, { n: 1, c: 'Amber', s: 'casting' }];
+  else if (arch === 'support') rec = [{ n: 2, c: 'Amber', s: 'orbEnergy' }, { n: 2, c: 'Crimson', s: 'duration' }, { n: 1, c: 'Azure', s: 'energy' }];
+  else if (arch === 'tank') rec = [{ n: 2, c: 'Azure', s: 'armor' }, { n: 1, c: 'Azure', s: 'health' }, { n: 2, c: 'Crimson', s: 'strength' }];
+  else rec = [{ n: 3, c: 'Crimson', s: 'strength' }, { n: 1, c: 'Amber', s: 'casting' }, { n: 1, c: 'Crimson', s: 'duration' }];
+  var line = rec.map(function (r) { return r.n + '× ' + r.c + ' (' + WS_SHARD_STATS[r.c][r.s] + ')'; }).join(' · ');
+  return { rec: rec, line: line };
+}
+
+/* the math section — every number derived from the composed build and
+   the real formulas, never asserted. Pillage (Warframe Wiki, verified
+   Oct 2026): strips 25% of armor/shields at max rank, scaled by Ability
+   Strength; full strip at 400% strength, or 328% with one Corrosive
+   Projection (which itself removes 18%). */
+function wsMathLines(build, plan, profile, helminth) {
+  var lines = [];
+  if (plan.kind === 'warframe') {
+    var st = wsBuildStrength(build);
+    var effTotal = st.total + st.exilus;
+    if (st.parts.length) {
+      lines.push('Modded Ability Strength: <b>' + effTotal + '%</b> — 100 base' +
+        st.parts.map(function (p) { return ' + ' + p.s + ' (' + esc(p.name) + ')'; }).join('') +
+        (st.exilus ? ' + ' + st.exilus + ' (' + esc(build.exilus) + ', Exilus)' : '') + '.');
+    }
+    if (helminth && helminth.name === 'Pillage') {
+      var strip = 25 * effTotal / 100;
+      var cp = norm(build.aura || '') === 'corrosive projection';
+      var needed = cp ? 82 : 100;
+      var casts = strip >= needed ? 1 : Math.ceil(needed / strip);
+      lines.push('<b>Pillage:</b> strips <b>25% × ' + effTotal + '% strength ≈ ' + wsFmtNum(strip) + '%</b> of an enemy\'s total armor per cast' +
+        (cp ? ' — and Corrosive Projection has already removed 18%, so only 82% is left to strip' : '') +
+        ' — that is <b>' + (casts === 1 ? 'a full strip in a single cast' : casts + ' casts to fully strip') + '</b>. ' +
+        'The Wiki\'s checkpoints agree with the formula: full strip at 400% strength, or 328% with Corrosive Projection up. This build sits at ' + effTotal +
+        '%, so the honest number is ' + (casts === 1 ? 'one cast' : casts + ' casts') + ' — not one.');
+    }
+    var sig = wsSignatureAbility(plan.e);
+    if (sig && sig.description) {
+      var first = sig.description.split(/(?<=[.!?])\s+/)[0];
+      lines.push('<b>' + esc(sig.name) + '</b> — ' + esc(first) + ' Scaling damage is why the strip matters: percent-strip takes a cut of an enemy\'s total armor, so the tankiest targets lose the most effective health to it.');
+    }
+  } else if ((profile.cc || 0) > 0) {
+    var avg = 1 + (profile.cc / 100) * (profile.cm - 1);
+    lines.push('Researched profile: <b>' + profile.cc + '% crit × ' + profile.cm + '</b> — before mods, an average hit is worth ≈ <b>×' + wsFmtNum(avg) + '</b> (crit chance × crit damage; headshot multipliers not counted). The composition\'s job is pushing that crit rate toward always-on.');
+  }
+  return lines;
+}
+
+function wsRotation(build, plan, profile, helminth) {
+  var steps = [];
+  if (plan.kind === 'warframe') {
+    var frame = plan.e;
+    var sig = wsSignatureAbility(frame);
+    var def = null, fourth = null;
+    (frame.abilities || []).forEach(function (a) {
+      if (!def && /heal|shield|invisib|cloak|damage reduction|overguard/.test(norm(a.description || ''))) def = a;
+    });
+    (frame.abilities || []).forEach(function (a) {
+      if (fourth) return;
+      if (a === sig || a === def) return;
+      if (helminth && helminth.replaces && norm(a.name) === norm(helminth.replaces)) return;
+      fourth = a;
+    });
+    if (sig) steps.push('Drop <b>' + esc(sig.name) + '</b> where the pack funnels in' + (norm(sig.name) === 'mallet' ? ' — it draws their fire and banks every point of it as damage' : '') + '.');
+    if (helminth && helminth.name === 'Pillage') steps.push('Fire <b>Pillage</b> through the pack — the strip math above is per cast, and the stolen defenses come back to you as shields on the return pulse.');
+    else if (helminth) steps.push('Weave in <b>' + esc(helminth.name) + '</b>' + (helminth.replaces ? ' (it replaced ' + esc(helminth.replaces) + ')' : '') + ' whenever its job comes up — it is the borrowed half of this build.');
+    if (def && (!helminth || !helminth.replaces || norm(def.name) !== norm(helminth.replaces))) {
+      steps.push('Keep <b>' + esc(def.name) + '</b> rolling' + (norm(def.name) === 'metronome' ? ' — crouch on the beat for the invisibility buff; an invisible frame is an untouchable frame' : '') + '.');
+    }
+    if (fourth) steps.push('Refresh in order: ' + esc(sig ? sig.name : 'your damage ability') + ' before it fades' + (helminth ? ', ' + esc(helminth.name) + ' on every new pack' : '') + ', ' + esc(fourth.name) + ' whenever it drops. The longer the run, the harder this build hits.');
+  } else {
+    if ((profile.cc || 0) >= 18) steps.push('Aim for heads — at ' + profile.cc + '% base crit chance, headshots are where this build lives.');
+    else if ((profile.sc || 0) >= 18) steps.push('Let status land first — two or three hits prime a target, then the damage mods cash out.');
+    else steps.push('Open at the range the profile favors and make the first magazine decisive.');
+    var arc0 = vbcArcanes(build.arcane)[0];
+    if (arc0) steps.push('Keep <b>' + esc(arc0) + '</b> stacked — re-engage before the buff lapses rather than starting cold.');
+    steps.push('Reposition instead of reloading in the open; this setup wins fights early, not late.');
+  }
+  return steps;
+}
+
+function wsIntro(build, plan, profile, helminth) {
+  if (plan.kind === 'warframe') {
+    var sig = wsSignatureAbility(plan.e);
+    var s = '';
+    if (sig && sig.description) {
+      var first = sig.description.split(/(?<=[.!?])\s+/)[0];
+      s = '<b>' + esc(sig.name) + '</b> is the engine — ' + esc(first.charAt(0).toLowerCase() + first.slice(1)) + ' ';
+    }
+    if (plan.focus === 'survival') s += 'This layout is built so ' + esc(plan.item) + ' does not go down: layered defenses first, damage a close second.';
+    else if (helminth && helminth.name === 'Pillage') s += 'Layer Pillage\'s scaling armor strip underneath and the loop closes: strip the room, let the scaling damage land on bare health, and let the stolen shields pay for your survival.';
+    else s += 'This layout leans everything into ' + (sig ? esc(sig.name) : 'the kit') + ' and the stats that feed it.';
+    return s;
+  }
+  return 'Researched profile: <b>' + profile.cc + '% crit</b> (×' + profile.cm + '), <b>' + profile.sc + '% status</b>' +
+    (profile.innate && profile.innate.length ? ', mostly <b>' + esc(profile.innate.slice(0, 3).join(' / ')) + '</b>' : '') +
+    ' — this composition pushes exactly those numbers until the item does what you asked.';
+}
+
+/* the dossier as structured data — the render consumes it, and the AI
+   panel's prose writer (js/ai.js) may rewrite the connective prose from
+   these verified facts only */
+function buildDossier(build, plan, profile) {
+  var found = { kind: plan.kind, e: plan.e };
+  var helminth = wsHelminth(found, plan, profile);
+  var shards = wsShardRec(found, plan, profile);
+  var math = wsMathLines(build, plan, profile, helminth);
+  var intro = wsIntro(build, plan, profile, helminth);
+  return {
+    concept: wsConceptName(found, plan, profile),
+    intro: intro,
+    helminth: helminth,
+    shards: shards,
+    math: math,
+    rotation: wsRotation(build, plan, profile, helminth),
+    facts: [wsStripTags(intro)].concat(math.map(wsStripTags))
+  };
+}
+
+function dossierRender(build, plan, profile, prose) {
+  var d = buildDossier(build, plan, profile);
+  var capLine = build._capNote === 'ok'
+    ? ' Capacity-verified against live drain data: fits a standard Catalyst/Reactor setup, no Forma assumed.'
+    : build._capNote === 'over'
+    ? ' Heads-up: at max rank this set runs over a no-Forma capacity — a Forma or two is part of the plan.'
+    : '';
+  var card = buildCard({
+    title: build.name,
+    aura: vbcCleanSlot(build.aura),
+    exilus: vbcCleanSlot(build.exilus),
+    mods: build.mods.map(function (m) { return m.name; }),
+    arcanes: vbcArcanes(build.arcane),
+    note: 'Composed in the Workshop as a power dossier.' + capLine
+  });
+  var rows = build.mods.map(function (m, i) {
+    var fm = findModExact(m.name);
+    return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(m.name) + '</b>' +
+      (m.note ? '<div class="muted small">' + esc(m.note) + '</div>' : '') +
+      (fm ? modFarmLine(fm) : '') + '</div></div>';
+  }).join('');
+  var h = '';
+  if (plan.ctxNote) h += '<p class="muted small">' + esc(plan.ctxNote) + '</p>';
+  h += '<p>🛠 <b>Vaulty Original</b> — composed just now from real mods.</p>';
+  h += '<p><b>' + esc(d.concept) + '</b> — ' + (prose && prose.introHtml ? String(prose.introHtml).replace(/^<p>/, '').replace(/<\/p>\s*$/, '') : d.intro) + '</p>';
+  h += card + rows;
+  if (d.helminth) {
+    var augNote = '';
+    if (d.helminth.replaces) {
+      (build.mods || []).forEach(function (m) {
+        var fm2 = findModExact(m.name);
+        if (fm2 && norm(fm2.effect || '').indexOf(norm(d.helminth.replaces) + ' augment') !== -1) {
+          augNote = ' Heads-up: <b>' + esc(m.name) + '</b> augments ' + esc(d.helminth.replaces) + ' — swap it out when you make this subsume, it mods the ability being replaced.';
+        }
+      });
+    }
+    h += '<p>🧬 <b>Helminth:</b> subsume <b>' + esc(d.helminth.name) + '</b> (from ' + esc(d.helminth.donor) + ')' +
+      (d.helminth.replaces ? ' over <b>' + esc(d.helminth.replaces) + '</b>' : '') + ' — ' + d.helminth.why + augNote + '</p>';
+  }
+  if (d.shards) h += '<p>💠 <b>Archon Shards:</b> ' + esc(d.shards.line) + ' <span class="muted small">(5 slots; Tauforged = 1.5× each bonus.)</span></p>';
+  if (d.math.length) {
+    h += '<p><b>📐 Why this works — the math:</b></p>' +
+      (prose && prose.mathHtml ? prose.mathHtml : d.math.map(function (l) { return '<p>' + l + '</p>'; }).join(''));
+  }
+  if (d.rotation.length) {
+    h += '<p><b>▶ Play rotation:</b></p><ol>' + d.rotation.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>';
+  }
+  h += '<p class="muted small">Every mod is real and checked against the database; the combination is new — this build is not from the library.</p>';
+  h += alternativesHtml(build.item, null);
+  h += '<p class="muted small">🔎 Researched just now — item data: the Vault database' +
+    (profile.live ? ' + live data (warframestat.us)' : '') +
+    ' · mechanics: <a href="https://wiki.warframe.com/w/' + encodeURIComponent(plan.item.replace(/ /g, '_')) + '" target="_blank" rel="noopener">Warframe Wiki — ' + esc(plan.item) + '</a>' +
+    (d.helminth && d.helminth.name === 'Pillage' ? ' · <a href="https://wiki.warframe.com/w/Pillage" target="_blank" rel="noopener">Pillage</a>' : '') + '</p>';
+  h += '<p>' + (plan.kind === 'warframe'
+    ? 'Want the full Archon Shard setup for this layout — Tauforged picks included?'
+    : 'Want the frame setup that feeds this weapon?') + '</p>';
+  return h;
+}
+
 /* Render a composed build on the standard card, with the Workshop label.
    Copy payloads come from buildCard's store, so Copy always matches the
    mods on screen. */
-function workshopRender(build, plan, profile) {
+function workshopRender(build, plan, profile, prose) {
+  if (plan && (plan.power || plan.focus === 'survival' || plan.focus === 'power')) {
+    return dossierRender(build, plan, profile, prose);
+  }
   var focusLines = {
     damage: 'You asked for <b>full damage</b> — no survival padding, no half measures.',
     status: 'You asked for <b>status</b> — this composition stacks procs first and asks questions later.',
@@ -2612,7 +3040,69 @@ function oneShotBuildAnswer(t) {
       'If you tell me what you want to use it for (Steel Path? Sorties? just fun?), I\'ll give you a real answer.';
   }
 
+  /* ---------- v2.22.0: session continuity ----------
+     Vaulty remembers the conversation's current item for this session
+     only (in-memory; nothing is written to storage), so a bare follow-up
+     — "and for steel path survival?" — resolves against the item under
+     discussion instead of falling into a don't-know. The resolved
+     context is shown back subtly ("For Octavia Prime, Steel Path
+     survival:") whenever it is used. Wh-questions and anything naming
+     its own item are never rewritten. */
+  var sessionCtx = { item: null, kind: null, lastIntent: null };
+  var pendingCtxNote = null;
+  function ctxItemOf(t) {
+    var f = findItemInText(D.warframes, t);
+    if (f) return { name: f.name, kind: 'warframe' };
+    var w = findItemInText(D.weapons, t);
+    if (w) return { name: w.name, kind: 'weapon' };
+    return null;
+  }
+  function ctxNoteFor(item, t) {
+    var bits = [];
+    if (/\bsteel\s?path\b/.test(t)) bits.push('Steel Path');
+    if (/\bsurvival\b/.test(t)) bits.push('survival');
+    else if (/\b(damage|dps|kills?|melts?|destroys?)\b/.test(t)) bits.push('damage');
+    if (/\bone[\s-]?shot\b/.test(t)) bits.push('one-shot');
+    return 'For ' + item + (bits.length ? ', ' + bits.join(' ') : '') + ':';
+  }
+  function resolveFollowUp(t) {
+    if (!sessionCtx.item) return null;
+    if (/^(what|where|who|how|when|why|which|is|are|do|does|can|could|should)\b/.test(t)) return null;
+    var opener = /^(and|ok(ay)? and|now|but|so)\b/.test(t);
+    var keyword = /\b(steel\s?path|survival|survive|damage|dps|build|setup|loadout|variant|version|one[\s-]?shot|melts?|kills?)\b/.test(t);
+    if (!opener && !(t.length <= 48 && keyword)) return null;
+    if (!opener && !keyword) return null;
+    var body = t.replace(/^(and|ok(ay)? and|now|but|so)\s+/, '').replace(/[?.!\s]+$/, '');
+    if (!body) return null;
+    var resolved = norm(sessionCtx.item) + ' ' + body;
+    if (sessionCtx.lastIntent === 'build' && !/\b(build|setup|loadout|farm|get|find|drop)\b/.test(resolved)) resolved += ' build';
+    return resolved;
+  }
+
   function answer(q) {
+    var t0 = stripQ(q);
+    if (!t0) return 'Ask me something — a build, a farm spot, a mod, or "help".';
+    /* v2.22.0: track the item under discussion; resolve bare follow-ups */
+    pendingCtxNote = null;
+    var ctxHere = ctxItemOf(t0);
+    if (ctxHere) {
+      sessionCtx.item = ctxHere.name; sessionCtx.kind = ctxHere.kind;
+      if (/\b(build|setup|loadout)\b/.test(t0)) sessionCtx.lastIntent = 'build';
+    } else {
+      var resolvedT = resolveFollowUp(t0);
+      if (resolvedT) {
+        pendingCtxNote = ctxNoteFor(sessionCtx.item, t0);
+        q = resolvedT;
+      }
+    }
+    var html = answerInner(q);
+    if (pendingCtxNote && html && html.indexOf('data-workshop-handoff') === -1) {
+      html = '<p class="muted small">' + esc(pendingCtxNote) + '</p>' + html;
+    }
+    return html;
+  }
+
+  function answerInner(q) {
     var t = stripQ(q);
     if (!t) return 'Ask me something — a build, a farm spot, a mod, or "help".';
 
@@ -2652,7 +3142,7 @@ function oneShotBuildAnswer(t) {
       var spItem = findItemInText(D.warframes, t) || findItemInText(D.weapons, t);
       if (!spItem) return STEEL_PATH_GENERAL;
     }
-    /* v2.21.0: THE WORKSHOP — a creative build brief ("design…", "come up
+    /* v2.22.0: THE WORKSHOP — a creative build brief ("design…", "come up
        with…", "weird off-meta…", "full damage…", "focused on <ability>…")
        for a named item is handed to the Workshop (js/vaulty-workshop.js),
        which researches the item and composes an ORIGINAL build from real
@@ -2660,6 +3150,13 @@ function oneShotBuildAnswer(t) {
        a creative brief is a request for invention, and the Workshop
        honors qualifiers itself. Plain asks and qualifier-only asks keep
        their instant paths below. */
+    /* v2.22.0: POWER INTENT — superlatives + outcome language on a build
+       ask ("best Octavia build, kills anything, survival and destroying
+       everything") is a power fantasy, not a library lookup: it goes to
+       the Workshop for a composed power/survival dossier, never the
+       stock card. Creative briefs keep the workshop path below. */
+    var pwPlan = powerPlan(q);
+    if (pwPlan) return workshopHandoffHtml(pwPlan);
     var wsPlanFound = workshopPlan(q);
     if (wsPlanFound) return workshopHandoffHtml(wsPlanFound);
     /* v2.19.6: qualifiers are enforced, not decorative. A budget / beginner /
@@ -2948,14 +3445,16 @@ function oneShotBuildAnswer(t) {
     }
     loadData().then(function () {
       var html = answer(q);
-      /* v2.21.0: a creative build brief is a Workshop handoff — the
+      /* v2.22.0: a creative build brief is a Workshop handoff — the
          Workshop researches the item (staged progress + Stop) and
          composes an original build from real mods. Checked before the
          miss path: a handoff is not a miss. */
       if (window.TVWorkshop && TVAI._workshopIsHandoff(html)) {
         TVWorkshop.handle(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
       } else if (window.TVResearch && TVResearch.isMiss(html)) {
-        TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+        /* v2.22.0: research-first — dig deep, then answer in prose */
+        if (TVResearch.handleConverse) TVResearch.handleConverse(q, html, els.msgs, function (h) { addMsg(h, 'bot'); }, { isMiss: true });
+        else TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
       } else {
         addMsg(html, 'bot');
       }
@@ -3053,10 +3552,11 @@ function oneShotBuildAnswer(t) {
   window.TVAI = {
     init: init, toggle: toggle, _answer: answer, _load: loadData, _research: researchMarkup,
     _validateAnswer: validateAnswerText,
-    /* v2.21.0: Workshop hooks for js/vaulty-workshop.js */
+    /* v2.22.0: Workshop hooks for js/vaulty-workshop.js */
     _workshopPlan: workshopPlan,
     _workshopCompose: workshopCompose,
     _workshopRender: workshopRender,
+    _workshopDossier: buildDossier,
     _workshopFallback: workshopFallback,
     _workshopIsHandoff: function (html) { return String(html || '').indexOf('vai-workshop-handoff') !== -1; },
     _workshopVerify: function (build, drains) {

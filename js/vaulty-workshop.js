@@ -1,4 +1,4 @@
-/* The Foundry — Vaulty Workshop (v2.21.0).
+/* The Foundry — Vaulty Workshop (v2.22.0; created v2.22.0).
    Generative build composition, with the owner's rules welded in:
    Vaulty may INVENT BUILDS (original compositions) but may NEVER
    invent MODS. A creative build brief ("design…", "come up with…",
@@ -112,7 +112,7 @@
      Appends a progress message with the staged bar + a Stop button
      (text button — no × glyph), then replaces it with the composed
      build card, the library fallback, or the honest don't-know. */
-  function handle(q, handoffHtml, msgsEl, render) {
+  function handle(q, handoffHtml, msgsEl, render, opts) {
     var TVAI = window.TVAI;
     var planInfo = parsePlan(handoffHtml) || {};
     var itemLabel = planInfo.item || 'your item';
@@ -164,6 +164,28 @@
           (TVAI && TVAI._research ? TVAI._research(q) : ''));
       }
     }
+    /* v2.22.0: render the verified build. In AI mode the caller may pass
+       opts.proseWriter(dossier) — the on-device model rewriting the
+       dossier's connective prose from the VERIFIED dossier facts only.
+       The card, the layout and every number stay engine-rendered; a
+       prose failure or rejection falls back to the engine's prose. */
+    function emitBuild(finalBuild, res) {
+      if (opts && opts.proseWriter && TVAI._workshopDossier) {
+        var dossier = null;
+        try { dossier = TVAI._workshopDossier(finalBuild, res.plan, res.profile); } catch (e) { dossier = null; }
+        if (dossier) {
+          Promise.resolve(opts.proseWriter(dossier)).then(function (ph) {
+            if (token.cancelled || done) return;
+            finish(TVAI._workshopRender(finalBuild, res.plan, res.profile, ph || null));
+          }, function () {
+            if (token.cancelled || done) return;
+            finish(TVAI._workshopRender(finalBuild, res.plan, res.profile));
+          });
+          return;
+        }
+      }
+      finish(TVAI._workshopRender(finalBuild, res.plan, res.profile));
+    }
     if (!TVAI || !TVAI._workshopCompose) { fail(); return; }
 
     setStage(0);
@@ -173,7 +195,7 @@
         setStage(1);
         return delay(450).then(function () {
           if (token.cancelled || done) return null;
-          return TVAI._workshopCompose(q, r[1]);
+          return TVAI._workshopCompose(q, r[1], planInfo);
         });
       })
       .then(function (res) {
@@ -186,12 +208,12 @@
           if (!finalBuild) { fail(); return; }
           delay(350).then(function () {
             if (token.cancelled || done) return;
-            finish(TVAI._workshopRender(finalBuild, res.plan, res.profile));
+            emitBuild(finalBuild, res);
           });
         }).catch(function () {
           if (token.cancelled || done) return;
           var noDrain = TVAI._workshopVerify(res.build, null);
-          if (noDrain) finish(TVAI._workshopRender(noDrain, res.plan, res.profile));
+          if (noDrain) emitBuild(noDrain, res);
           else fail();
         });
       })

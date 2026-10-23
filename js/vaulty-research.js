@@ -1,4 +1,4 @@
-/* The Foundry — Vaulty research mode + anonymous miss log (v2.21.0).
+/* The Foundry — Vaulty research mode + anonymous miss log (v2.22.0).
    When the guide brain doesn't know, Vaulty no longer dead-ends: it
    RESEARCHES, in the open, with a staged progress bar the Tenno can
    stop — live game data (warframestat.us) → the Warframe Wiki → a
@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = '2.21.0';
+  var APP_VERSION = '2.22.0';
 
   function esc(s) {
     if (window.TV && window.TV.esc) return window.TV.esc(s);
@@ -301,11 +301,249 @@
     }).then(finish).catch(function () { finish(null); });
   }
 
+  /* ---------- v2.22.0: deep dig + conversational synthesis ----------
+     The owner's direction: "answer my general question… respond normally
+     to me… look for information on the web and dig in deep." So a general
+     question no longer gets a quoted extract (or a canned card): Vaulty
+     DIGS — live game data → the item's Wiki page → ONE HOP into the
+     linked ability / mod / mechanic pages the question actually needs →
+     the Wikipedia backstop — cross-checks what the sources agree on,
+     and then SYNTHESIZES a natural prose answer from the retrieved facts
+     only. In AI mode the on-device model writes that prose from the
+     same fact bundle (validated afterwards — see js/ai.js); in guide /
+     iOS mode the composed prose below is assembled from the best-
+     matching retrieved sentences, deduplicated across sources. */
+  var STOPWORDS = { 'the': 1, 'a': 1, 'an': 1, 'is': 1, 'are': 1, 'do': 1, 'does': 1, 'how': 1, 'what': 1, 'who': 1, 'where': 1, 'when': 1, 'why': 1, 'which': 1, 'can': 1, 'i': 1, 'me': 1, 'my': 1, 'it': 1, 'its': 1, 'of': 1, 'to': 1, 'in': 1, 'on': 1, 'for': 1, 'and': 1, 'or': 1, 'vs': 1, 'versus': 1, 'warframe': 1, 'about': 1, 'tell': 1, 'get': 1, 'with': 1, 'from': 1, 'this': 1, 'that': 1, 'you': 1, 'your': 1, 'make': 1, 'use': 1, 'using': 1, 'should': 1 };
+  function contentTokens(s) {
+    var seen = {}, out = [];
+    norm(s).replace(/[^a-z0-9\s'-]/g, ' ').split(/\s+/).forEach(function (w) {
+      if (w.length >= 3 && !STOPWORDS[w] && !seen[w]) { seen[w] = 1; out.push(w); }
+    });
+    return out;
+  }
+  var SIDE_FILLER = { which: 1, what: 1, is: 1, are: 1, the: 1, a: 1, an: 1, better: 1, best: 1, should: 1, i: 1, use: 1, for: 1, in: 1, on: 1, survival: 1, damage: 1, and: 1, or: 1, pick: 1, choose: 1, between: 1 };
+  function cleanSide(s) {
+    var words = norm(s).replace(/[^a-z0-9\s'-]/g, ' ').split(/\s+/).filter(Boolean);
+    while (words.length > 1 && SIDE_FILLER[words[0]]) words.shift();
+    while (words.length > 1 && SIDE_FILLER[words[words.length - 1]]) words.pop();
+    return words.join(' ');
+  }
+  function compareSubjects(q) {
+    var t = norm(q).replace(/\?+$/, '');
+    var m = t.match(/(.+?)\s+(?:vs\.?|versus)\s+(.+)/);
+    if (!m && /\b(better|difference|compare|which)\b/.test(t)) m = t.match(/(.+?)\s+or\s+(.+)/);
+    if (!m) return null;
+    var a = cleanSide(m[1]), b = cleanSide(m[2]);
+    if (!a || !b || a === b) return null;
+    return [a, b];
+  }
+  function wikiLinks(title) {
+    var url = 'https://wiki.warframe.com/api.php?action=query&prop=links&titles=' +
+      encodeURIComponent(title) + '&pllimit=60&plnamespace=0&format=json&origin=*';
+    return fetchJSON(url, 7000).then(function (data) {
+      var pages = data && data.query && data.query.pages;
+      if (!pages) return [];
+      var keys = Object.keys(pages);
+      var links = (pages[keys[0]] && pages[keys[0]].links) || [];
+      return links.map(function (l) { return l.title; }).filter(Boolean);
+    }).catch(function () { return []; });
+  }
+  var HOP_TERMS = ['ability', 'damage', 'status', 'augment', 'helminth', 'armor', 'energy', 'critical', 'scaling', 'proc', 'buff'];
+  function digSubject(subj, qtokens, hooks) {
+    var facts = [], seen = {};
+    function add(source, title, url, text) {
+      if (!text || text.length < 30) return;
+      var k = norm(title || source);
+      if (seen[k]) return;
+      seen[k] = 1;
+      facts.push({ source: source, title: title || '', url: url || '', text: text });
+    }
+    function stage(idx) { if (hooks && hooks.onStage) hooks.onStage(idx); }
+    stage(1);
+    return stageLiveData(subj).then(function (hit) {
+      if (hit) add(hit.source, subj, '', hit.text);
+      stage(2);
+      return wikiExtract('https://wiki.warframe.com/api.php', subj);
+    }).then(function (w) {
+      if (!w) return null;
+      add('Warframe Wiki', w.title, w.url, w.text);
+      return wikiLinks(w.title).then(function (links) {
+        var scored = [];
+        links.forEach(function (title) {
+          if (norm(title) === norm(w.title) || title.indexOf(':') !== -1) return;
+          var lt = norm(title), score = 0;
+          qtokens.forEach(function (tk) { if (tk.length >= 4 && lt.indexOf(tk) !== -1) score += 2; });
+          HOP_TERMS.forEach(function (ht) { if (lt.indexOf(ht) !== -1) score += 1; });
+          if (score > 0) scored.push({ title: title, score: score });
+        });
+        scored.sort(function (a, b) { return b.score - a.score; });
+        scored = scored.slice(0, 2);
+        if (!scored.length) return null;
+        stage(3);
+        return Promise.all(scored.map(function (s) {
+          return wikiExtract('https://wiki.warframe.com/api.php', s.title);
+        })).then(function (hs) {
+          hs.forEach(function (h) { if (h) add('Warframe Wiki', h.title, h.url, h.text); });
+        });
+      });
+    }).then(function () {
+      stage(4);
+      return stageWikipedia(subj);
+    }).then(function (wp) {
+      if (wp) add(wp.source, subj, '', wp.text);
+      return facts;
+    }).catch(function () { return facts; });
+  }
+  function dig(q, opts) {
+    opts = opts || {};
+    var cmp = compareSubjects(q);
+    var subjects = cmp || [subjectOf(q)];
+    var qt = contentTokens(q);
+    var all = [];
+    if (opts.guideText) all.push({ source: 'The Foundry guide', title: 'Foundry guide', url: '', text: opts.guideText });
+    var chain = Promise.resolve();
+    subjects.forEach(function (subj) {
+      chain = chain.then(function () { return digSubject(subj, qt, opts); })
+        .then(function (facts) { all = all.concat(facts); });
+    });
+    return chain.then(function () { return { subjects: subjects, compare: !!cmp, facts: all }; });
+  }
+  function sourcesLine(facts) {
+    var seen = {}, parts = [];
+    facts.forEach(function (f) {
+      var key = f.source + '|' + f.url;
+      if (seen[key]) return;
+      seen[key] = 1;
+      parts.push(f.url
+        ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.title || f.source) + '</a> (' + esc(f.source) + ')'
+        : esc(f.source));
+    });
+    if (!parts.length) return '';
+    return '<p class="muted small">🔎 Researched just now — ' + parts.join(' · ') +
+      ' · The Vault\'s verified answers still come first.</p>';
+  }
+  function synthesize(q, bundle) {
+    var qt = contentTokens(q);
+    var cands = [];
+    bundle.facts.forEach(function (f, fi) {
+      String(f.text || '').split(/(?<=[.!?])\s+/).forEach(function (s) {
+        s = s.replace(/\s+/g, ' ').trim();
+        if (s.length < 40 || s.length > 340) return;
+        var st = contentTokens(s), score = 0;
+        qt.forEach(function (tk) { if (st.indexOf(tk) !== -1) score++; });
+        if (f.source === 'The Foundry guide') score += 1;
+        cands.push({ s: s, score: score, fi: fi, source: f.source });
+      });
+    });
+    cands.sort(function (a, b) { return b.score - a.score || a.fi - b.fi; });
+    var picked = [];
+    for (var i = 0; i < cands.length && picked.length < 5; i++) {
+      var c = cands[i];
+      if (c.score <= 0) continue;
+      var ct = contentTokens(c.s);
+      var dup = picked.some(function (p) {
+        var pt = contentTokens(p.s);
+        var inter = ct.filter(function (w) { return pt.indexOf(w) !== -1; }).length;
+        return inter / Math.max(1, Math.min(ct.length, pt.length)) > 0.62;
+      });
+      if (!dup) picked.push(c);
+    }
+    if (!picked.length) return null;
+    picked.sort(function (a, b) { return a.fi - b.fi || b.score - a.score; });
+    var intro = bundle.compare
+      ? 'Here\'s how they stack up — I read up on both sides before answering:'
+      : 'Good question — I dug into that one properly. Here\'s the honest picture on <b>' +
+        esc(bundle.subjects.join('</b> and <b>')) + '</b>:';
+    var srcSet = {};
+    picked.forEach(function (p) { srcSet[p.source] = 1; });
+    var html = '<p>' + intro + '</p>' +
+      picked.map(function (p) { return '<p>' + esc(p.s) + '</p>'; }).join('') +
+      (Object.keys(srcSet).length >= 2
+        ? '<p class="muted small">Cross-checked across ' + Object.keys(srcSet).length + ' sources before answering.</p>'
+        : '') +
+      sourcesLine(bundle.facts);
+    return html;
+  }
+
+  var CONVERSE_STAGES = ['Checking the guide', 'Live game data', 'Warframe Wiki', 'Digging deeper — linked pages', 'Wikipedia', 'Writing your answer'];
+  /* opts: { isMiss, guideText, modelWriter(bundle) -> Promise<html|null> }
+     The progress message mirrors handleMiss (staged bar + Stop text
+     button). The final answer is synthesized prose with a "Researched
+     just now" source line; the honest don't-know (missHtml) remains the
+     last resort when the dig finds nothing usable. */
+  function handleConverse(q, missHtml, msgsEl, render, opts) {
+    opts = opts || {};
+    if (opts.isMiss) logMiss(q);
+    var token = { cancelled: false };
+    var pel = document.createElement('div');
+    pel.className = 'vai-msg bot vres-progress';
+    pel.innerHTML =
+      '<div class="vres-title">🔎 Digging in…</div>' +
+      '<div class="vres-barwrap"><div class="vres-bar" style="width:4%"></div></div>' +
+      '<div class="vres-stage muted small">Checking the guide</div>' +
+      '<button type="button" class="vres-stop">Stop</button>';
+    if (msgsEl) {
+      msgsEl.appendChild(pel);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+    var bar = pel.querySelector('.vres-bar');
+    var stageEl = pel.querySelector('.vres-stage');
+    var stopBtn = pel.querySelector('.vres-stop');
+    if (stopBtn) stopBtn.addEventListener('click', function () { token.cancelled = true; finish(null); });
+    var done = false;
+    function finish(html) {
+      if (done) return;
+      done = true;
+      if (pel.parentNode) pel.parentNode.removeChild(pel);
+      render(html || missHtml);
+    }
+    function setStage(idx) {
+      if (token.cancelled) return;
+      if (stageEl) stageEl.textContent = CONVERSE_STAGES[idx] + '…';
+      if (bar) bar.style.width = Math.min(96, 8 + idx * 17) + '%';
+      if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+    setStage(0);
+    dig(q, {
+      guideText: opts.guideText || null,
+      onStage: function (idx) { setStage(idx); }
+    }).then(function (bundle) {
+      if (token.cancelled) { finish(null); return; }
+      setStage(5);
+      if (opts.modelWriter) {
+        var bundleArg = {
+          question: q,
+          subjects: bundle.subjects,
+          compare: bundle.compare,
+          facts: bundle.facts,
+          factsText: bundle.facts.map(function (f) {
+            return '[' + f.source + (f.title ? ' — ' + f.title : '') + '] ' + f.text;
+          }).join('\n'),
+          sourcesLine: sourcesLine(bundle.facts)
+        };
+        Promise.resolve(opts.modelWriter(bundleArg)).then(function (html) {
+          if (token.cancelled) { finish(null); return; }
+          if (html) {
+            finish(html.indexOf('Researched just now') !== -1 ? html : html + sourcesLine(bundle.facts));
+          } else {
+            finish(synthesize(q, bundle));
+          }
+        }, function () { finish(synthesize(q, bundle)); });
+        return;
+      }
+      finish(synthesize(q, bundle));
+    }).catch(function () { finish(null); });
+  }
+
   window.TVResearch = {
     isMiss: isMiss,
     logMiss: logMiss,
     run: run,
     handleMiss: handleMiss,
+    handleConverse: handleConverse,
+    _dig: dig,
+    _synthesize: synthesize,
+    _compareSubjects: compareSubjects,
     subjectOf: subjectOf,
     stages: STAGE_NAMES.slice(),
     /* test hook: run the chain without UI, resolve {source, text} | null */

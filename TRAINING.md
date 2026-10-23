@@ -28,7 +28,8 @@ chain** (`js/vaulty-research.js`):
 node tools/vaulty-probe/run-probe.js            # guide + research scores
 node tools/vaulty-probe/run-probe.js --no-research   # guide only (fast)
 node tools/vaulty-probe/test-research-memory.js      # research + memory regressions
-node tools/vaulty-probe/test-workshop.js             # v2.21.0 Workshop fixtures
+node tools/vaulty-probe/test-workshop.js             # Workshop fixtures
+node tools/vaulty-probe/test-conversational.js       # v2.22.0 Conversational Vaulty fixtures (F1–F8)
 node --experimental-vm-modules tools/vaulty-probe/test-persistence.js
 ```
 
@@ -50,6 +51,26 @@ become regression fixtures.
   remaining misses — full stack 44/44. Added knowledge: Aya, best auras,
   starter frames, Necramech, Incarnon, Archwing, clans. Fixed:
   `findByName` word-boundary rule for short queries (the Aya bug).
+- **Pass 2 (v2.22.0, 2026-10-22)** — Conversational Vaulty. The owner's
+  Octavia power ask ("best Octavia prime build where she just kills
+  anything… survival and destroying everything") previously returned the
+  stock library card: power intent (superlatives + outcome language) now
+  routes to the Workshop and renders a full DOSSIER — named concept,
+  mechanics intro, concept-tied WHYs, Helminth with reasoning (verified
+  subsume pool), 2 arcanes, Archon Shard setup (values from
+  data/site/shards.json), a math section COMPUTED from the build (Ability
+  Strength summed from real mod effects; Pillage strip = 25% × strength,
+  checkpoints 400% / 328%+CP per the Warframe Wiki), play rotation,
+  follow-up offer. General questions get the deep dig (live data → Wiki
+  → one hop into linked pages → Wikipedia) and a synthesized prose
+  answer with a "Researched just now" line; AI mode writes that prose
+  from the retrieved facts only, under the existing validation. Session
+  follow-ups resolve against the current item (in-memory only).
+  Battery after: probe 41 well / 0 wrong / 3 don't-know (unchanged —
+  no regressions), workshop 85/85, research+memory 22/22, new
+  test-conversational.js 97/97 (F1–F8 + routing regressions).
+  test-persistence.js fails 7 checks identically on the pristine
+  v2.21.0 tree — pre-existing harness issue, not a regression.
 
 ## The Workshop (v2.21.0) — invent builds, never mods
 

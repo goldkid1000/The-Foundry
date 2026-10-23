@@ -111,6 +111,7 @@
     'RIVEN STATUS: Riven trading is temporarily disabled in-game right now (DE PSA, Oct 2026). Unveiling, rolling and using your own Rivens still works. DE is also retiring Riven dispositions, so every Riven is settling at a fixed 1.2 disposition.',
     'BUILDS RULE: never write out a mod list for a specific Warframe or weapon yourself — the app intercepts build questions and answers them from its verified build library. If a build request somehow reaches you anyway, explain the FORMULA and point to the Builds page instead of listing mods. Weapons have no aura slot: never put an aura mod in a weapon build.',
     'WORKSHOP RULE: the app also composes ORIGINAL builds in its Workshop — but composition is done by the app\'s engine from its verified mod database, never by you. You may discuss archetypes and emphasis in prose around an engine-made build; you may not author, add to, or "improve" a mod list. Any mod name you write must be a real, existing mod — an invented mod name gets the whole answer discarded and replaced.',
+    'RESEARCH RULE: general questions are researched before they are answered — the app digs through live game data, the Warframe Wiki (including the pages it links to), and its own verified guide, and hands you ONLY those retrieved facts. When you are given a FACTS block, answer in natural, conversational prose from those facts alone. Never add numbers, drops, dates, or mechanics that are not in the facts. Never turn a researched answer into a mod list — builds are composed by the app\'s engine, not by you.',
     'HONESTY RULE: if you truly don\'t know a specific fact, say "I don\'t know that one" plainly — the app will offer the Tenno one-tap research buttons. Never invent drop locations, prices, dates, patch details, mod names, mod effects, or farm sources.'
   ].join('\n');
 
@@ -333,11 +334,16 @@
     }
     FALLBACK._load().then(function () {
       var html = FALLBACK._answer(q);
-      /* v2.21.0: a creative build brief is a Workshop handoff in every
+      /* v2.22.0: a creative build brief is a Workshop handoff in every
          mode — the Workshop researches the item and composes an original
          build from real mods (the model never authors the mod list). */
       if (window.TVWorkshop && FALLBACK._workshopIsHandoff && FALLBACK._workshopIsHandoff(html)) {
-        TVWorkshop.handle(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+        /* v2.22.0: in AI mode the model may write the dossier's
+           connective prose from the verified dossier data (workshop
+           falls back to engine prose whenever that is unavailable) */
+        TVWorkshop.handle(q, html, els.msgs, function (h) { addMsg(h, 'bot'); }, {
+          proseWriter: function (dossier) { return workshopProseWrite(q, dossier); }
+        });
         return;
       }
       /* v2.20.0: a guide miss is no longer a dead-end. The question is
@@ -346,13 +352,127 @@
          and on iOS alike. The honest don't-know stays as the last resort
          if research finds nothing. */
       if (window.TVResearch && TVResearch.isMiss(html)) {
-        TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
+        /* v2.22.0: research-first — dig deep, then answer in prose */
+        if (TVResearch.handleConverse) TVResearch.handleConverse(q, html, els.msgs, function (h) { addMsg(h, 'bot'); }, { isMiss: true });
+        else TVResearch.handleMiss(q, html, els.msgs, function (h) { addMsg(h, 'bot'); });
       } else {
         addMsg(html, 'bot');
       }
     }).catch(function () {
       addMsg('Couldn\'t load the Vault\'s data — try reloading the page.', 'bot');
     });
+  }
+
+  function stripHtmlText(html) {
+    return String(html == null ? '' : html)
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|li)>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n\s*\n+/g, '\n')
+      .trim();
+  }
+
+  /* v2.22.0: the model writes conversational prose from a bundle of
+     RETRIEVED FACTS only (guide knowledge + live data + the Wiki dig),
+     under the existing post-generation validation: any build-shaped mod
+     list must be all-DB-real (validateAnswerText) or the draft is
+     discarded — one tighter retry, then the composed-prose fallback in
+     js/vaulty-research.js takes over. */
+  function converseModelWrite(q, bundle, retry) {
+    if (!engine || !FALLBACK) return Promise.resolve(null);
+    if (!bundle.factsText) return Promise.resolve(null);
+    var memoryLine = '';
+    try {
+      if (window.TVMemory && TVMemory._summary) {
+        var s = TVMemory._summary();
+        if (s && s.items && s.items.length) {
+          memoryLine = 'The Tenno often asks about: ' + s.items.slice(0, 3).map(function (i) { return i.name; }).join(', ') + '.';
+        }
+      }
+    } catch (e) {}
+    var sys = SYSTEM_PROMPT + '\n\nRESEARCH MODE — answer the question in natural, conversational prose using ONLY the facts below. ' +
+      'Structure: a direct first sentence, then the useful details, then anything practical. ' +
+      'Do NOT list mods or builds. Do NOT invent numbers, drops, dates, or mechanics that are not in the facts. ' +
+      'If the facts do not answer the question, reply exactly: I don\'t know that one.' +
+      (retry ? '\nYour previous draft failed validation. Be stricter: shorter, facts only, no item or mod names beyond what the facts name.' : '');
+    var user = 'QUESTION: ' + q + '\n\nFACTS:\n' + bundle.factsText + (memoryLine ? '\n\n' + memoryLine : '');
+    return engine.chat.completions.create({
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
+      temperature: 0.35, max_tokens: 650, stream: false
+    }).then(function (res) {
+      var text = '';
+      try { text = res.choices[0].message.content || ''; } catch (e) { text = ''; }
+      text = String(text).trim();
+      if (!text || UNCERTAIN_RE.test(text)) return null;
+      if (FALLBACK._validateAnswer && !FALLBACK._validateAnswer(text, q)) {
+        if (!retry) return converseModelWrite(q, bundle, true);
+        return null;
+      }
+      return md(text);
+    }).catch(function () { return null; });
+  }
+
+  /* v2.22.0: AI mode — the model writes a Workshop dossier's connective
+     prose (intro + why-this-works) from the engine's VERIFIED dossier
+     data. The card, layout, Helminth, shards, rotation and every number
+     stay engine-rendered. Output must arrive as labeled INTRO:/MATH:
+     sections and pass the same validation; anything else → the caller
+     falls back to engine prose (null). */
+  function workshopProseWrite(q, dossier) {
+    if (!engine || !FALLBACK || !dossier) return Promise.resolve(null);
+    var facts = (dossier.facts || []).join('\n- ');
+    var rot = (dossier.rotation || []).map(stripHtmlText).join(' / ');
+    var sys = SYSTEM_PROMPT + '\n\nDOSSIER PROSE — the app has composed and verified a build (concept: ' + dossier.concept + '). ' +
+      'Write TWO short pieces of connective prose and label them exactly:\nINTRO: <one or two sentences — how this build destroys and survives>\nMATH: <one short paragraph — why it works, using ONLY the verified facts>\n' +
+      'Do NOT list mods, arcanes, or shards. Do NOT invent numbers. Facts:\n- ' + facts + '\nRotation (context only): ' + rot;
+    return engine.chat.completions.create({
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: 'Write the INTRO and MATH prose for this build.' }],
+      temperature: 0.4, max_tokens: 420, stream: false
+    }).then(function (res) {
+      var text = '';
+      try { text = res.choices[0].message.content || ''; } catch (e) { text = ''; }
+      var im = String(text).match(/INTRO:\s*([\s\S]*?)(?:\n\s*MATH:|$)/i);
+      var mm = String(text).match(/MATH:\s*([\s\S]*)$/i);
+      if (!im || !mm) return null;
+      var intro = im[1].trim(), math = mm[1].trim();
+      if (!intro || !math) return null;
+      if (FALLBACK._validateAnswer && !FALLBACK._validateAnswer(intro + '\n' + math, q)) return null;
+      return { introHtml: md(intro), mathHtml: md(math) };
+    }).catch(function () { return null; });
+  }
+
+  /* v2.22.0: research-first routing for general questions in AI mode.
+     The guide brain's own knowledge becomes one fact source among the
+     dug-up ones; the on-device model then answers conversationally from
+     the retrieved facts only. Build handoffs still go to the Workshop;
+     smalltalk the guide already handles stays instant. */
+  function askConverseAI(q) {
+    if (!window.TVResearch || !TVResearch.handleConverse || !FALLBACK) { askAI(q); return; }
+    FALLBACK._load().then(function () {
+      var html = FALLBACK._answer(q);
+      if (FALLBACK._workshopIsHandoff && FALLBACK._workshopIsHandoff(html)) { askFallback(q); return; }
+      var miss = TVResearch.isMiss(html);
+      if (!miss && /^(hi|hey|hello|yo|sup|howdy|thanks|thank you|thx|ty|bye|goodbye|who are you)\b/i.test(q)) {
+        addMsg(html, 'bot');
+        history.push({ role: 'user', content: q });
+        history.push({ role: 'assistant', content: '(guide answer)' });
+        if (history.length > 12) history = history.slice(-12);
+        return;
+      }
+      TVResearch.handleConverse(q, html, els.msgs, function (h) {
+        addMsg(h, 'bot');
+        history.push({ role: 'user', content: q });
+        history.push({ role: 'assistant', content: '(researched answer)' });
+        if (history.length > 12) history = history.slice(-12);
+      }, {
+        isMiss: miss,
+        guideText: miss ? null : stripHtmlText(html).slice(0, 1800),
+        modelWriter: function (bundle) { return converseModelWrite(q, bundle, false); }
+      });
+    }).catch(function () { askAI(q); });
   }
 
   /* v2.19.5: validate-on-serve. A free-chat answer that presents a build
@@ -369,7 +489,8 @@
       if (UNCERTAIN_RE.test(full) && window.TVResearch) {
         if (FALLBACK && FALLBACK._research) finalHtml += FALLBACK._research(q);
         if (botEl) { botEl.remove(); botEl = null; }
-        TVResearch.handleMiss(q, finalHtml, els.msgs, function (h) { addMsg(h, 'bot'); });
+        if (TVResearch.handleConverse) TVResearch.handleConverse(q, finalHtml, els.msgs, function (h) { addMsg(h, 'bot'); }, { isMiss: true });
+        else TVResearch.handleMiss(q, finalHtml, els.msgs, function (h) { addMsg(h, 'bot'); });
         history.push({ role: 'user', content: q });
         history.push({ role: 'assistant', content: '(researched live — not in the verified data)' });
         if (history.length > 12) history = history.slice(-12);
@@ -493,7 +614,9 @@
       return;
     }
     if (engine) {
-      askAI(q);
+      /* v2.22.0: general questions are research-first even with the model
+         ready — the model writes from dug-up facts, never from memory */
+      askConverseAI(q);
     } else {
       /* v2.19.3: questions NEVER wait for the model. If the engine isn't
          fully ready — still loading, not downloaded, failed, settled, or

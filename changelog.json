@@ -1,6 +1,18 @@
 [
  {
-  "version": "2.21.0",
+  "version": "2.22.0",
+  "date": "2026-10-22",
+  "notify": true,
+  "notes": [
+   "🗣 CONVERSATIONAL VAULTY: Vaulty now answers general questions the way a person would — researched first, in natural prose. Ask how an ability works, how to farm something, who a character is, or how two mods compare, and Vaulty digs through the guide, live game data, the Warframe Wiki AND the pages the Wiki links to, cross-checks the sources, then writes you a real answer with a \"Researched just now\" source line. No more quoted extract dumps.",
+   "💥 POWER DOSSIERS: superlative build asks (\"best Octavia Prime build where she kills anything… survival and destroying everything\") no longer return the same stock card. They open the Workshop for a full dossier: a named concept (\"Room Melter\"), an intro on how the build destroys and survives, Aura + Exilus + 8 mods each with a why tied to the concept, two arcanes, a Helminth subsume with reasoning (Octavia gets Pillage over Resonator, from Hildryn — strip plus scaling synergy), an Archon Shard setup, a numbered play rotation, and a follow-up offer.",
+   "📐 HONEST MATH: the dossier's \"why this works\" section computes its numbers from the build itself — total Ability Strength is summed from the actual mods, and claims like armor-strip-per-cast are derived from the real formula (Pillage: 25% × strength; full strip at 400%, or 328% with Corrosive Projection). If the honest number is two casts, the answer says two casts.",
+   "🧵 SESSION CONTINUITY: Vaulty remembers what you were just talking about (this session, on-device only). After an Octavia answer, \"and for steel path survival?\" resolves to Octavia, Steel Path, survival — and shows you the context it used.",
+   "Guardrails unchanged: every mod is still database-verified (buildIsValid + capacity), fabricated mod names are still rejected, composed builds still carry the 🛠 Vaulty Original label, and the model still never authors a mod list — in AI mode it writes only the connective prose around the engine's verified dossier, from retrieved facts only."
+  ]
+ },
+ {
+  "version": "2.22.0",
   "date": "2026-10-22",
   "notify": true,
   "notes": [
