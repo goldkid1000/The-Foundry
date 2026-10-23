@@ -961,5 +961,41 @@
   "description": "iFlynn's 17-minute Devshorts 120 + Dev Workshop deep-dive: every Riven moves to a fixed 1.2 disposition in Thursday's hotfix, Ammo Efficiency hard-capped at 75% (new infinite-ammo buffs replace Pistoleer-style setups), Riven trading disabled until the hotfix lands, Acid Shell changes teased, and the free Forma + up to 200k Kuva inbox compensation — plus which Rivens win and lose. (Upload ~Oct 19, 2026.)",
   "item": "Riven / Ammo Efficiency changes",
   "type": "guide"
+ },
+ {
+  "id": "zOzJPNfPPwc",
+  "title": "How to Make ANY Weapon Overpowered in Warframe",
+  "channel": "iFlynn",
+  "category": "Builds",
+  "description": "Foundational weapon-modding guide covering the five essentials (base damage, multishot, crit vs status, elements, arcanes/rivens) for turning any Warframe weapon into an overpowered build. (Upload ~Oct 22, 2026.)",
+  "item": "Weapon modding",
+  "type": "build"
+ },
+ {
+  "id": "vl0aGkV3atE",
+  "title": "Ammo Efficiency Changes & Riven Disposition Retirement [Warframe]",
+  "channel": "Hunkpain Gaming",
+  "category": "Builds",
+  "description": "Breaks down Hotfix 44.1.3's changes to ammo efficiency (75% hard cap, infinite-ammo reworks) and Riven disposition retirement, with guidance on which weapon builds survive the meta shift. (Upload ~Oct 20, 2026.)",
+  "item": "Rivens",
+  "type": "build"
+ },
+ {
+  "id": "iNtqs3O14to",
+  "title": "TAUFORGED ARCHON SHARDS & MORE! 130K PMCFQ Warframe Goal Update!",
+  "channel": "Pupsker",
+  "category": "Farming",
+  "description": "Update on PMCFQ community donation goals unlocking Tauforged Archon Shards, Brysko's hound naming, and a double resource weekend tied to the Taubound event. (Upload ~Oct 19, 2026.)",
+  "item": "Taubound",
+  "type": "event"
+ },
+ {
+  "id": "UXV7H5g-d88",
+  "title": "Icebind Tier List: Ranking Every Warframe for 6-Player",
+  "channel": "Gaz TTV",
+  "category": "Builds",
+  "description": "Ranks every Warframe for the new 6-player Icebind content, helping players pick frames and build priorities for the current endgame meta. (Upload ~Oct 17, 2026.)",
+  "item": "Icebind",
+  "type": "build"
  }
 ]
