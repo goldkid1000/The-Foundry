@@ -46,6 +46,38 @@
   var GUARD_KEY = 'tv-ai-load-guard';
   var OFF_KEY = 'tv-ai-off';
   var MODEL_KEY = 'tv-ai-model';
+  /* v2.23.2: the ONE-TIME DOWNLOAD LAW + capability rule.
+     - Presence is probed in the model cache itself (every known model
+       id), never inferred from any app-version flag: an app update can
+       therefore NEVER strand a downloaded model or re-offer it.
+     - The installed brain and the brain the app would pick today are
+       tracked separately; a difference is an OPTIONAL upgrade offer,
+       never a forced re-download, and the old brain keeps serving
+       until the new one is verified running.
+     - A stored model id with an empty cache means the SYSTEM cleared
+       the download for space — said honestly, once per session.
+     - Crash-loop law: a load guard found still at 'loading' means the
+       last attempt died mid-load (tab killed). Two of those and the AI
+       auto-disables on this device with a plain explanation — a failed
+       load never blocks or loops the app. */
+  var CRASH_KEY = 'tv-ai-load-crashes';
+  var DISABLED_KEY = 'tv-ai-disabled';
+  var SETTINGS_KEY = 'tv-ai-settings';
+  var evictMsgShown = false;
+  var incapableMsgShown = false;
+  var disableMsgShown = false;
+  var upgradeOfferShown = false;
+  var pendingUpgradeId = null;
+  var loadAborted = false;   /* watchdog fired: discard the late engine */
+  var lastProgressAt = 0;
+  var watchdogTimer = null;
+  function stopWatchdog() {
+    if (watchdogTimer !== null && typeof clearInterval === 'function') clearInterval(watchdogTimer);
+    watchdogTimer = null;
+  }
+  var WATCHDOG_MS = 120000;   /* no load progress for 2 min = stalled */
+  function crashCount() { var n = parseInt(lsGet(CRASH_KEY) || '0', 10); return isNaN(n) ? 0 : n; }
+  function bumpCrash() { var n = crashCount() + 1; lsSet(CRASH_KEY, String(n)); return n; }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function aiOff() { return lsGet(OFF_KEY) === '1'; }
@@ -142,22 +174,80 @@
     return typeof navigator !== 'undefined' && !!navigator.gpu;
   }
 
-  /* v2.19.3: NEVER load WebLLM on iOS. The owner's screen recording shows
-     the loop end to end: panel opens → model starts loading from cache →
-     mobile Safari kills the page ("A problem repeatedly occurred") while
-     the ~2GB model loads → reload → load restarts. iOS jetsam makes a 2GB
-     in-tab model unloadable there, so on iPhone/iPad (Safari AND the iOS
-     home-screen PWA — same engine, same UA family) and on any device
-     without WebGPU, the panel is Vault Guide only: live answers + the
-     guide brain, permanently. Desktop keeps the v2.19.2 opt-in flow. */
-  function isIOS() {
-    var ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
-    if (/iP(hone|ad|od)/.test(ua)) return true;
-    /* iPadOS 13+ poses as a Mac in its UA; touch points give it away */
-    return /Macintosh/.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1;
+  /* v2.23.2: CAPABILITY, NOT PLATFORM. The v2.19.3 iOS blanket ban is
+     repealed by the owner: ANY device that detects a GPU and passes a
+     real probe may run the actual model — iPhone, Android, desktop,
+     one rule. The probe below is the gate: request an adapter, open a
+     test device, compile a trivial shader. An adapter that exists but
+     fails the probe = not eligible. What keeps this from recreating
+     the v2.19.0 crash loop is not an OS ban, it's the safety stack:
+     opt-in tap only, the phone-class model on phone-class devices,
+     capped context (AI settings), a load watchdog, and the crash-loop
+     detector that auto-disables the AI on a device where loads keep
+     dying. No GPU / failed probe → quick guide mode + one honest line. */
+  var gpuProbePromise = null;
+  function probeWebGPU() {
+    if (gpuProbePromise) return gpuProbePromise;
+    gpuProbePromise = new Promise(function (resolve) {
+      try {
+        if (typeof navigator === 'undefined' || !navigator.gpu) {
+          resolve({ state: 'fail', reason: 'this device doesn\'t expose WebGPU, which the on-device AI needs to run at all' });
+          return;
+        }
+        if (typeof navigator.gpu.requestAdapter !== 'function') {
+          /* an engine too old to even ask — presence is all we can know */
+          resolve({ state: 'unknown' });
+          return;
+        }
+        navigator.gpu.requestAdapter().then(function (adapter) {
+          if (!adapter) {
+            resolve({ state: 'fail', reason: 'the GPU check found no usable graphics adapter on this device' });
+            return;
+          }
+          if (typeof adapter.requestDevice !== 'function') { resolve({ state: 'pass' }); return; }
+          adapter.requestDevice().then(function (device) {
+            var finish = function (state, reason) {
+              try { if (device && device.destroy) device.destroy(); } catch (e) {}
+              resolve({ state: state, reason: reason });
+            };
+            try {
+              if (!device || typeof device.createShaderModule !== 'function') { finish('pass'); return; }
+              var mod = device.createShaderModule({ code: '@vertex fn main() -> @builtin(position) vec4f { return vec4f(0.0, 0.0, 0.0, 1.0); }' });
+              if (mod && typeof mod.getCompilationInfo === 'function') {
+                mod.getCompilationInfo().then(function (info) {
+                  var errs = ((info && info.messages) || []).some(function (m) { return m && m.type === 'error'; });
+                  finish(errs ? 'fail' : 'pass', errs ? 'the GPU failed a basic graphics check, so the AI model wouldn\'t run reliably here' : undefined);
+                }, function () { finish('fail', 'the GPU failed a basic graphics check, so the AI model wouldn\'t run reliably here'); });
+              } else finish('pass');
+            } catch (e) { finish('fail', 'the GPU failed a basic graphics check, so the AI model wouldn\'t run reliably here'); }
+          }, function () {
+            resolve({ state: 'fail', reason: 'the GPU refused a test device, so the AI model can\'t run on this device' });
+          });
+        }, function () {
+          resolve({ state: 'fail', reason: 'the GPU check failed on this device' });
+        });
+      } catch (e) { resolve({ state: 'unknown' }); }
+    });
+    return gpuProbePromise;
   }
-  function guideOnly() { return isIOS() || !hasWebGPU(); }
-  var GUIDE_ONLY_STATUS = 'Quick-answer mode on iPhone — the AI download is experimental here (button below)';
+
+  /* the crash-loop law, enforced: loads on this device keep dying →
+     the AI turns itself off here, says why once, and quick mode
+     carries on. Turning it back on (Vaulty AI button / manage box)
+     resets the counter and gives it a fresh chance. */
+  function disableAI() {
+    lsSet(OFF_KEY, '1');
+    lsSet(DISABLED_KEY, '1');
+    aiSettled = true;
+    engineFailed = true;
+    hideDownloadBox();
+    setStatus('Vaulty AI is off on this device — quick answers', 'fallback');
+    if (!disableMsgShown) {
+      disableMsgShown = true;
+      addMsg('The Vaulty AI kept dying while it loaded on this device, so I\'ve switched it off here before it can loop — everything else keeps working in quick-answer mode. If you want to give it another shot, the Vaulty AI button below turns it back on.', 'bot');
+    }
+    showManageBox('off');
+  }
 
   /* ---------- v2.23.0: the capability gate ----------
      Before ANY download is offered or started, the device is checked
@@ -173,9 +263,12 @@
       typeof screen !== 'undefined' && Math.min(screen.width, screen.height) < 820;
   }
   function aiCapability() {
-    var ios = isIOS();
+    /* v2.23.2: device CLASS only (phone-class vs desktop-class) picks
+       the model size. The operating system is never consulted — an
+       iPhone that passes the GPU probe is exactly as eligible as a
+       desktop that does. */
     var mobile = isMobileLike();
-    var tier = ios ? 'ios' : (mobile ? 'mobile' : 'desktop');
+    var tier = mobile ? 'mobile' : 'desktop';
     var mem = (typeof navigator !== 'undefined' && typeof navigator.deviceMemory === 'number') ? navigator.deviceMemory : null;
     var reasons = [];
     var ok = true;
@@ -188,7 +281,7 @@
       reasons.push('the device reports very little memory (' + mem + 'GB), so the model would be killed as soon as it loads');
     }
     return {
-      ok: ok, tier: tier, reasons: reasons, mem: mem, experimental: ios,
+      ok: ok, tier: tier, reasons: reasons, mem: mem,
       modelId: tier === 'desktop' ? MODEL_DESKTOP : MODEL_SMALL,
       sizeMB: tier === 'desktop' ? 2200 : 800,
       modelLabel: tier === 'desktop' ? 'the full Vaulty AI (~2GB, one time)' : 'the compact Vaulty AI (~800MB, sized for phones)'
@@ -196,26 +289,180 @@
   }
   function aiCapabilityAsync() {
     var cap = aiCapability();
+    var base;
     try {
-      if (!navigator.storage || !navigator.storage.estimate) return Promise.resolve(cap);
-      return navigator.storage.estimate().then(function (est) {
-        if (est && typeof est.quota === 'number' && typeof est.usage === 'number') {
-          var freeMB = Math.round((est.quota - est.usage) / 1048576);
-          cap.freeMB = freeMB;
-          if (freeMB < cap.sizeMB + 350) {
-            cap.ok = false;
-            cap.reasons.push('only about ' + freeMB + 'MB of storage is available to this browser, and the download needs roughly ' + cap.sizeMB + 'MB plus headroom');
+      if (!navigator.storage || !navigator.storage.estimate) {
+        base = Promise.resolve(cap);
+      } else {
+        base = navigator.storage.estimate().then(function (est) {
+          if (est && typeof est.quota === 'number' && typeof est.usage === 'number') {
+            var freeMB = Math.round((est.quota - est.usage) / 1048576);
+            cap.freeMB = freeMB;
+            if (freeMB < cap.sizeMB + 350) {
+              cap.ok = false;
+              cap.reasons.push('only about ' + freeMB + 'MB of storage is available to this browser, and the download needs roughly ' + cap.sizeMB + 'MB plus headroom');
+            }
           }
+          return cap;
+        }).catch(function () { return cap; });
+      }
+    } catch (e) { base = Promise.resolve(cap); }
+    /* v2.23.2: the REAL gate — an actual GPU probe (adapter + test
+       device + shader compile), on every OS alike. A listed adapter
+       that fails the probe makes the device ineligible, with the
+       reason stated plainly. 'unknown' (an engine too old to probe)
+       keeps the presence-based behavior. */
+    return base.then(function (c) {
+      return probeWebGPU().then(function (p) {
+        c.gpu = p.state;
+        if (p.state === 'fail') {
+          c.ok = false;
+          if (p.reason && c.reasons.indexOf(p.reason) === -1) c.reasons.push(p.reason);
         }
-        return cap;
-      }).catch(function () { return cap; });
-    } catch (e) { return Promise.resolve(cap); }
+        return c;
+      });
+    });
   }
   function postIncapable(cap) {
+    if (incapableMsgShown) return;
+    incapableMsgShown = true;
     setStatus('Vault Guide — quick answers', 'fallback');
     addMsg('I checked this device honestly before offering anything: <b>the Vaulty AI download can\'t run here</b> — ' +
       cap.reasons.join('; ') + '. No hard feelings and no fake button: the quick guide keeps answering everything it can, ' +
-      'and my live research covers the rest. On a desktop browser the full AI unlocks.', 'bot');
+      'and my live research covers the rest. On a device whose GPU passes the check, the real AI unlocks.', 'bot');
+  }
+
+  /* ---------- v2.23.2: AI SETTINGS (performance / thermal) ----------
+     One vocabulary with Nyx: Cool & quiet / Balanced / Max power.
+     Presets and knobs map to REAL generation parameters — the reply
+     length cap (max tokens), the context window handed to WebLLM at
+     engine creation, and generation pacing — never to vibes, and
+     never to a thermometer: no browser API can read the device's
+     temperature, so Cool mode works by limiting how hard and how
+     long the model runs. Settings live in localStorage ONLY (never
+     in a versioned cache), so an app update can't reset them; they
+     are chosen before download just as well as after, and they are
+     applied to the actual engine config at load. */
+  var SETTING_DEFAULTS = { preset: 'balanced', reply: 'standard', context: 'medium', model: 'auto', pace: false, batteryCool: false };
+  var REPLY_TOKENS = { short: 350, standard: 700, long: 1200 };
+  var CONTEXT_SIZES = {
+    mobile: { small: 1024, medium: 2048, large: 4096 },
+    desktop: { small: 2048, medium: 3072, large: 4096 }
+  };
+  var PRESET_KNOBS = {
+    cool: { reply: 'short', context: 'small', pace: true },
+    balanced: { reply: 'standard', context: 'medium', pace: false },
+    max: { reply: 'long', context: 'large', pace: false }
+  };
+  var PRESET_LABELS = { cool: 'Cool & quiet', balanced: 'Balanced', max: 'Max power', custom: 'Custom' };
+  function getSettings() {
+    var s = null;
+    try { s = JSON.parse(lsGet(SETTINGS_KEY) || 'null'); } catch (e) { s = null; }
+    if (!s || typeof s !== 'object') s = {};
+    var out = {};
+    for (var k in SETTING_DEFAULTS) out[k] = (k in s) ? s[k] : SETTING_DEFAULTS[k];
+    if (['cool', 'balanced', 'max', 'custom'].indexOf(out.preset) === -1) out.preset = 'balanced';
+    if (!REPLY_TOKENS[out.reply]) out.reply = 'standard';
+    if (['small', 'medium', 'large'].indexOf(out.context) === -1) out.context = 'medium';
+    if (['auto', 'compact', 'full'].indexOf(out.model) === -1) out.model = 'auto';
+    out.pace = !!out.pace;
+    out.batteryCool = !!out.batteryCool;
+    return out;
+  }
+  function saveSettings(s) { lsSet(SETTINGS_KEY, JSON.stringify(s)); }
+  /* the brain the app would install for this device TODAY: the
+     capability tier's pick, overridden by the Tenno's model knob
+     where a real choice exists (compact runs cooler everywhere;
+     full is a desktop-class choice). */
+  function shippedModelId() {
+    var cap = aiCapability();
+    var pref = getSettings().model;
+    if (pref === 'compact') return MODEL_SMALL;
+    if (pref === 'full' && cap.tier === 'desktop') return MODEL_DESKTOP;
+    return cap.modelId;
+  }
+  /* battery state, where the Battery Status API exists (Chrome-family;
+     Safari doesn't expose it — there the toggle simply never bites) */
+  var batteryInfo = null; /* { charging, level } */
+  function initBattery() {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.getBattery) return;
+      navigator.getBattery().then(function (b) {
+        var upd = function () {
+          batteryInfo = { charging: !!b.charging, level: (typeof b.level === 'number') ? b.level : null };
+        };
+        upd();
+        if (b.addEventListener) {
+          b.addEventListener('chargingchange', upd);
+          b.addEventListener('levelchange', upd);
+        }
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function batteryCoolActive() {
+    var s = getSettings();
+    return !!(s.batteryCool && batteryInfo && !batteryInfo.charging);
+  }
+  /* the parameters the engine actually runs with, right now. The
+     battery rule is real Cool behavior, not a label: unplugged +
+     the toggle on clamps the reply cap and the context to the cool
+     sizes and turns pacing on, whatever the knobs say. */
+  function effectiveParams() {
+    var s = getSettings();
+    var tier = aiCapability().tier;
+    var sizes = CONTEXT_SIZES[tier] || CONTEXT_SIZES.desktop;
+    var batteryCool = batteryCoolActive();
+    var maxTokens = REPLY_TOKENS[s.reply] || 700;
+    var contextSize = sizes[s.context] || sizes.medium;
+    if (batteryCool) {
+      maxTokens = Math.min(maxTokens, REPLY_TOKENS.short);
+      contextSize = Math.min(contextSize, sizes.small);
+    }
+    return {
+      maxTokens: maxTokens,
+      contextSize: contextSize,
+      pacingMs: (s.pace || batteryCool) ? 40 : 0,
+      batteryCool: batteryCool,
+      preset: s.preset
+    };
+  }
+  function capTokens(base) {
+    var cap = effectiveParams().maxTokens;
+    return Math.min(base, cap);
+  }
+  function applyPreset(name) {
+    if (!PRESET_KNOBS[name]) return;
+    var s = getSettings();
+    s.preset = name;
+    s.reply = PRESET_KNOBS[name].reply;
+    s.context = PRESET_KNOBS[name].context;
+    s.pace = PRESET_KNOBS[name].pace;
+    saveSettings(s);
+    syncPerfUI();
+  }
+  function knobChanged(key, value) {
+    var s = getSettings();
+    s[key] = value;
+    s.preset = 'custom';
+    if (key === 'reply' || key === 'context') { /* pacing follows the last preset / battery rule */ }
+    saveSettings(s);
+    syncPerfUI();
+  }
+  function syncPerfUI() {
+    var s = getSettings();
+    var label = document.getElementById('vai-perf-preset');
+    if (label) {
+      label.textContent = PRESET_LABELS[s.preset] || 'Balanced';
+      if (batteryCoolActive()) label.textContent += ' · cooling on battery';
+    }
+    var r = document.getElementById('vai-knob-reply');
+    if (r) r.value = s.reply;
+    var c = document.getElementById('vai-knob-context');
+    if (c) c.value = s.context;
+    var m = document.getElementById('vai-knob-model');
+    if (m) m.value = s.model;
+    var b = document.getElementById('vai-knob-battery');
+    if (b) b.textContent = '🔋 Prefer cool running on battery: ' + (s.batteryCool ? 'On' : 'Off');
   }
 
   function setStatus(text, cls) {
@@ -258,23 +505,39 @@
     } catch (e) {}
   }
 
-  /* Is the model actually on this device? Ask web-llm itself
-     (hasModelInCache, exported by @mlc-ai/web-llm 0.2.85); fall back to
-     looking for its 'webllm/model' cache if that export ever moves. */
-  function checkModelCached() {
-    var mid = storedModelId() || MODEL_ID;
+  /* Which known brain is ACTUALLY on this device? Probe the model
+     cache itself for every model id we know (the stored one first) —
+     never a version flag, never an assumption. Returns the installed
+     model id or null. This is what makes the download one-time BY
+     CONSTRUCTION: whatever a previous version of the app installed is
+     found here and served, across any number of app updates. Falls
+     back to looking for web-llm's 'webllm/model' cache if the export
+     ever moves. */
+  function probeInstalledModel() {
+    var stored = storedModelId();
+    var ids = [];
+    if (stored) ids.push(stored);
+    [MODEL_DESKTOP, MODEL_SMALL].forEach(function (id) {
+      if (ids.indexOf(id) === -1) ids.push(id);
+    });
     return getWebLLM().then(function (m) {
-      if (m && typeof m.hasModelInCache === 'function') {
-        return m.hasModelInCache(mid);
-      }
-      throw new Error('no hasModelInCache');
+      if (!m || typeof m.hasModelInCache !== 'function') throw new Error('no hasModelInCache');
+      var chain = Promise.resolve(null);
+      ids.forEach(function (id) {
+        chain = chain.then(function (found) {
+          if (found) return found;
+          return m.hasModelInCache(id).then(function (has) { return has ? id : null; })
+            .catch(function () { return null; });
+        });
+      });
+      return chain;
     }).catch(function () {
-      if (!('caches' in window)) return false;
+      if (!('caches' in window)) return null;
       return caches.has('webllm/model').then(function (has) {
-        if (!has) return false;
+        if (!has) return null;
         return caches.open('webllm/model').then(function (c) { return c.keys(); })
-          .then(function (keys) { return keys.length > 0; });
-      }).catch(function () { return false; });
+          .then(function (keys) { return keys.length > 0 ? (stored || aiCapability().modelId) : null; });
+      }).catch(function () { return null; });
     });
   }
 
@@ -291,8 +554,7 @@
       txt.textContent = 'The AI download didn\'t finish. You can try once more — or just keep using the quick guide, it answers without the download.';
       btn.textContent = 'Try the AI download again';
     } else {
-      txt.textContent = 'Optional: download ' + cap.modelLabel + '. It stays on this device — and the quick guide below works without it.' +
-        (cap.experimental ? ' On iPhone this is EXPERIMENTAL: if the load fails, Vaulty settles back into quick mode and never loops.' : '');
+      txt.textContent = 'Optional: download ' + cap.modelLabel + '. One time only — it stays on this device across every app update, and the quick guide below works without it.';
       btn.textContent = cap.tier === 'desktop' ? 'Download AI (~2GB)' : 'Download Vaulty AI (~800MB)';
     }
     box.style.display = 'block';
@@ -321,7 +583,7 @@
     } else if (state === 'downloaded') {
       txt.textContent = 'Vaulty AI is downloaded on this device but not started.';
       btn.textContent = 'Start Vaulty AI';
-      btn.onclick = function () { hideDownloadBox(); runEngine('Loading AI from this device…', { guarded: aiCapability().tier !== 'desktop' }); };
+      btn.onclick = function () { hideDownloadBox(); runEngine('Loading AI from this device…'); };
       if (btn2) { btn2.textContent = 'Delete the AI download'; btn2.onclick = deleteAI; }
     } else { /* running */
       txt.textContent = 'Vaulty AI is running from this device. Nothing you ask leaves the device.';
@@ -334,6 +596,14 @@
   function setAIOff(off) {
     lsSet(OFF_KEY, off ? '1' : null);
     hideDownloadBox();
+    if (!off) {
+      /* turning back on is a deliberate fresh chance: any auto-disable
+         and the crash counter that caused it are cleared */
+      lsSet(DISABLED_KEY, null);
+      lsSet(CRASH_KEY, null);
+      lsSet(GUARD_KEY, null);
+      disableMsgShown = false;
+    }
     if (off) {
       if (engine) {
         try { if (engine.unload) engine.unload(); } catch (e) {}
@@ -357,6 +627,8 @@
       engine = null;
       lsSet(MODEL_KEY, null);
       lsSet(GUARD_KEY, null);
+      lsSet(CRASH_KEY, null);
+      lsSet(DISABLED_KEY, null);
       hideDownloadBox();
       setStatus('AI not downloaded');
       addMsg('Deleted — the AI download is gone from this device, freeing its storage. The quick guide is unaffected, and you can re-download any time from the Vaulty AI button.', 'bot');
@@ -376,119 +648,198 @@
     });
   }
 
-  /* First open on a WebGPU device: check what's really on the device
-     before claiming anything in the header. Cached → load it (that's a
-     load, not a download). Not cached → say so and offer the download as
-     an explicit tap; the guide answers in the meantime. */
-  /* v2.23.0: load/start logic, tier by tier.
-     DESKTOP: unchanged from v2.20.0 — a cached model loads on open;
-     no cache → the explicit download box.
-     MOBILE (Android etc.): nothing auto-downloads, ever. A model the
-     Tenno deliberately downloaded before may load from cache, behind
-     the load guard. Not cached → the panel button / chat offers.
-     iOS: nothing auto-starts, ever (v2.19.3 stays law). The download
-     exists only as an EXPERIMENTAL explicit opt-in via the button —
-     smallest model, load guard armed, one failure settles it. */
+  /* v2.23.2: load/start logic under the one-time law + capability rule.
+     - A guard found at 'loading' means the last attempt DIED mid-load
+       (the tab was killed): count it, settle into the guide, and after
+       the second death auto-disable (see disableAI). Never auto-retry.
+     - Presence is probed in the cache (probeInstalledModel): whatever
+       brain is installed is loaded and served — on every OS, behind
+       the same guard — and is NEVER re-offered for download, across
+       any number of app updates.
+     - If the app would pick a different brain today (a newer shipped
+       model, or the Tenno's model setting), the difference is offered
+       as an OPTIONAL upgrade once the installed one is running.
+     - Nothing installed + a stored model id = the system cleared the
+       download for space: one honest line, once per session.
+     - Nothing installed + probe-ineligible = quick mode + one honest
+       line. Nothing ever auto-downloads. */
   function loadEngine() {
-    if (aiOff()) { setStatus('Vaulty AI off — guide mode', 'fallback'); showManageBox('off'); return; }
+    if (aiOff()) {
+      setStatus(lsGet(DISABLED_KEY) === '1' ? 'Vaulty AI is off on this device — quick answers' : 'Vaulty AI off — guide mode', 'fallback');
+      showManageBox('off');
+      return;
+    }
     if (engine || engineLoading || modelCached !== null) return;
-    var cap = aiCapability();
-    if (cap.tier !== 'desktop' && guardGet() === 'loading') {
-      /* a previous phone attempt died mid-load: settle, don't retry */
+    if (guardGet() === 'loading') {
+      var crashes = bumpCrash();
       lsSet(GUARD_KEY, 'failed');
       aiSettled = true;
       modelCached = false;
       engineFailed = true;
       setStatus('Vault Guide — quick answers', 'fallback');
       greetFallbackOnce();
+      if (crashes >= 2) disableAI();
       return;
     }
-    if (!hasWebGPU() && cap.tier === 'desktop') {
+    if (!hasWebGPU()) {
       engineFailed = true;
       setStatus('AI unavailable on this device', 'fallback');
       greetFallbackOnce();
       return;
     }
     setStatus('Checking AI…', 'loading');
-    checkModelCached().then(function (cached) {
-      modelCached = !!cached;
-      if (modelCached) {
-        /* v2.20.0: the model is already on this device — say so, keep the
-           storage persistent, and load from cache. The download box must
-           NEVER appear for a device that already has the model, across
-           any number of app updates (the model cache is version-
-           independent and nothing in the update path may evict it). */
-        MODEL_ID = storedModelId() || cap.modelId;
+    var storedBefore = storedModelId();
+    probeInstalledModel().then(function (installedId) {
+      if (installedId) {
+        modelCached = true;
+        MODEL_ID = installedId;
+        lsSet(MODEL_KEY, installedId);
         requestPersist();
-        if (cap.tier === 'desktop') {
-          runEngine('Loading AI from this device…');
-        } else if (cap.tier === 'mobile' && guardGet() !== 'failed') {
-          runEngine('Loading AI from this device…', { guarded: true });
-        } else {
-          /* iOS: cached but never auto-started — a button starts it */
-          setStatus('AI ready on this device', 'ready');
-          showManageBox('downloaded');
-        }
-      } else {
-        setStatus(cap.tier === 'desktop' ? 'AI not downloaded' : 'Vault Guide — quick answers', cap.tier === 'desktop' ? '' : 'fallback');
-        if (cap.tier === 'desktop' && !aiSettled) showDownloadBox('download');
-        if (cap.tier !== 'desktop') greetFallbackOnce();
+        runEngine('Loading AI from this device…');
+        var shipped = shippedModelId();
+        if (installedId !== shipped) offerUpgradeOnce(shipped);
+        return;
       }
+      modelCached = false;
+      if (storedBefore && !evictMsgShown) {
+        /* we KNOW this device had the AI (its id was stored) and the
+           cache is empty: the system cleared it to free space. Say
+           exactly that — once per session — and offer the one-tap
+           re-download through the normal box below. */
+        evictMsgShown = true;
+        addMsg('Heads up: the downloaded AI was cleared from this device to free up space — that\'s a phone storage thing, not an update, and nothing you did. The quick guide has you in the meantime, and the download button can bring the AI back whenever you want it.', 'bot');
+      }
+      var cap0 = aiCapability();
+      setStatus(cap0.tier === 'desktop' ? 'AI not downloaded' : 'Vault Guide — quick answers', cap0.tier === 'desktop' ? '' : 'fallback');
+      aiCapabilityAsync().then(function (cap) {
+        if (!cap.ok) {
+          setStatus('Vault Guide — quick answers', 'fallback');
+          greetFallbackOnce();
+          postIncapable(cap);
+          return;
+        }
+        if (cap.tier === 'desktop') {
+          if (!aiSettled) showDownloadBox('download');
+        } else {
+          greetFallbackOnce();
+        }
+      });
     }).catch(function () {
       setStatus('Vault Guide — quick answers', 'fallback');
       greetFallbackOnce();
     });
   }
 
+  /* the optional-upgrade offer: shown once per session, only when a
+     DIFFERENT brain is installed than the one the app would pick
+     today. The installed brain keeps serving either way; nothing is
+     replaced until the new one is verified running. */
+  function offerUpgradeOnce(newId) {
+    if (upgradeOfferShown || !newId) return;
+    upgradeOfferShown = true;
+    pendingUpgradeId = newId;
+    addMsg('<p>⬆️ <b>Optional:</b> a different Vaulty brain is available for this device (' +
+      (newId === MODEL_SMALL ? 'the compact ~800MB model' : 'the full ~2GB model') +
+      '). Your current one keeps working either way — install the other only if you want it; nothing is replaced until the new one is verified running.</p>' +
+      '<p><button type="button" class="vai-upgrade-btn btn primary">Install the other brain</button></p>', 'bot');
+  }
+
+  function startUpgrade() {
+    if (engineLoading || !pendingUpgradeId) return;
+    var target = pendingUpgradeId;
+    pendingUpgradeId = null;
+    runEngine('Downloading the other Vaulty brain…', { modelId: target, upgrade: true });
+  }
+
   function startDownload() {
     if (engine || engineLoading) return;
-    if (aiOff()) lsSet(OFF_KEY, null);
+    if (aiOff()) setAIOff(false);
     aiCapabilityAsync().then(function (cap) {
       if (!cap.ok) { postIncapable(cap); return; }
-      MODEL_ID = cap.modelId;
+      MODEL_ID = shippedModelId();
       lsSet(MODEL_KEY, MODEL_ID);
       downloadAttempts++;
       requestPersist();
       hideDownloadBox();
-      runEngine(cap.tier === 'desktop' ? 'Downloading AI model…' : 'Downloading Vaulty AI…', { guarded: cap.tier !== 'desktop' });
+      runEngine(cap.tier === 'desktop' ? 'Downloading AI model…' : 'Downloading Vaulty AI…');
     });
   }
 
+  /* v2.23.2: one load path for every device. The guard is armed on
+     EVERY load (a page that dies mid-load leaves it at 'loading' —
+     the crash signal the detector counts). The watchdog aborts a
+     load that stops making progress. The engine is created with the
+     AI settings applied (context window from the settings panel).
+     An UPGRADE load swaps brains only on verified success: the old
+     engine is set down first, and if the new one fails, nothing is
+     installed over the old one's cache entry and the stored model
+     id never moves. */
   function runEngine(firstLabel, opts) {
-    if (engine || engineLoading) return;
     opts = opts || {};
-    var guarded = !!opts.guarded;
-    if (guarded) {
-      if (guardGet() === 'loading' && !opts.userRetry) {
-        /* a guarded load is already (or was last seen) in flight —
-           the page that started it is gone. Settle, never stack. */
-        lsSet(GUARD_KEY, 'failed');
-        aiSettled = true;
-        setStatus('Vault Guide — quick answers', 'fallback');
-        return;
-      }
-      lsSet(GUARD_KEY, 'loading');
+    if (engineLoading) return;
+    if (engine && !opts.upgrade) return;
+    if (guardGet() === 'loading') {
+      /* a previous attempt died mid-load (this page survived, so this
+         is a fresh deliberate start stepping over the corpse) */
+      var corpseCrashes = bumpCrash();
+      lsSet(GUARD_KEY, 'failed');
+      if (corpseCrashes >= 2) { disableAI(); return; }
     }
+    var mid = opts.modelId || MODEL_ID;
+    if (opts.upgrade && engine) {
+      try { if (engine.unload) engine.unload(); } catch (e) {}
+      engine = null;
+    }
+    lsSet(GUARD_KEY, 'loading');
     engineLoading = true;
     dlCancelled = false;
+    loadAborted = false;
+    lastProgressAt = Date.now();
     showProgress(0, firstLabel);
+    var eff = effectiveParams();
+    stopWatchdog();
+    watchdogTimer = (typeof setInterval === 'function') ? setInterval(function () {
+      if (!engineLoading) { stopWatchdog(); return; }
+      if (Date.now() - lastProgressAt > WATCHDOG_MS) {
+        stopWatchdog();
+        loadAborted = true;
+        engineLoading = false;
+        hideProgress();
+        var crashes = bumpCrash();
+        lsSet(GUARD_KEY, 'failed');
+        if (crashes >= 2) { disableAI(); return; }
+        aiSettled = true;
+        setStatus('Vault Guide — quick answers', 'fallback');
+        if (!settleMsgShown) {
+          settleMsgShown = true;
+          addMsg('The AI load stalled on this device, so I stopped it rather than let it spin — quick-answer mode has you, and nothing will loop or nag.', 'bot');
+        }
+      }
+    }, 5000) : null;
 
     getWebLLM().then(function (m) {
-      return m.CreateMLCEngine(MODEL_ID, {
+      return m.CreateMLCEngine(mid, {
         initProgressCallback: function (p) {
-          if (dlCancelled) return;
+          if (dlCancelled || loadAborted) return;
+          lastProgressAt = Date.now();
           showProgress(p.progress || 0, p.text || 'Loading AI model…');
         }
-      });
+      }, { context_window_size: eff.contextSize });
     }).then(function (eng) {
+      stopWatchdog();
       engineLoading = false;
       hideProgress();
+      if (loadAborted) {
+        /* the watchdog already settled this — discard the late engine */
+        try { if (eng && eng.unload) eng.unload(); } catch (e) {}
+        return;
+      }
       if (dlCancelled) {
         /* the Tenno cancelled mid-flight: discard the engine, keep
            whatever finished downloading, stay in guide mode */
         try { if (eng && eng.unload) eng.unload(); } catch (e) {}
         modelCached = true;
-        if (guarded) lsSet(GUARD_KEY, null);
+        lsSet(GUARD_KEY, null);
         setStatus('Vault Guide — quick answers', 'fallback');
         showManageBox('downloaded');
         return;
@@ -496,33 +847,38 @@
       engine = eng;
       engineFailed = false;
       modelCached = true;
-      if (guarded) lsSet(GUARD_KEY, null);
+      MODEL_ID = mid;
+      lsSet(MODEL_KEY, mid);
+      lsSet(CRASH_KEY, null);
+      lsSet(GUARD_KEY, null);
       hideDownloadBox();
       setStatus('AI ready on this device', 'ready');
-      addMsg('AI engine loaded — ask me anything about builds, mods, farms, or Steel Path. I answer from real Warframe knowledge now, not just keyword matching.', 'bot');
+      if (opts.upgrade) {
+        addMsg('New brain installed and verified running — you\'re on it now. The previous one is still stored on this device; delete it from the Vaulty AI button whenever you want the space back.', 'bot');
+      } else {
+        addMsg('AI engine loaded — ask me anything about builds, mods, farms, or Steel Path. I answer from real Warframe knowledge now, not just keyword matching.', 'bot');
+      }
     }).catch(function () {
+      stopWatchdog();
       engineLoading = false;
-      engineFailed = true;
       hideProgress();
+      if (loadAborted) return;
       if (dlCancelled) {
-        if (guarded) lsSet(GUARD_KEY, null);
+        lsSet(GUARD_KEY, null);
         setStatus('Vault Guide — quick answers', 'fallback');
         return;
       }
-      if (guarded) {
-        /* a phone load failed: settle permanently for this device —
-           no retry boxes, no loops. The button can be tapped again
-           deliberately, but Vaulty never nags. */
-        lsSet(GUARD_KEY, 'failed');
+      lsSet(GUARD_KEY, 'failed');
+      if (opts.upgrade) {
+        /* nothing changed: the old brain's cache entry and the stored
+           id were never touched — it can be started again as before */
         aiSettled = true;
-        hideDownloadBox();
+        engineFailed = true;
         setStatus('Vault Guide — quick answers', 'fallback');
-        if (!settleMsgShown) {
-          settleMsgShown = true;
-          addMsg('The Vaulty AI didn\'t start on this phone, so I\'m settling into quick-answer mode for good — no more prompts, no loops. Builds, farming, mods, live questions: the guide covers them.', 'bot');
-        }
+        addMsg('The other brain didn\'t load, so nothing changed — your installed AI is untouched and can be started again from the Vaulty AI button.', 'bot');
         return;
       }
+      engineFailed = true;
       if (downloadAttempts >= 2) {
         /* one failed attempt + one failed retry: settle. No more prompts. */
         aiSettled = true;
@@ -600,9 +956,8 @@
         return;
       }
       if (modelCached) { showManageBox('downloaded'); return; }
-      addMsg('<p>💡 <b>Want the fuller brain?</b> This device checks out for the optional on-device Vaulty AI — ' +
-        cap.modelLabel + '. It downloads once, lives only on this device, works offline, and the quick guide keeps answering in the meantime.' +
-        (cap.experimental ? '</p><p>⚠️ On iPhone this is <b>experimental</b>: mobile Safari may refuse the load — if it fails I settle back into quick mode and never loop or nag.' : '') +
+      addMsg('<p>💡 <b>Want the fuller brain?</b> This device passed the GPU check for the optional on-device Vaulty AI — ' +
+        cap.modelLabel + '. It downloads <b>once</b>, lives only on this device, survives every app update, works offline, and the quick guide keeps answering in the meantime.' +
         '</p><p><button type="button" class="vai-aioffer-btn btn primary">Download Vaulty AI</button></p>', 'bot');
     });
   }
@@ -693,7 +1048,7 @@
     var user = 'QUESTION: ' + q + '\n\nFACTS:\n' + bundle.factsText + (memoryLine ? '\n\n' + memoryLine : '');
     return engine.chat.completions.create({
       messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
-      temperature: 0.35, max_tokens: 650, stream: false
+      temperature: 0.35, max_tokens: capTokens(650), stream: false
     }).then(function (res) {
       var text = '';
       try { text = res.choices[0].message.content || ''; } catch (e) { text = ''; }
@@ -722,7 +1077,7 @@
       'Do NOT list mods, arcanes, or shards. Do NOT invent numbers. Facts:\n- ' + facts + '\nRotation (context only): ' + rot;
     return engine.chat.completions.create({
       messages: [{ role: 'system', content: sys }, { role: 'user', content: 'Write the INTRO and MATH prose for this build.' }],
-      temperature: 0.4, max_tokens: 420, stream: false
+      temperature: 0.4, max_tokens: capTokens(420), stream: false
     }).then(function (res) {
       var text = '';
       try { text = res.choices[0].message.content || ''; } catch (e) { text = ''; }
@@ -818,11 +1173,14 @@
 
     var full = '';
     var botEl = null;
+    /* v2.23.2: AI settings are real parameters — the reply-length cap
+       is the max_tokens below, and Cool pacing throttles the stream */
+    var effP = effectiveParams();
 
     engine.chat.completions.create({
       messages: messages,
       temperature: 0.6,
-      max_tokens: 700,
+      max_tokens: effP.maxTokens,
       stream: true
     }).then(function (stream) {
       function pump() {
@@ -840,6 +1198,9 @@
           }
           botEl.innerHTML = md(full) + '<span class="vai-caret">▍</span>';
           els.msgs.scrollTop = els.msgs.scrollHeight;
+          if (effP.pacingMs > 0) {
+            return new Promise(function (res) { setTimeout(res, effP.pacingMs); }).then(pump);
+          }
           return pump();
         });
       }
@@ -888,6 +1249,17 @@
       TVMemory.recordExchange(q);
       var usual = TVMemory.resolveUsual(q);
       if (usual) q = usual;
+    }
+    /* v2.23.2: SOCIAL ROUTING — greetings, small talk, thanks, jokes
+       are conversation, not data. Detected before live/build/research
+       routing in every mode: with the model loaded it gets first crack
+       (persona prompt) like a real chat; without one, the guide's
+       social responder answers. Never a don't-know, never research
+       buttons. */
+    if (window.TVSocial && TVSocial.isSocial(q)) {
+      if (engine) askAI(q);
+      else askFallback(q, false);
+      return;
     }
     /* v2.19.0: time-sensitive questions are answered from the live
        worldstate feed (same data as the Live page), never from the
@@ -954,9 +1326,9 @@
        check hasn't backed up (v2.19.2) */
     if (show && opened && !engineLoading) {
       if (engine) setStatus('AI ready on this device', 'ready');
-      else if (aiOff()) setStatus('Vaulty AI off — guide mode', 'fallback');
-      else if (isIOS() && modelCached !== true) setStatus(GUIDE_ONLY_STATUS, 'fallback');
+      else if (aiOff()) setStatus(lsGet(DISABLED_KEY) === '1' ? 'Vaulty AI is off on this device — quick answers' : 'Vaulty AI off — guide mode', 'fallback');
       else if (!hasWebGPU()) setStatus('AI unavailable on this device', 'fallback');
+      else if (modelCached === true) setStatus('AI ready on this device', 'ready');
       else if (engineFailed) setStatus('Vault Guide — quick answers', 'fallback');
       else if (modelCached === false) setStatus('AI not downloaded');
     }
@@ -1077,6 +1449,20 @@
       '<p id="vai-dltxt" class="muted small" style="margin:0"></p>' +
       '<button id="vai-dlbtn" type="button" class="btn primary" style="margin-top:8px;width:100%"></button>' +
       '<button id="vai-dlbtn2" type="button" class="btn warn" style="margin-top:6px;width:100%;display:none"></button></div>' +
+      '<div id="vai-perf" style="display:none;padding:10px 12px 0">' +
+      '<p class="muted small" style="margin:0"><b>🌡 AI performance</b> — preset: <b id="vai-perf-preset">Balanced</b></p>' +
+      '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">' +
+      '<button id="vai-perf-cool" type="button" class="btn">❄️ Cool & quiet</button>' +
+      '<button id="vai-perf-balanced" type="button" class="btn">⚖️ Balanced</button>' +
+      '<button id="vai-perf-max" type="button" class="btn">🔥 Max power</button></div>' +
+      '<label class="muted small" style="display:block;margin-top:8px">Reply length ' +
+      '<select id="vai-knob-reply"><option value="short">Short</option><option value="standard">Standard</option><option value="long">Long</option></select></label>' +
+      '<label class="muted small" style="display:block;margin-top:4px">Context size ' +
+      '<select id="vai-knob-context"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>' +
+      '<label class="muted small" style="display:block;margin-top:4px">Model ' +
+      '<select id="vai-knob-model"><option value="auto">Auto (right for this device)</option><option value="compact">Compact (cooler)</option><option value="full">Full (desktop class)</option></select></label>' +
+      '<button id="vai-knob-battery" type="button" class="btn" style="margin-top:6px">🔋 Prefer cool running on battery: Off</button>' +
+      '<p class="muted small" style="margin:6px 0 0">Honest note: no browser API can read your device\'s temperature, so Cool mode can\'t watch a thermometer — it works by limiting how hard and how long the model runs: shorter replies, a smaller context, and paced generation. Settings save on this device (updates never reset them) and apply at the next AI start — including a first download.</p></div>' +
       '<div id="vai-msgs"></div>' +
       '<div class="vai-chips">' +
       CHIPS.map(function (c) { return '<button type="button" class="vai-chip">' + esc(c) + '</button>'; }).join('') +
@@ -1084,6 +1470,7 @@
       '<div class="vai-foot">' +
       '<button type="button" id="vai-mem-btn" class="vai-mem-btn">🧠 What Vaulty remembers</button> ' +
       '<button type="button" id="vai-ai-btn" class="vai-mem-btn">⬇ Vaulty AI</button> ' +
+      '<button type="button" id="vai-perf-btn" class="vai-mem-btn">🌡 AI performance</button> ' +
       '<button type="button" id="vai-voice-btn" class="vai-mem-btn" style="display:none">🔊 Spoken replies: Off</button>' +
       '<p class="muted small">Unanswered questions are logged anonymously so Vaulty can learn them. ' +
       'Vaulty\'s memory of you stays on this device — nothing is uploaded.</p></div>' +
@@ -1133,15 +1520,47 @@
       aiCapabilityAsync().then(function (cap) {
         if (!cap.ok) { postIncapable(cap); return; }
         showDownloadBox('download');
-        addMsg('Checked this device first: it can run ' + cap.modelLabel + '. Tap the download button above when you\'re ready — explicit tap only, it never starts itself.' +
-          (cap.experimental ? ' On iPhone this is experimental — one failed load settles me back into quick mode, no loops.' : ''), 'bot');
+        addMsg('Checked this device first: its GPU passed, and it can run ' + cap.modelLabel + '. Tap the download button above when you\'re ready — explicit tap only, it never starts itself, and it downloads once for good.', 'bot');
       });
     });
+    /* v2.23.2: AI performance settings wiring */
+    var perfBtn = panel.querySelector('#vai-perf-btn');
+    var perfBox = panel.querySelector('#vai-perf');
+    if (perfBtn && perfBox) perfBtn.addEventListener('click', function () {
+      var show = perfBox.style.display !== 'block';
+      perfBox.style.display = show ? 'block' : 'none';
+      if (show) syncPerfUI();
+    });
+    var wirePreset = function (id, name) {
+      var b = panel.querySelector(id);
+      if (b) b.addEventListener('click', function () { applyPreset(name); });
+    };
+    wirePreset('#vai-perf-cool', 'cool');
+    wirePreset('#vai-perf-balanced', 'balanced');
+    wirePreset('#vai-perf-max', 'max');
+    var wireKnob = function (id, key) {
+      var el = panel.querySelector(id);
+      if (el) el.addEventListener('change', function () { knobChanged(key, el.value); });
+    };
+    wireKnob('#vai-knob-reply', 'reply');
+    wireKnob('#vai-knob-context', 'context');
+    wireKnob('#vai-knob-model', 'model');
+    var battBtn = panel.querySelector('#vai-knob-battery');
+    if (battBtn) battBtn.addEventListener('click', function () {
+      var s = getSettings();
+      s.batteryCool = !s.batteryCool;
+      saveSettings(s);
+      syncPerfUI();
+    });
+    initBattery();
+    syncPerfUI();
     /* v2.23.0: chat-offered download buttons (delegated — offers are
        rendered inside chat messages) */
     panel.addEventListener('click', function (e) {
       var b = (e.target && typeof e.target.closest === 'function') ? e.target.closest('.vai-aioffer-btn') : null;
       if (b) startDownload();
+      var u = (e.target && typeof e.target.closest === 'function') ? e.target.closest('.vai-upgrade-btn') : null;
+      if (u) startUpgrade();
     });
     /* v2.23.0: voice — mic only when the API exists; spoken replies
        are an explicit, persisted, off-by-default toggle */
@@ -1194,6 +1613,18 @@
     _models: { desktop: MODEL_DESKTOP, small: MODEL_SMALL },
     _aiAskRe: AI_ASK_RE,
     _guardGet: guardGet,
-    _aiOff: aiOff
+    _aiOff: aiOff,
+    /* v2.23.2 hooks: GPU probe, installed-model probe, social routing
+       entry, and the AI settings surface */
+    _probe: probeWebGPU,
+    _probeInstalled: probeInstalledModel,
+    _ask: ask,
+    _startUpgrade: startUpgrade,
+    _crashCount: crashCount,
+    _settings: getSettings,
+    _applyPreset: applyPreset,
+    _knobChanged: knobChanged,
+    _effParams: effectiveParams,
+    _shippedModelId: shippedModelId
   };
 })();

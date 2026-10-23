@@ -3765,6 +3765,13 @@ function oneShotBuildAnswer(t) {
     var t = stripQ(q);
     if (!t) return 'Ask me something — a build, a farm spot, a mod, or "help".';
 
+    /* v2.23.2: SOCIAL LAYER FIRST — greetings, small talk, thanks,
+       jokes, compliments, "who are you" are conversation, not data
+       lookups (js/vaulty-social.js). They are answered socially here,
+       before every intent/data path, and can never fall through to
+       the honest don't-know or its research buttons. */
+    if (window.TVSocial && TVSocial.isSocial(t)) return TVSocial.answer(t);
+
     /* v2.12.31: conversational layer first — personality, opinions, casual chat */
     var convo = conversationalAnswer(t, q);
     if (convo) return convo;
@@ -4266,6 +4273,8 @@ function oneShotBuildAnswer(t) {
 
   window.TVAI = {
     init: init, toggle: toggle, _answer: answer, _load: loadData, _research: researchMarkup,
+    /* v2.23.2: social detection for the AI panel's router */
+    _socialCategory: function (q) { return window.TVSocial ? TVSocial.category(q) : null; },
     _validateAnswer: validateAnswerText,
     /* v2.22.0: Workshop hooks for js/vaulty-workshop.js */
     _workshopPlan: workshopPlan,

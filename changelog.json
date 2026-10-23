@@ -1,5 +1,16 @@
 [
  {
+  "version": "2.23.2",
+  "date": "2026-10-23",
+  "notify": true,
+  "notes": [
+   "💬 VAULTY ACTUALLY CONVERSES NOW: say 'how are we', 'hello Vaulty', 'thanks', 'tell me a joke' or 'who are you' and you get a real reply in his voice — varied, not one canned line — in quick mode AND with the AI loaded (there, the model itself gets first crack at chat). The don't-know card and its research buttons now belong only to factual Warframe questions that live research genuinely couldn't answer. Small talk is conversation, and it's treated like it.",
+   "⬇️ THE DOWNLOAD IS ONE-TIME — BY LAW: Vaulty now detects the AI by probing its cache directly, never by any version flag, so an app update can NEVER ask you to download it again — if it's on your device, the status says 'AI ready on this device' and it just loads. A different brain (a newer model, or the size you pick in settings) is only ever an OPTIONAL offer — 'your current one keeps working either way' — and nothing is replaced until the new one is verified running. If your phone silently clears the download to free up space, he says exactly that, once, with the one-tap re-download — no nagging, no loops.",
+   "📱 ANY DEVICE WITH A REAL GPU CAN RUN THE AI: the old iPhone ban is gone. Eligibility is a real capability check on every OS alike — a WebGPU adapter that must pass an actual graphics probe, storage headroom, sane memory — iPhone, Android, desktop, one rule. No GPU or a failed probe → quick guide mode with one honest line about why. And the safety stack that replaces the ban: opt-in tap only, the phone-sized model on phones, a load watchdog, and a crash-loop detector — if loads keep dying on a device, the AI turns itself off there with a plain explanation and quick mode carries on.",
+   "🌡 NEW: AI PERFORMANCE SETTINGS (panel, 'AI performance'): one-tap presets — Cool & quiet, Balanced, Max power — plus your own knobs: reply length, context size, model size, and 'prefer cool running on battery' (unplugged → Cool behavior automatically, where the browser reports battery state). They change real engine parameters (reply caps, the context window handed to the model, generation pacing), they're saved on your device only, updates never reset them, and choices made before downloading apply at the download. Honest note, also in the panel: no browser API can read your phone's temperature, so Cool mode works by limiting how hard and how long the model runs — not by watching a thermometer."
+  ]
+ },
+ {
   "version": "2.23.1",
   "date": "2026-10-23",
   "notify": true,

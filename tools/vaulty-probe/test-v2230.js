@@ -398,7 +398,10 @@ function runCheck(q, handoffHtml, TVWorkshop) {
   check('F3: cramped storage → refused with the storage reason', capStore.ok === false && /storage/.test(capStore.reasons.join(' ')), capStore.reasons.join(';'));
   const B5 = capSandbox({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1', maxTouchPoints: 5, gpu: {}, deviceMemory: 4 });
   const capIos = B5.sandbox.TVAI._capability();
-  check('F3: iOS is the experimental tier with the small model', capIos.tier === 'ios' && capIos.experimental === true && /1B/.test(capIos.modelId), JSON.stringify(capIos));
+  /* v2.23.2 LAW CHANGE (owner): capability replaces platform — an
+     iPhone UA is phone-class like any other; there is no 'ios' tier
+     and no experimental flag anywhere in the decision path. */
+  check('F3: iOS UA → phone-class tier, small model, no platform tier/flag', capIos.tier === 'mobile' && !('experimental' in capIos) && /1B/.test(capIos.modelId), JSON.stringify(capIos));
 
   /* ---- F3b: a crashed guarded load settles, never restarts ---- */
   const B4 = baseSandbox({
