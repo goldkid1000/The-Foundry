@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = '2.23.2';
+  var APP_VERSION = '2.23.3';
 
   function esc(s) {
     if (window.TV && window.TV.esc) return window.TV.esc(s);
@@ -116,7 +116,17 @@
      "make me a nokko build" → "nokko". */
   function subjectOf(q) {
     var t = norm(q).replace(/\?+$/, '').trim();
-    t = t.replace(/^(please\s+)?(tell me about|what is|what'?s|who is|where (do|can) i (farm|get|find|hunt|grind)|where to (farm|get|find|hunt|grind)|how do i (get|farm|obtain|find|unlock|join|start|use)|how to (get|farm|obtain|find|unlock|join|start|use)|can you (make|build)( me)?( a)?|make( me)?( a)?|build( me)?( a)?|farm|get|find)\s+/, '');
+    /* v2.23.3: farm scaffolding reduces to the ITEM before anything
+       else runs — "where would be the best place to farm argon
+       crystals" → "argon crystals", "where does X drop" → "X".
+       Searching the full sentence (the old behavior for these
+       phrasings) found nothing at any stage, so the don't-know wall
+       rendered even though the panel had intercepted the miss. */
+    var fm = t.match(/^where (?:does|do) (.+?) drops?(?: from)?$/) || t.match(/^what drops (.+?)$/);
+    if (fm) t = fm[1];
+    t = t.replace(/^(?:where|what)(?:'s| is| would be| will be)? (?:the )?best (?:place|spot|mission|node|way) to (?:farm|grind|get)(?: for)?\s+/, '');
+    t = t.replace(/^best (?:place|spot|mission|node|way) to (?:farm|grind|get)(?: for)?\s+/, '');
+    t = t.replace(/^(please\s+)?(tell me about|what is|what'?s|who is|where (do|can) i (farm|get|find|hunt|grind)|where to (farm|get|find|hunt|grind)|how (do|can) i (get|farm|obtain|find|unlock|join|start|use)|how to (get|farm|obtain|find|unlock|join|start|use)|can you (make|build)( me)?( a)?|make( me)?( a)?|build( me)?( a)?|farm|get|find)\s+/, '');
     /* "how do incarnon weapons work" style scaffolding */
     t = t.replace(/^how (do|does|can) /, '');
     t = t.replace(/\s+works?$/, '');
@@ -161,11 +171,19 @@
       var text = firstSentences(best.description || '', 460);
       var dropTxt = '';
       if (best.drops && best.drops.length) {
-        dropTxt = best.drops.slice(0, 4).map(function (d) {
+        var seenDrop = {};
+        dropTxt = best.drops.slice(0, 6).map(function (d) {
           if (typeof d === 'string') return d;
           if (d && d.location) return d.location + (d.chance != null ? ' (' + d.chance + '%)' : '');
           return '';
-        }).filter(Boolean).join('; ');
+        }).filter(function (s) {
+          /* v2.23.3: warframestat lists quantity variants (6X / 8X)
+             of one drop as separate rows — same location+chance
+             repeated reads as a stutter in the composed answer */
+          if (!s || seenDrop[s]) return false;
+          seenDrop[s] = 1;
+          return true;
+        }).slice(0, 4).join('; ');
       }
       /* substance gate: the DESCRIPTION must carry the answer. A flavor
          line + a drop table (e.g. the Stalker enemy entry answering a
@@ -176,7 +194,12 @@
         (dropTxt ? '<p><b>📍 Drops:</b> ' + esc(dropTxt) + '</p>' : '') +
         citeLine('live game data (warframestat.us)',
           'https://wiki.warframe.com/w/Special:Search?search=' + encodeURIComponent(best.name));
-      return { html: html, source: 'Live game data (warframestat.us)', text: dropTxt ? text + ' Drops: ' + dropTxt : text };
+      /* v2.23.3: the plain-text form names the item in its drops
+         segment ("Vainthorn drops: Abyssal Beacon, Rotation C…") —
+         the dig's sentence scorer keys on subject tokens, and a bare
+         locations list scored zero, so researched farm facts were
+         gathered and then thrown away at compose time. */
+      return { html: html, source: 'Live game data (warframestat.us)', text: dropTxt ? text + ' ' + best.name + ' drops: ' + dropTxt : text };
     }).catch(function () { return null; });
   }
 
@@ -219,12 +242,25 @@
   /* ---------- stage 3: Wikipedia backstop ----------
      Only accepted when the result is actually about Warframe / DE —
      a general encyclopedia hit about something else entirely would be
-     worse than an honest don't-know. */
-  function stageWikipedia(subj) {
+     worse than an honest don't-know.
+     v2.23.3: the mention rule is RELAXED for clearly-Warframe
+     questions (farm intent, or Warframe vocabulary in the question):
+     a hit whose title/text carries the subject's own content tokens
+     counts as on-topic even without the literal word "warframe".
+     Ambiguous questions keep the strict rule. */
+  function stageWikipedia(subj, opts) {
     return wikiExtract('https://en.wikipedia.org/w/api.php', subj).then(function (hit) {
       if (!hit) return null;
       var hay = (hit.title + ' ' + hit.text).toLowerCase();
-      if (hay.indexOf('warframe') === -1 && hay.indexOf('digital extremes') === -1) return null;
+      var onTopic = hay.indexOf('warframe') !== -1 || hay.indexOf('digital extremes') !== -1;
+      if (!onTopic && opts && opts.wfContext) {
+        var stoks = contentTokens(subj).filter(function (w) { return w.length >= 4; });
+        var titleN = norm(hit.title);
+        onTopic = stoks.some(function (w) {
+          return titleN.indexOf(w) !== -1 || hay.indexOf(' ' + w) !== -1;
+        });
+      }
+      if (!onTopic) return null;
       var html = '<p><b>' + esc(hit.title) + '</b></p><p>' + esc(hit.text) + '</p>' +
         citeLine('Wikipedia', hit.url);
       return { html: html, source: 'Wikipedia', text: hit.text };
@@ -352,11 +388,47 @@
     }).catch(function () { return []; });
   }
   var HOP_TERMS = ['ability', 'damage', 'status', 'augment', 'helminth', 'armor', 'energy', 'critical', 'scaling', 'proc', 'buff'];
-  function digSubject(subj, qtokens, hooks) {
+  /* v2.23.3: farm-intent + Warframe-context detection for the dig.
+     A farm question's answer lives in DROP data: warframestat drop
+     tables (stage 1) and the item wiki page's body — drop locations
+     sit in Acquisition sections / tables, not the intro extract — so
+     farm digs additionally mine the full page text for drop
+     sentences (wikiDropFacts). wfCtx marks a question as clearly
+     Warframe-contextual, which relaxes the Wikipedia mention rule. */
+  function isFarmQuestion(q) {
+    var t = norm(q);
+    return /\bfarm(ing|ed)?\b/.test(t) || /\bgrind(ing)?\b/.test(t) ||
+      /^where (?:does|do) .+ drops?\b/.test(t) || /\bwhat drops\b/.test(t) ||
+      /\bbest (?:place|spot|mission|node|way) to\b/.test(t) ||
+      /^how (?:do|can) i (?:get|obtain|farm)\b/.test(t);
+  }
+  var WF_VOCAB_RE = /\b(warframe|tenno|relics?|primes?|mods?|arcanes?|lich|sisters? of parvos|steel path|syndicates?|dojo|void fissures?|sortie|archon)\b/;
+  function wikiDropFacts(title) {
+    var url = 'https://wiki.warframe.com/api.php?action=query&prop=extracts&explaintext=1&redirects=1&titles=' +
+      encodeURIComponent(title) + '&format=json&origin=*';
+    return fetchJSON(url, 9000).then(function (data) {
+      var pages = data && data.query && data.query.pages;
+      if (!pages) return null;
+      var keys = Object.keys(pages);
+      if (!keys.length || keys[0] === '-1') return null;
+      var text = String(pages[keys[0]].extract || '').replace(/\s+/g, ' ');
+      if (!text) return null;
+      var sents = text.split(/(?<=[.!?])\s+/).filter(function (s) {
+        return s.length >= 30 && s.length <= 340 &&
+          /\b(drop|drops|dropped|dropping|farm|obtain|obtained|acquir\w+|reward|rotation|source|chance)\b/i.test(s);
+      }).slice(0, 5);
+      return sents.length ? sents.join(' ') : null;
+    }).catch(function () { return null; });
+  }
+  function digSubject(subj, qtokens, hooks, farm, wfCtx) {
     var facts = [], seen = {};
     function add(source, title, url, text) {
       if (!text || text.length < 30) return;
-      var k = norm(title || source);
+      /* v2.23.3: dedupe per (source, title) — keying on the title
+         alone silently dropped the item's Wiki fact whenever live
+         game data had already claimed the subject's name as its key
+         (exactly the farm-dig case: warframestat hit + Wiki page). */
+      var k = norm(source) + '|' + norm(title || '');
       if (seen[k]) return;
       seen[k] = 1;
       facts.push({ source: source, title: title || '', url: url || '', text: text });
@@ -370,6 +442,14 @@
     }).then(function (w) {
       if (!w) return null;
       add('Warframe Wiki', w.title, w.url, w.text);
+      /* v2.23.3: a farm dig also mines the page body for drop facts
+         before the link hop — the intro alone rarely names the node */
+      var dropsDone = farm
+        ? wikiDropFacts(w.title).then(function (dt) {
+            if (dt) add('Warframe Wiki', w.title + ' — drops', w.url, dt);
+          })
+        : Promise.resolve();
+      return dropsDone.then(function () {
       return wikiLinks(w.title).then(function (links) {
         var scored = [];
         links.forEach(function (title) {
@@ -389,9 +469,10 @@
           hs.forEach(function (h) { if (h) add('Warframe Wiki', h.title, h.url, h.text); });
         });
       });
+      });
     }).then(function () {
       stage(4);
-      return stageWikipedia(subj);
+      return stageWikipedia(subj, { wfContext: wfCtx });
     }).then(function (wp) {
       if (wp) add(wp.source, subj, '', wp.text);
       return facts;
@@ -402,11 +483,15 @@
     var cmp = compareSubjects(q);
     var subjects = cmp || [subjectOf(q)];
     var qt = contentTokens(q);
+    /* v2.23.3: farm digs mine drop data; clearly-Warframe questions
+       (farm intent or WF vocabulary) relax the Wikipedia mention rule */
+    var farm = isFarmQuestion(q);
+    var wfCtx = farm || WF_VOCAB_RE.test(norm(q));
     var all = [];
     if (opts.guideText) all.push({ source: 'The Foundry guide', title: 'Foundry guide', url: '', text: opts.guideText });
     var chain = Promise.resolve();
     subjects.forEach(function (subj) {
-      chain = chain.then(function () { return digSubject(subj, qt, opts); })
+      chain = chain.then(function () { return digSubject(subj, qt, opts, farm, wfCtx); })
         .then(function (facts) { all = all.concat(facts); });
     });
     return chain.then(function () { return { subjects: subjects, compare: !!cmp, facts: all }; });
@@ -427,6 +512,13 @@
   }
   function synthesize(q, bundle) {
     var qt = contentTokens(q);
+    /* v2.23.3: the SUBJECT's own tokens score too — a farm question's
+       wording is mostly scaffolding ("where would be the best
+       place…"), so sentences naming the item were scoring zero and
+       researched answers collapsed back to the don't-know wall. */
+    (bundle.subjects || []).forEach(function (s) {
+      contentTokens(s).forEach(function (w) { if (qt.indexOf(w) === -1) qt.push(w); });
+    });
     var cands = [];
     bundle.facts.forEach(function (f, fi) {
       String(f.text || '').split(/(?<=[.!?])\s+/).forEach(function (s) {
@@ -469,7 +561,9 @@
   }
 
   var CONVERSE_STAGES = ['Checking the guide', 'Live game data', 'Warframe Wiki', 'Digging deeper — linked pages', 'Wikipedia', 'Writing your answer'];
-  /* opts: { isMiss, guideText, modelWriter(bundle) -> Promise<html|null> }
+  /* opts: { isMiss, guideText, modelWriter(bundle) -> Promise<html|null>,
+       generalWriter(bundle) -> Promise<html|null> (v2.23.3: AI-mode
+       general-knowledge answer, consulted only when the dig is empty) }
      The progress message mirrors handleMiss (staged bar + Stop text
      button). The final answer is synthesized prose with a "Researched
      just now" source line; the honest don't-know (missHtml) remains the
@@ -513,6 +607,23 @@
     }).then(function (bundle) {
       if (token.cancelled) { finish(null); return; }
       setStage(5);
+      /* v2.23.3: settle order — model prose from facts → composed
+         prose from facts → (AI mode only, dig empty) the model's
+         LABELED general-knowledge answer → the honest don't-know.
+         The wall is now the true last resort: it renders only when
+         the dig found nothing usable AND no general writer answered. */
+      function settle() {
+        var syn = synthesize(q, bundle);
+        if (syn) { finish(syn); return; }
+        if (!bundle.facts.length && opts.generalWriter) {
+          Promise.resolve(opts.generalWriter(bundle)).then(function (ghtml) {
+            if (token.cancelled) { finish(null); return; }
+            finish(ghtml || null);
+          }, function () { finish(null); });
+          return;
+        }
+        finish(null);
+      }
       if (opts.modelWriter) {
         var bundleArg = {
           question: q,
@@ -529,12 +640,12 @@
           if (html) {
             finish(html.indexOf('Researched just now') !== -1 ? html : html + sourcesLine(bundle.facts));
           } else {
-            finish(synthesize(q, bundle));
+            settle();
           }
-        }, function () { finish(synthesize(q, bundle)); });
+        }, function () { settle(); });
         return;
       }
-      finish(synthesize(q, bundle));
+      settle();
     }).catch(function () { finish(null); });
   }
 
@@ -545,6 +656,7 @@
     handleMiss: handleMiss,
     handleConverse: handleConverse,
     _dig: dig,
+    _isFarm: isFarmQuestion,
     _synthesize: synthesize,
     _compareSubjects: compareSubjects,
     subjectOf: subjectOf,

@@ -1062,6 +1062,36 @@
     }).catch(function () { return null; });
   }
 
+  /* v2.23.3: GENERAL KNOWLEDGE (owner directive: Vaulty does stuff
+     "in general", not only from the Vault's database). Consulted ONLY
+     when the guide missed AND the research dig came back empty: the
+     loaded model answers from its own knowledge, clearly LABELED as
+     general knowledge — never dressed as Vault data or as researched
+     fact — and still behind validate-on-serve, so a draft that
+     invents a build or lists unverified mods is discarded and the
+     honest don't-know stands. Build questions never reach this: they
+     route to the engine in every mode (see ask()). */
+  function generalModelWrite(q) {
+    if (!engine || !FALLBACK) return Promise.resolve(null);
+    var sys = SYSTEM_PROMPT + '\n\nGENERAL KNOWLEDGE MODE — the Vault\'s verified data and a live research dig both came up empty on this question. ' +
+      'Answer from your own general knowledge in natural, conversational prose: a direct first sentence, then the useful detail. ' +
+      'Do NOT list specific mods or builds — builds come only from the Vault\'s verified engine. ' +
+      'Do NOT state precise drop chances, dates, or patch numbers as fact; where you are unsure of a specific, say so in plain words. ' +
+      'If you genuinely do not know, reply exactly: I don\'t know that one.';
+    return engine.chat.completions.create({
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: 'QUESTION: ' + q }],
+      temperature: 0.4, max_tokens: capTokens(560), stream: false
+    }).then(function (res) {
+      var text = '';
+      try { text = res.choices[0].message.content || ''; } catch (e) { text = ''; }
+      text = String(text).trim();
+      if (!text || UNCERTAIN_RE.test(text)) return null;
+      if (FALLBACK._validateAnswer && !FALLBACK._validateAnswer(text, q)) return null;
+      return md(text) +
+        '<p class="muted small">🧠 From my general knowledge (not Vault data) — the Vault\'s data and live research didn\'t cover this one, so double-check the specifics before you rely on them.</p>';
+    }).catch(function () { return null; });
+  }
+
   /* v2.22.0: AI mode — the model writes a Workshop dossier's connective
      prose (intro + why-this-works) from the engine's VERIFIED dossier
      data. The card, layout, Helminth, shards, rotation and every number
@@ -1119,7 +1149,9 @@
       }, {
         isMiss: miss,
         guideText: miss ? null : stripHtmlText(html).slice(0, 1800),
-        modelWriter: function (bundle) { return converseModelWrite(q, bundle, false); }
+        modelWriter: function (bundle) { return converseModelWrite(q, bundle, false); },
+        /* v2.23.3: miss + empty dig → labeled general-knowledge answer */
+        generalWriter: function () { return generalModelWrite(q); }
       });
     }).catch(function () { askAI(q); });
   }
@@ -1138,7 +1170,7 @@
       if (UNCERTAIN_RE.test(full) && window.TVResearch) {
         if (FALLBACK && FALLBACK._research) finalHtml += FALLBACK._research(q);
         if (botEl) { botEl.remove(); botEl = null; }
-        if (TVResearch.handleConverse) TVResearch.handleConverse(q, finalHtml, els.msgs, function (h) { addMsg(h, 'bot'); }, { isMiss: true });
+        if (TVResearch.handleConverse) TVResearch.handleConverse(q, finalHtml, els.msgs, function (h) { addMsg(h, 'bot'); }, { isMiss: true, generalWriter: function () { return generalModelWrite(q); } });
         else TVResearch.handleMiss(q, finalHtml, els.msgs, function (h) { addMsg(h, 'bot'); });
         history.push({ role: 'user', content: q });
         history.push({ role: 'assistant', content: '(researched live — not in the verified data)' });

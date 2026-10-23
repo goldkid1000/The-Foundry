@@ -310,6 +310,18 @@
       '<p><a href="builds.html#build-' + encodeURIComponent(b.id) + '">Open the full build &rarr;</a></p>';
   }
 
+  /* v2.23.3: the general "best farm" answer — shared by the farm
+     branch (subjects like "most resources") and the bare best-place
+     question ("where would be the best place to farm", no item),
+     which used to fall through to the don't-know wall. */
+  function generalFarmAnswer() {
+    return 'Good question — depends what you need most, but here are the best all-around spots:<br><br>' +
+      '<b>Gabii, Ceres</b> (Dark Sector Survival) — the classic. Orokin Cells drop here plus tons of common resources. Bring a Nekros or Khora for extra loot.<br><br>' +
+      '<b>Helene, Saturn</b> — another Orokin Cell spot, great for leveling weapons while you farm.<br><br>' +
+      '<b>Void Cascade (Zariman)</b> — you\'re already going there. Thrax drop arcanes, plus Zariman resources like Voidplumes.<br><br>' +
+      'If you tell me <i>which</i> resource you\'re after, I can point you to the single best node for it.';
+  }
+
   function farmAnswer(f) {
     var e = f.e;
     var itemLabel = e.name || e.what || 'it';
@@ -3952,18 +3964,32 @@ function oneShotBuildAnswer(t) {
         researchMarkup(thing);
     }
 
-    m = t.match(/^(?:where (?:do|can) i (?:farm|get|find|hunt|grind)|where to (?:farm|get|find|hunt|grind)|how do i (?:get|farm|obtain|find|hunt|grind)|how to (?:get|farm|obtain|find|hunt|grind)|farm|get|find|hunt|grind) (.+)$/);
+    /* v2.23.3: FARM INTENT, widened (owner report). "Where would be
+       the best place to farm" matched NONE of the classic prefixes, so
+       the question skipped this whole branch and hit the don't-know
+       wall — and the research dig then searched the full sentence.
+       Farm intent now also catches best-place forms (with an item or
+       bare), "where does X drop" / "what drops X", and how-can-I
+       forms — before any don't-know fallback can see the question.
+       A DB hit answers here; a DB miss returns the miss signature and
+       the panel AUTO-RESEARCHES it (no tap; subjectOf in
+       js/vaulty-research.js strips the same scaffolding). */
+    var bareBestFarm = /^(?:where|what)(?:'s| is| would be| will be)? (?:the )?best (?:place|spot|mission|node|way) to (?:farm|grind|get)$/.test(t) ||
+      /^best (?:place|spot|mission|node|way) to (?:farm|grind|get)$/.test(t);
+    if (bareBestFarm) return generalFarmAnswer();
+    m = t.match(/^(?:where|what)(?:'s| is| would be| will be)? (?:the )?best (?:place|spot|mission|node|way) to (?:farm|grind|get)(?: for)? (.+)$/) ||
+      t.match(/^best (?:place|spot|mission|node|way) to (?:farm|grind|get)(?: for)? (.+)$/) ||
+      t.match(/^where (?:does|do) (.+?) drops?(?: from)?$/) ||
+      t.match(/^what drops (.+?)$/) ||
+      t.match(/^(?:where (?:do|can) i (?:farm|get|find|hunt|grind)|where to (?:farm|get|find|hunt|grind)|how (?:do|can) i (?:get|farm|obtain|find|hunt|grind)|how to (?:get|farm|obtain|find|hunt|grind)|farm|get|find|hunt|grind) (.+)$/);
     if (m) {
       /* v2.12.47: "hunt for X" / "grind for X" — strip the leading "for" so the lookup gets the item */
       m[1] = m[1].replace(/^for\s+/i, '');
       var q = m[1].toLowerCase();
       /* general "best farm" questions — conversational answer, not a lookup */
-      if (/best (?:place|spot|mission|way)|most (?:efficient|resources)|one mission/.test(q)) {
-        return 'Good question — depends what you need most, but here are the best all-around spots:<br><br>' +
-          '<b>Gabii, Ceres</b> (Dark Sector Survival) — the classic. Orokin Cells drop here plus tons of common resources. Bring a Nekros or Khora for extra loot.<br><br>' +
-          '<b>Helene, Saturn</b> — another Orokin Cell spot, great for leveling weapons while you farm.<br><br>' +
-          '<b>Void Cascade (Zariman)</b> — you\'re already going there. Thrax drop arcanes, plus Zariman resources like Voidplumes.<br><br>' +
-          'If you tell me <i>which</i> resource you\'re after, I can point you to the single best node for it.';
+      if (/best (?:place|spot|mission|way)|most (?:efficient|resources)|one mission/.test(q) ||
+          /^(resources?|loot|stuff|materials?|everything)$/.test(q)) {
+        return generalFarmAnswer();
       }
       var f = findFarm(m[1]);
       if (f) return farmAnswer(f);

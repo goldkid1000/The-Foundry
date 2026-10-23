@@ -1,5 +1,15 @@
 [
  {
+  "version": "2.23.3",
+  "date": "2026-10-23",
+  "notify": true,
+  "notes": [
+   "🌾 FARM QUESTIONS WORK IN EVERY PHRASING: 'where would be the best place to farm X', 'where does X drop', 'what drops X', 'how can I get X', 'best spot to farm X' — all of them route to farm data now. The owner's own words were the failure: the best-place phrasing matched no farm pattern, skipped the whole farm brain, and landed on the don't-know card (and the research dig then searched the whole sentence and found nothing). Both halves are fixed at the root; his exact question is fixture #1, and the bare 'best place to farm' gets the general answer — Gabii, Helene, Void Cascade — it always should have.",
+   "🔎 NOT IN THE VAULT? HE LOOKS IT UP HIMSELF: any factual question the database can't answer — a farm spot for something newer than the Vault's data, a mechanic, a name — now triggers the research dig AUTOMATICALLY: live game data → the Warframe Wiki (drop and acquisition info included, not just page intros) → Wikipedia, and the answer names the actual spot with its source cited. Research buttons survive only as extras after an attempted answer, never instead of one. The honest don't-know is now the true last resort.",
+   "🧠 GENERAL KNOWLEDGE, HONESTLY LABELED (AI mode): when the Vault misses AND research comes back empty, the downloaded AI answers from its own general knowledge under a plain label — '🧠 From my general knowledge (not Vault data)'. Three sources, three labels, never blurred: Vault data / Researched (cited) / General knowledge. General answers still pass Vaulty's validation — a draft that invents a build is discarded — and build questions never reach them: builds come only from the verified engine, in every mode."
+  ]
+ },
+ {
   "version": "2.23.2",
   "date": "2026-10-23",
   "notify": true,
