@@ -1,6 +1,6 @@
 {
- "notes": "Generality pass: Vaulty's Workshop, dossier writer and research brain were audited line by line to prove nothing is hard-wired to any one frame or weapon — and the last special cases were removed. The Helminth replacement pick is now one rule for every frame (the subsume takes the slot of whichever ability the frame's own kit values least), rotation advice is read off each ability's real description, and a 233-check proof sweep runs the identical pipeline over frames, weapons and topics that were never test cases — Wisp, Garuda, Revenant, Saryn, Hildryn, Acceltra Prime, Kuva Zarr, Desert Wind (no library build at all), fishing, Eidolon hunts, Kuva Liches and lore — verifying real mods, legal slots, real donors, and zero cross-item bleed-through.",
+ "notes": "Routing fix: a named item now wins every time. 'Can you build me a general build for nyx' used to return the generic most-popular-builds list (Kuva Zarr one-shots) because 3-letter frame names were invisible mid-sentence and 'general' was not understood — Vaulty now resolves the named frame or weapon FIRST in every path (builds, qualified asks, the Workshop, the Build Checker, farm asks, follow-ups), and 'general' is a real qualifier that serves the item's balanced all-rounder: Nyx gets her Steel Path Balanced build, with the Psychic Bolts breakpoint computed from the build itself (full strip at 125% Strength; the build runs 168%). The popular list survives only for genuinely item-less browsing ('show me popular builds', 'what's strong right now'), which also rescues those phrasings from the don't-know punt.",
  "notify": true,
- "updated": "2026-10-22",
- "version": "2.22.1"
+ "updated": "2026-10-23",
+ "version": "2.23.1"
 }

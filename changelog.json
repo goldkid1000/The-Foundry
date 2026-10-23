@@ -1,5 +1,15 @@
 [
  {
+  "version": "2.23.1",
+  "date": "2026-10-23",
+  "notify": true,
+  "notes": [
+   "🎯 NAMED ITEMS WIN, EVERY TIME: ask for a build for a specific frame or weapon — by name, in any phrasing — and the answer is about THAT item. A routing bug let named asks fall through to the generic 'most popular builds' list (the owner's own 'general build for nyx' came back as Kuva Zarr one-shots). Two root causes, both fixed: 3-letter names (Nyx, Ash) were invisible to the in-sentence matcher, and question parsing mangled 'build me a…' openers. One entity-first resolver now feeds every path — plain builds, qualified asks, the Workshop, power asks, the Build Checker, farm questions and conversation follow-ups (a named Nyx can no longer be hijacked as a 'follow-up' about the previous frame).",
+   "⚖️ 'GENERAL' IS A REAL ASK NOW: 'general build for X' serves that item's balanced all-rounder from the library instead of ignoring the word — Nyx gets her Steel Path Balanced build — and general frame answers state the frame's real ability breakpoints, computed from the build's own mods: Psychic Bolts fully strips armor and shields at 125% Ability Strength, and her general build runs 168%, so the answer says so with the math shown.",
+   "📋 THE POPULAR LIST STAYS IN ITS LANE: it now answers ONLY genuinely item-less browsing — 'show me popular builds', 'what's strong right now', a bare 'builds?' — and those phrasings no longer dead-end on the don't-know card either."
+  ]
+ },
+ {
   "version": "2.23.0",
   "date": "2026-10-22",
   "notify": true,

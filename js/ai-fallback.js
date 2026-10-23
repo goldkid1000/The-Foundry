@@ -126,7 +126,9 @@
 
   /* find a farm answer for a thing across warframes, mods, arcanes, relics, resources */
   function findFarm(q) {
-    var w = findByName(D.warframes, q);
+    /* v2.23.1: word-boundary fallback — a farm subject is often a whole
+       phrase ("the nyx prime parts"); the named frame inside it counts */
+    var w = findByName(D.warframes, q) || findItemInTextWB(D.warframes, q);
     if (w && w.farm) return { kind: 'warframe', e: w };
     var m = findByName(D.mods, q);
     if (m && fmtDrops(m.drops)) return { kind: 'mod', e: m };
@@ -153,7 +155,7 @@
       }
     }
     /* prime weapon/part -> which relics drop it? */
-    var wp = findByName(D.weapons, q);
+    var wp = findByName(D.weapons, q) || findItemInTextWB(D.weapons, q);
     if (wp) {
       var hits = [];
       for (var ri = 0; ri < D.relics.length && hits.length < 6; ri++) {
@@ -737,10 +739,13 @@ function parseQualifiers(t) {
     status: /\bstatus\b/.test(t),
     crit: /\bcrit(ical)?\b/.test(t),
     steelPath: /steel\s?path/.test(t),
-    oneShot: /one[\s-]?shot/.test(t)
+    oneShot: /one[\s-]?shot/.test(t),
+    /* v2.23.1: 'general' is a first-class qualifier — a balanced,
+       all-purpose build for the named item (see qualifiedBuildAnswer) */
+    general: /\bgeneral\b|\bbalanced\b|\ball[\s-]?purpose\b|\ball[\s-]?rounder\b|\bwell[\s-]?rounded\b/.test(t)
   };
 }
-function anyQualifier(q) { return !!(q.budget || q.beginner || q.status || q.crit); }
+function anyQualifier(q) { return !!(q.budget || q.beginner || q.status || q.crit || q.general); }
 
 var ARBITRATION_MODS = { 'adaptation': 1, 'rolling guard': 1 };
 function modBannedFor(name, quals) {
@@ -867,11 +872,40 @@ function alternativesHtml(itemName, exclude) {
   return '<p class="muted small">Other verified builds for ' + esc(itemName) + ' in the Vault:</p><ul>' + lis + '</ul>';
 }
 
+/* v2.23.1: ability-strength strip breakpoints, stated only from real
+   formula data (Warframe Wiki, verified Oct 2026) — the same discipline
+   as the Workshop's Pillage math (25% base, linear in Strength). Keyed
+   by ABILITY, never by frame: any frame whose own kit contains a
+   tabled ability gets its breakpoint computed against the served
+   build's summed Strength. Psychic Bolts: drains 80% of armor AND
+   shields at max rank at 100% Strength -> a full strip at 125%. */
+var STRIP_ABILITY_MATH = {
+  'psychic bolts': { base: 80, full: 125, what: 'armor and shields' }
+};
+function stripBreakpointNote(frame, build) {
+  var ab = null;
+  (frame.abilities || []).forEach(function (a) { if (!ab && STRIP_ABILITY_MATH[norm(a.name)]) ab = a; });
+  if (!ab) return '';
+  var info = STRIP_ABILITY_MATH[norm(ab.name)];
+  var st = wsBuildStrength(build);
+  var total = st.total + st.exilus;
+  var strip = info.base * total / 100;
+  var parts = st.parts.map(function (p) { return '+' + p.s + '% (' + esc(p.name) + ')'; }).join(', ');
+  return '<p>🎯 <b>' + esc(ab.name) + ' breakpoint:</b> it strips <b>' + info.base + '%</b> of ' + info.what +
+    ' at 100% Ability Strength, scaling linearly — a <b>full strip at ' + info.full + '% Strength</b>. ' +
+    'This build runs <b>' + total + '% Strength</b>' + (parts ? ' (100 base, ' + parts + ')' : '') + ' — so ' +
+    (strip >= 100
+      ? esc(ab.name) + ' removes defenses <b>completely in one cast</b>.'
+      : 'each cast strips about <b>' + Math.round(strip) + '%</b>; push Strength to ' + info.full + '% for the one-cast full strip.') +
+    '</p>';
+}
+
 function qualifierLabel(quals) {
   if (quals.budget) return 'Budget (no Primed mods)';
   if (quals.beginner) return 'Beginner (starter)';
   if (quals.status) return 'Status';
   if (quals.crit) return 'Crit';
+  if (quals.general) return 'General (balanced)';
   return '';
 }
 
@@ -898,9 +932,12 @@ function qualifiedRender(found, quals, qb) {
       qb.swaps.map(function (s) { return esc(s.from) + ' &rarr; ' + esc(s.to); }).join(' · ') +
       (qb.fills.length ? ' · freed slot filled with ' + qb.fills.map(function (f) { return esc(f); }).join(', ') : '') + '.</p>';
   }
+  /* v2.23.1: a general frame answer states the frame's strip
+     breakpoint against the served build's real Strength total */
+  var stripNote = (quals.general && found.kind === 'warframe') ? stripBreakpointNote(found.e, b) : '';
   return '<b>' + esc(title) + '</b>' +
     '<p class="muted small">Built from the Vault\'s <b>' + esc(b.name || b.item) + '</b>, adjusted to your qualifier — every mod re-checked against the database.</p>' +
-    card + rows + swapNote +
+    card + rows + stripNote + swapNote +
     alternativesHtml(itemName, b) +
     '<p><a href="builds.html#build-' + encodeURIComponent(b.id || '') + '">Open the original build &rarr;</a></p>';
 }
@@ -929,6 +966,22 @@ function qualifiedBuildAnswer(found, quals, t) {
       return 0;
     });
     for (var i = 0; i < sorted.length && !qb; i++) qb = qualifyBuild(sorted[i], quals);
+  } else if (quals.general) {
+    /* v2.23.1: 'general' = the item's balanced all-rounder. The
+       library's balanced/general-tagged build serves first (for Nyx
+       that IS her Steel Path Balanced build); a steel-path-tagged
+       build is the next-best all-rounder. No candidate -> the
+       archetype generator below, whose default profile is balanced. */
+    var gBest = null, gBestScore = 0;
+    cands.forEach(function (b) {
+      var tags = (b.tags || []).map(function (x) { return norm(x); });
+      var s = 0;
+      if (tags.indexOf('balanced') !== -1) s += 4;
+      if (tags.indexOf('general') !== -1 || tags.indexOf('all-rounder') !== -1) s += 4;
+      if (tags.indexOf('steel-path') !== -1) s += 1;
+      if (s > gBestScore) { gBestScore = s; gBest = b; }
+    });
+    if (gBest) qb = { build: gBest, swaps: [], fills: [] };
   } else if (quals.status && found.kind === 'weapon') {
     /* a status ask needs a status-WEIGHTED build: status mods must
        outnumber crit mods (a crit/Hunter Munitions build with two 60/60s
@@ -948,7 +1001,7 @@ function qualifiedBuildAnswer(found, quals, t) {
     if (bestC) qb = { build: bestC, swaps: [], fills: [] };
   }
   if (qb) return qualifiedRender(found, quals, qb);
-  var purpose = { steelPath: quals.steelPath, oneShot: quals.oneShot, beginner: quals.beginner, budget: quals.budget, status: quals.status, crit: quals.crit };
+  var purpose = { steelPath: quals.steelPath, oneShot: quals.oneShot, beginner: quals.beginner, budget: quals.budget, status: quals.status, crit: quals.crit, general: quals.general };
   return found.kind === 'warframe' ? genWarframeBuild(found.e, purpose) : genWeaponBuild(found.e, purpose);
 }
 
@@ -1084,6 +1137,8 @@ function genWarframeBuild(frame, purpose) {
     ? 'Steel Path tip: shield-gating (brief shield regen = invulnerability) matters more than raw health at high levels. Rolling Guard + Adaptation is the standard survival package.'
     : purpose.beginner
     ? 'Starter-friendly: no Primed, Galvanized or Arbitration mods — everything here is earnable early. Level the mods as you get Endo.'
+    : purpose.general
+    ? 'General-purpose balance: no stat dumped, survivability included — the all-mission version of this frame\'s kit. Specialize it any time with the Workshop ("design me a ' + frame.name + ' build").'
     : 'Generated around ' + frame.name + '\'s ' + archLabel + ' kit, not a generic skeleton — the hand-made library builds for this frame are listed below too.';
   return renderLoadout(frame.name + ' build', frame.name, picks,
     notes + swapsNote + ' Shard/arcane picks depend on your focus school — check the full page.', 'warframes.html', purpose);
@@ -1287,11 +1342,12 @@ function parseBuildQ(t) {
   var purpose = parseQualifiers(t);
   /* strip build-related words to isolate the item name */
   var q = t
-    .replace(/^(can you |please |hey |hi )?make( me)?/,'')
+    .replace(/^(can you |could you |please |hey |hi )?(make|build|create|give|craft)( me)?\b/,'')
     .replace(/\b(a|an|the)\b/g,' ')
     .replace(/\b(build|setup|loadout)\b/g,' ')
     .replace(/\bfor\b/g,' ')
     .replace(/\b(best|strongest|good|top)\b/g,' ')
+    .replace(/\b(general|balanced|all[\s-]?purpose|all[\s-]?rounder|well[\s-]?rounded)\b/g,' ')
     .replace(/\bsteel\s?path\b/g,' ')
     .replace(/\bone[\s-]?shot\b/g,' ')
     .replace(/\bbeginner|starter|early\b/g,' ')
@@ -1360,6 +1416,36 @@ function findItemInText(list, t) {
   return best;
 }
 
+/* v2.23.1: word-boundary in-text scan. findItemInText requires names of
+   >= 4 chars, which made 3-letter items (Nyx, Ash) invisible inside a
+   sentence: "general build for nyx" resolved NOTHING and fell through
+   to the generic popular-builds list while naming a frame the whole
+   site indexes. Whole-word matching is safe for short names — "nyx"
+   only ever matches the standalone word. Longest name wins. */
+function findItemInTextWB(list, t) {
+  var best = null, bestLen = 0;
+  var padded = ' ' + String(t || '').replace(/[^a-z0-9' ]/g, ' ') + ' ';
+  for (var i = 0; i < list.length; i++) {
+    var n = norm(list[i].name).replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!n || n.length <= bestLen) continue;
+    if (padded.indexOf(' ' + n + ' ') !== -1) { best = list[i]; bestLen = n.length; }
+  }
+  return best;
+}
+
+/* v2.23.1: ENTITY-FIRST resolution — the one resolver every intent path
+   uses (build, qualifiers, Workshop, power, Steel Path general,
+   checker, session context, generateBuild). The substring matcher runs
+   first so nothing that resolved before changes; the word-boundary net
+   only widens. Returns {kind, e} or null. */
+function resolveNamedItem(t) {
+  var f = findItemInText(D.warframes, t) || findItemInTextWB(D.warframes, t);
+  if (f) return { kind: 'warframe', e: f };
+  var w = findItemInText(D.weapons, t) || findItemInTextWB(D.weapons, t);
+  if (w) return { kind: 'weapon', e: w };
+  return null;
+}
+
 /* main entry: generate a build for any item */
 function generateBuild(t) {
   var parsed = parseBuildQ(t);
@@ -1368,6 +1454,9 @@ function generateBuild(t) {
     /* try the raw question in case parsing stripped too much */
     found = findItemForBuild(t.replace(/\b(build|make|for|me|a|please)\b/g,' ').replace(/\s+/g,' ').trim());
   }
+  /* v2.23.1: entity-first — any item named anywhere in the question
+     (word-boundary net included) resolves before this can give up */
+  if (!found) found = resolveNamedItem(t);
   if (!found) return null;
   if (found.kind === 'warframe') return genWarframeBuild(found.e, parsed.purpose);
   return genWeaponBuild(found.e, parsed.purpose);
@@ -1402,13 +1491,7 @@ function powerPlan(q) {
      carries strong outcome language (kills / destroys / unkillable /
      survival), which is the more specific intent and claims the ask. */
   if (workshopDetect(t) && !POWER_KILL_RE.test(t) && !POWER_SURVIVE_RE.test(t)) return null;
-  var found = null;
-  var f = findItemInText(D.warframes, t);
-  if (f) found = { kind: 'warframe', e: f };
-  else {
-    var w = findItemInText(D.weapons, t);
-    if (w) found = { kind: 'weapon', e: w };
-  }
+  var found = resolveNamedItem(t);
   if (!found) return null;
   return {
     item: found.e.name, kind: found.kind, e: found.e,
@@ -1471,12 +1554,7 @@ function workshopPlan(q) {
   var t = stripQ(q);
   var det = workshopDetect(t);
   if (!det) return null;
-  var f = findItemInText(D.warframes, t);
-  var found = f ? { kind: 'warframe', e: f } : null;
-  if (!found) {
-    var w = findItemInText(D.weapons, t);
-    if (w) found = { kind: 'weapon', e: w };
-  }
+  var found = resolveNamedItem(t);
   if (!found) return null;
   return {
     item: found.e.name, kind: found.kind, e: found.e,
@@ -3386,9 +3464,8 @@ function oneShotBuildAnswer(t) {
     var wants = /\b(check|rate|review|validate|fix|look over|look at|verify|grade)\b/.test(t) ||
       /^my\b/.test(t) || /\b(my|this|current) build\b/.test(t) || /\bbuild (is|:)\b/.test(t);
     if (!wants) return null;
-    var itemF = findItemInText(D.warframes, t);
-    var itemW = itemF ? null : findItemInText(D.weapons, t);
-    var item = itemF || itemW;
+    var itemFound = resolveNamedItem(t);
+    var item = itemFound ? itemFound.e : null;
     /* known mods, longest names first so multiword names win */
     var names = [];
     var seenN = {};
@@ -3430,7 +3507,7 @@ function oneShotBuildAnswer(t) {
       unknown.push(candTxt);
     });
     unknown = unknown.filter(function (u, i) { return unknown.indexOf(u) === i; }).slice(0, 4);
-    return { item: item, itemKind: itemF ? 'warframe' : (itemW ? 'weapon' : null), known: known, unknown: unknown };
+    return { item: item, itemKind: itemFound ? itemFound.kind : null, known: known, unknown: unknown };
   }
   function checkerHandoffHtml(parsed) {
     var plan = {
@@ -3632,10 +3709,11 @@ function oneShotBuildAnswer(t) {
   var sessionCtx = { item: null, kind: null, lastIntent: null };
   var pendingCtxNote = null;
   function ctxItemOf(t) {
-    var f = findItemInText(D.warframes, t);
-    if (f) return { name: f.name, kind: 'warframe' };
-    var w = findItemInText(D.weapons, t);
-    if (w) return { name: w.name, kind: 'weapon' };
+    /* v2.23.1: entity-first — a named item (even a 3-letter one like
+       Nyx) registers as the conversation's item; before this, "nyx
+       build" after a Wisp question was hijacked AS a Wisp follow-up */
+    var r = resolveNamedItem(t);
+    if (r) return { name: r.e.name, kind: r.kind };
     return null;
   }
   function ctxNoteFor(item, t) {
@@ -3729,7 +3807,7 @@ function oneShotBuildAnswer(t) {
        strong build that does lots of damage plus arcanes, auras, exilus".
        Only when NO specific item is named; named items keep their own builds. */
     if (/steel/.test(t) && /\b(build|mod|setup|loadout|guide|strong|damage)\b/.test(t)) {
-      var spItem = findItemInText(D.warframes, t) || findItemInText(D.weapons, t);
+      var spItem = resolveNamedItem(t);
       if (!spItem) return STEEL_PATH_GENERAL;
     }
     /* v2.22.0: THE WORKSHOP — a creative build brief ("design…", "come up
@@ -3761,12 +3839,7 @@ function oneShotBuildAnswer(t) {
        know nothing of qualifiers and would serve the default build. */
     var quals = parseQualifiers(t);
     if (anyQualifier(quals) && /\b(build|setup|loadout|steel\s?path|one[\s-]?shot)\b/.test(t)) {
-      var qFrame = findItemInText(D.warframes, t);
-      var qFound = qFrame ? { kind: 'warframe', e: qFrame } : null;
-      if (!qFound) {
-        var qWpn = findItemInText(D.weapons, t);
-        if (qWpn) qFound = { kind: 'weapon', e: qWpn };
-      }
+      var qFound = resolveNamedItem(t);
       if (qFound) {
         var qAns = qualifiedBuildAnswer(qFound, quals, t);
         if (qAns) return qAns;
@@ -3805,9 +3878,11 @@ function oneShotBuildAnswer(t) {
         }
       }
       /* item name might be embedded without clear build words stripped right —
-         try matching any known warframe/weapon name appearing in the question */
-      var fw2 = findItemInText(D.warframes, t);
-      if (fw2) {
+         try matching any known warframe/weapon name appearing in the question
+         (v2.23.1: via the entity-first resolver, word-boundary net included) */
+      var fw2found = resolveNamedItem(t);
+      if (fw2found && fw2found.kind === 'warframe') {
+        var fw2 = fw2found.e;
         /* v2.12.68: curated Steel Path frame builds win here too */
         if (/steel/.test(t)) {
           var fw2Hit = spFrameBuildAnswer(norm(fw2.name).replace(/\s+prime$/, ''));
@@ -3815,8 +3890,7 @@ function oneShotBuildAnswer(t) {
         }
         return genWarframeBuild(fw2, parseQualifiers(t));
       }
-      var wp2 = findItemInText(D.weapons, t);
-      if (wp2) return genWeaponBuild(wp2, parseQualifiers(t));
+      if (fw2found) return genWeaponBuild(fw2found.e, parseQualifiers(t));
       /* v2.23.0: no item named, but the phrasing is a recommendation
          ("what's a good weapon for steel path" — "steel path" alone
          tripped the build intent) → the recommender answers it with
@@ -4020,6 +4094,18 @@ function oneShotBuildAnswer(t) {
       if (md) return describeAnswer(md, 'mods.html');
       var ar = findByName(D.arcanes, m[1]);
       if (ar) return describeAnswer(ar, 'arcanes.html');
+    }
+
+    /* v2.23.1: genuinely item-less build browsing — "show me popular
+       builds", "what's strong right now", a bare "builds?" — is the ONE
+       doorway to the curated popular list, guarded by entity-first:
+       if ANY item resolved in the question, its own paths above have
+       already answered and this is unreachable. (These phrasings used
+       to fall into the don't-know research punt.) */
+    if (!resolveNamedItem(t) &&
+        (/\bpopular builds?\b/.test(t) || /\bwhat'?s strong( right now)?\b/.test(t) ||
+         /\bstrongest builds?\b/.test(t) || /^builds?\??$/.test(t))) {
+      return genericBuildAnswer(t, parseQualifiers(t));
     }
 
     return fallbackAnswer(t);

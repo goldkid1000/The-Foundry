@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  var APP_VERSION = '2.23.0';
+  var APP_VERSION = '2.23.1';
 
   function esc(s) {
     if (window.TV && window.TV.esc) return window.TV.esc(s);
