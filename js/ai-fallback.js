@@ -206,6 +206,16 @@
 
   /* data: {title, aura, exilus, mods:[names], arcanes:[names], note} */
   function buildCard(d) {
+    /* v2.19.6: clean the mod list before rendering — a card must always
+       show its mods. Empty/garbage entries are dropped, and if nothing
+       survives, render an honest placeholder instead of a titled card
+       with an empty grid and working Copy buttons (the Q2 bug). */
+    var cleanMods = (d.mods || []).map(function (m) { return String(m == null ? '' : m).trim(); }).filter(Boolean);
+    if (!cleanMods.length) {
+      return '<div class="vai-build-card"><div class="vbc-title">' + esc(d.title) + '</div>' +
+        '<p class="muted small">The mod list for this one didn\'t come through — find it on the <a href="builds.html">builds page</a>.</p></div>';
+    }
+    d = { title: d.title, aura: d.aura, exilus: d.exilus, mods: cleanMods, arcanes: d.arcanes || [], arcanesText: d.arcanesText, note: d.note };
     var id = 'vbc' + (++vbcSeq);
     vbcStore[id] = { full: vbcFullText(d), compact: vbcCompactText(d) };
     var slots = '';
@@ -283,6 +293,7 @@
       '<p>' + fmtText(b.description || '') + '</p>' +
       card +
       '<p class="muted small">Want to know where to farm any of these mods? Just ask.</p>' +
+      alternativesHtml(b.item, b) +
       '<p><a href="builds.html#build-' + encodeURIComponent(b.id) + '">Open the full build &rarr;</a></p>';
   }
 
@@ -621,55 +632,377 @@ function renderLoadout(title, itemName, picks, notes, page, purpose) {
     '<p>' + cheer + '</p>' +
     card +
     rows +
+    alternativesHtml(itemName, null) +
     '<p class="muted small">Want to know where to farm any of these mods? Just ask <i>"where do I farm ' +
     esc(picks[0] ? picks[0].mod.name : 'this mod') + '"</i>.</p>' +
     '<p><a href="' + link(page, itemName) + '">Full ' + esc(itemName) + ' page &rarr;</a> · ' +
     '<a href="builds.html">Curated builds &rarr;</a></p>';
 }
 
-/* ===== WARFRAME BUILD GENERATOR ===== */
+/* ---------- v2.19.6: build qualifiers ----------
+   "budget steflos build with no primed mods" used to return the same
+   Primed-loaded one-shot as every other Steflos ask — the matcher ignored
+   qualifiers entirely, and the frame generator ran every frame through
+   one tank skeleton. Qualifiers are now parsed, enforced on library
+   builds (verified base-equivalent substitutions), and fed to the
+   generator; generated frame builds derive from each frame's own kit. */
+function parseQualifiers(t) {
+  return {
+    budget: /\bbudget\b|\bno primed\b|\bno prime mods\b|\bwithout primed\b|\bcheap\b/.test(t),
+    beginner: /\bbeginner\b|\bstarter\b|\bnew player\b/.test(t),
+    status: /\bstatus\b/.test(t),
+    crit: /\bcrit(ical)?\b/.test(t),
+    steelPath: /steel\s?path/.test(t),
+    oneShot: /one[\s-]?shot/.test(t)
+  };
+}
+function anyQualifier(q) { return !!(q.budget || q.beginner || q.status || q.crit); }
+
+var ARBITRATION_MODS = { 'adaptation': 1, 'rolling guard': 1 };
+function modBannedFor(name, quals) {
+  var n = norm(name);
+  if ((quals.budget || quals.beginner) && /^(primed|galvanized) /.test(n)) return true;
+  if (quals.beginner && ARBITRATION_MODS[n]) return true;
+  return false;
+}
+
+var GALV_EQUIV = {
+  'galvanized chamber': 'Split Chamber',
+  'galvanized hell': "Hell's Chamber",
+  'galvanized shot': 'Barrel Diffusion',
+  'galvanized diffusion': 'Barrel Diffusion',
+  'galvanized savvy': 'Shotgun Savvy',
+  'galvanized aptitude': 'Rifle Aptitude',
+  'galvanized crosshairs': 'Argon Scope',
+  'galvanized scope': 'Argon Scope',
+  'galvanized acceleration': 'Vigilante Armaments'
+};
+var FILLER_POOL = {
+  warframe: ['Vitality', 'Redirection', 'Intensify', 'Stretch', 'Streamline', 'Continuity', 'Flow', 'Steel Fiber', 'Natural Talent', 'Constitution', 'Augur Secrets', 'Augur Message', 'Fleeting Expertise'],
+  rifle: ['Serration', 'Split Chamber', 'Vigilante Armaments', 'Point Strike', 'Vital Sense', 'Infected Clip', 'Cryo Rounds', 'Stormbringer', 'Shred', 'Hammer Shot', 'Hunter Munitions'],
+  shotgun: ['Point Blank', "Hell's Chamber", 'Blunderbuss', 'Ravage', 'Vigilante Armaments', 'Contagious Spread', 'Shell Shock', 'Toxic Barrage', 'Frigid Blast', 'Seeking Fury', 'Scattering Inferno', 'Blaze'],
+  pistol: ['Hornet Strike', 'Barrel Diffusion', 'Lethal Torrent', 'Target Cracker', 'Pistol Gambit', 'Pistol Pestilence', 'Frostbite', 'Jolt', 'Scorch', 'Heated Charge'],
+  melee: ['Pressure Point', 'Fury', 'Organ Shatter', 'True Steel', 'Drifting Contact', 'Condition Overload', 'Weeping Wounds', 'Virulent Scourge', 'Vicious Frost']
+};
+
+/* replacement for a banned mod: base equivalent first (Primed X -> X,
+   Galvanized -> its base counterpart), verified real + class-legal + unused */
+function substituteMod(name, cls, item, quals, used) {
+  var n = norm(name), cand = null;
+  if (/^primed /.test(n)) cand = name.replace(/^Primed /, '');
+  else if (GALV_EQUIV[n]) cand = GALV_EQUIV[n];
+  if (cand && !used[norm(cand)] && !modBannedFor(cand, quals) && pick(cand, '') && modFitsClass(cand, cls, item)) return cand;
+  return null;
+}
+
+/* Apply qualifiers to a library build: swap banned mods for verified base
+   equivalents, refill freed slots from a class-legal pool, re-validate.
+   Returns {build, swaps, fills} or null when it can't be made legal. */
+function qualifyBuild(b, quals) {
+  var cls = buildClassOf(b);
+  if (!cls) return null;
+  var mods = [], used = {}, swaps = [], fills = [];
+  (b.mods || []).forEach(function (m) {
+    var n = m && m.name;
+    if (!n || used[norm(n)]) return;
+    if (!modBannedFor(n, quals)) { mods.push({ name: n, note: m.note || m.why || '' }); used[norm(n)] = 1; return; }
+    var rep = substituteMod(n, cls, b.item, quals, used);
+    if (rep) { mods.push({ name: rep, note: m.note || m.why || '' }); used[norm(rep)] = 1; swaps.push({ from: n, to: rep }); }
+  });
+  var pool = FILLER_POOL[cls] || [];
+  for (var i = 0; i < pool.length && mods.length < 8; i++) {
+    var pn = pool[i];
+    if (used[norm(pn)] || modBannedFor(pn, quals)) continue;
+    if (pick(pn, '') && modFitsClass(pn, cls, b.item)) {
+      mods.push({ name: pn, note: 'Legal filler for the freed slot — a strong general pick.' });
+      used[norm(pn)] = 1; fills.push(pn);
+    }
+  }
+  if (mods.length < 8 || mods.length > 9) return null;
+  var clone = {
+    id: b.id, name: b.name, item: b.item, category: b.category, tags: b.tags || [],
+    description: b.description || '', playstyle: b.playstyle || '',
+    aura: b.aura || '', exilus: b.exilus || '',
+    arcane: quals.beginner ? '' : (b.arcane || ''),
+    mods: mods
+  };
+  if (!buildIsValid(clone)) return null;
+  return { build: clone, swaps: swaps, fills: fills };
+}
+
+/* Apply qualifiers to generated picks ({mod, reason} list) the same way */
+function qualifyPicks(picks, cls, itemName, quals) {
+  var out = [], used = {}, swaps = [];
+  picks.forEach(function (p) {
+    var n = p.mod.name;
+    if (!modBannedFor(n, quals)) { if (!used[norm(n)]) { out.push(p); used[norm(n)] = 1; } return; }
+    var rep = substituteMod(n, cls, itemName, quals, used);
+    if (rep) {
+      var rp = pick(rep, p.reason + ' (base equivalent — swapped in to fit your ask)');
+      if (rp) { out.push(rp); used[norm(rep)] = 1; swaps.push({ from: n, to: rep }); }
+    }
+  });
+  var pool = FILLER_POOL[cls] || [];
+  for (var i = 0; i < pool.length && out.length < 8; i++) {
+    var pn = pool[i];
+    if (used[norm(pn)] || modBannedFor(pn, quals)) continue;
+    var pm = pick(pn, 'Legal filler — strong general pick for this slot.');
+    if (pm && modFitsClass(pn, cls, itemName)) { out.push(pm); used[norm(pn)] = 1; }
+  }
+  return { picks: out.slice(0, 8), swaps: swaps };
+}
+
+var STATUS_MODS = {}, CRIT_MODS = {};
+['Malignant Force', 'Rime Rounds', 'Thermite Rounds', 'High Voltage', 'Pistol Pestilence', 'Frostbite', 'Jolt', 'Scorch', 'Toxic Barrage', 'Frigid Blast', 'Shell Shock', 'Voltaic Strike', 'Virulent Scourge', 'Vicious Frost', 'Rifle Aptitude', 'Shotgun Savvy', 'Hammer Shot', 'Sure Shot', 'Stunning Speed', 'Melee Prowess'].forEach(function (n) { STATUS_MODS[norm(n)] = 1; });
+['Point Strike', 'Vital Sense', 'Critical Delay', 'Blunderbuss', 'Ravage', 'Primed Ravage', 'Target Cracker', 'Pistol Gambit', 'Primed Target Cracker', 'Primed Pistol Gambit', 'Argon Scope', 'Blood Rush', 'Organ Shatter', 'Gladiator Might', 'Hunter Munitions', 'Berserker Fury', 'True Steel', 'Sacrificial Steel'].forEach(function (n) { CRIT_MODS[norm(n)] = 1; });
+function countMods(b, set) { return (b.mods || []).filter(function (m) { return set[norm(m.name)]; }).length; }
+function bannedCount(b, quals) { return (b.mods || []).filter(function (m) { return modBannedFor(m.name, quals); }).length; }
+
+/* all valid library builds for an item, base and Prime variants included */
+function libraryBuildsFor(itemName) {
+  var base = norm(itemName).replace(/ prime$/, '');
+  var names = {};
+  names[base] = 1; names[base + ' prime'] = 1;
+  return D.builds.filter(function (b) { return b && names[norm(b.item)] && buildIsValid(b); });
+}
+
+/* v2.19.6: every build answer ends with the OTHER verified builds for the
+   same item, so the Tenno can pick a different one instead of re-asking */
+function alternativesHtml(itemName, exclude) {
+  if (!itemName) return '';
+  var alts = libraryBuildsFor(itemName).filter(function (b) {
+    if (!exclude) return true;
+    if (exclude.id && b.id === exclude.id) return false;
+    if (!exclude.id && norm(b.name || '') === norm(exclude.name || '')) return false;
+    return true;
+  }).slice(0, 3);
+  if (!alts.length) return '';
+  var lis = alts.map(function (b) {
+    return '<li><a href="builds.html#build-' + encodeURIComponent(b.id) + '"><b>' + esc(b.name || b.item) + '</b></a></li>';
+  }).join('');
+  return '<p class="muted small">Other verified builds for ' + esc(itemName) + ' in the Vault:</p><ul>' + lis + '</ul>';
+}
+
+function qualifierLabel(quals) {
+  if (quals.budget) return 'Budget (no Primed mods)';
+  if (quals.beginner) return 'Beginner (starter)';
+  if (quals.status) return 'Status';
+  if (quals.crit) return 'Crit';
+  return '';
+}
+
+function qualifiedRender(found, quals, qb) {
+  var b = qb.build;
+  var itemName = found.e.name;
+  var title = itemName + ' — ' + qualifierLabel(quals);
+  var rows = b.mods.map(function (m, i) {
+    var fm = findModExact(m.name);
+    var farm = fm ? modFarmLine(fm) : '';
+    return '<div class="mod-row"><div><b>' + (i + 1) + '. ' + esc(m.name) + '</b>' +
+      (m.note ? '<div class="muted small">' + esc(m.note) + '</div>' : '') + farm + '</div></div>';
+  }).join('');
+  var card = buildCard({
+    title: title,
+    aura: vbcCleanSlot(b.aura), exilus: vbcCleanSlot(b.exilus),
+    mods: b.mods.map(function (m) { return m.name; }),
+    arcanes: vbcArcanes(b.arcane),
+    note: b.playstyle || ''
+  });
+  var swapNote = '';
+  if (qb.swaps.length) {
+    swapNote = '<p class="muted small">Swaps to fit your ask: ' +
+      qb.swaps.map(function (s) { return esc(s.from) + ' &rarr; ' + esc(s.to); }).join(' · ') +
+      (qb.fills.length ? ' · freed slot filled with ' + qb.fills.map(function (f) { return esc(f); }).join(', ') : '') + '.</p>';
+  }
+  return '<b>' + esc(title) + '</b>' +
+    '<p class="muted small">Built from the Vault\'s <b>' + esc(b.name || b.item) + '</b>, adjusted to your qualifier — every mod re-checked against the database.</p>' +
+    card + rows + swapNote +
+    alternativesHtml(itemName, b) +
+    '<p><a href="builds.html#build-' + encodeURIComponent(b.id || '') + '">Open the original build &rarr;</a></p>';
+}
+
+/* A qualified ask (budget / beginner / status / crit) for a named item:
+   serve a library build that fits (transformed if needed), else generate
+   one under the qualifier. Never returns the unqualified default. */
+function qualifiedBuildAnswer(found, quals, t) {
+  var itemName = found.e.name;
+  var cands = libraryBuildsFor(itemName);
+  var qb = null;
+  if (quals.budget || quals.beginner) {
+    var sorted = cands.slice().sort(function (a, b) {
+      var d = bannedCount(a, quals) - bannedCount(b, quals);
+      if (d) return d;
+      if (quals.beginner) {
+        var at = (a.tags || []).indexOf('beginner') !== -1 ? 0 : 1;
+        var bt = (b.tags || []).indexOf('beginner') !== -1 ? 0 : 1;
+        if (at !== bt) return at - bt;
+      }
+      if (quals.steelPath) {
+        var as = (a.tags || []).indexOf('steel-path') !== -1 ? 0 : 1;
+        var bs = (b.tags || []).indexOf('steel-path') !== -1 ? 0 : 1;
+        if (as !== bs) return as - bs;
+      }
+      return 0;
+    });
+    for (var i = 0; i < sorted.length && !qb; i++) qb = qualifyBuild(sorted[i], quals);
+  } else if (quals.status && found.kind === 'weapon') {
+    /* a status ask needs a status-WEIGHTED build: status mods must
+       outnumber crit mods (a crit/Hunter Munitions build with two 60/60s
+       is a crit build, and used to be served for "status phantasma") */
+    var bestS = null, bestScore = 1;
+    cands.forEach(function (b) {
+      var s = countMods(b, STATUS_MODS);
+      if (s >= 2 && s > countMods(b, CRIT_MODS) && s > bestScore) { bestS = b; bestScore = s; }
+    });
+    if (bestS) qb = { build: bestS, swaps: [], fills: [] };
+  } else if (quals.crit && found.kind === 'weapon') {
+    var bestC = null, bestCC = 2;
+    cands.forEach(function (b) {
+      var s = countMods(b, CRIT_MODS);
+      if (s >= 3 && s >= countMods(b, STATUS_MODS) && s > bestCC) { bestC = b; bestCC = s; }
+    });
+    if (bestC) qb = { build: bestC, swaps: [], fills: [] };
+  }
+  if (qb) return qualifiedRender(found, quals, qb);
+  var purpose = { steelPath: quals.steelPath, oneShot: quals.oneShot, beginner: quals.beginner, budget: quals.budget, status: quals.status, crit: quals.crit };
+  return found.kind === 'warframe' ? genWarframeBuild(found.e, purpose) : genWeaponBuild(found.e, purpose);
+}
+
+/* ===== WARFRAME BUILD GENERATOR (v2.19.6: kit archetypes) =====
+   The old generator ran every frame through one skeleton (Vitality /
+   Steel Fiber / Intensify / Primed Continuity / Primed Flow / Stretch /
+   Augur Secrets / Fleeting Expertise), so Saryn, Wisp and Rhino came
+   back near-identical. Builds now derive from the frame's own kit:
+   ability text classifies the frame (support / caster / tank / weapons
+   platform), each archetype has its own core, and a frame augment from
+   the mods database fills the signature slot when one exists. */
+function frameArchetype(frame) {
+  var ab = (frame.abilities || []).map(function (a) { return norm((a.name || '') + ' ' + (a.description || '')); }).join(' ');
+  if (/heal/.test(ab) && /allies|ally/.test(ab)) return 'support';
+  if (/spore|miasma|toxin damage|poison|spread|detonat|explos|damage over time|radial damage/.test(ab)) return 'caster';
+  if (/overguard|iron skin|insulat|immune|absorb|damage reduction/.test(ab)) return 'tank';
+  if (/increased damage|weapon damage|grants.*damage|damage buff|fire rate/.test(ab)) return 'platform';
+  if ((frame.armor || 0) >= 275) return 'tank';
+  if ((frame.energy || 0) >= 175) return 'caster';
+  return 'platform';
+}
+
+/* the frame's own augment from the mods DB (compat = frame), preferring
+   one whose effect matches the archetype or names a frame ability */
+function frameAugment(frame, preferRe) {
+  var base = norm(frame.name).replace(/ prime$/, '');
+  var best = null, bestScore = 0;
+  for (var i = 0; i < D.mods.length; i++) {
+    var m = D.mods[i];
+    if (m.type !== 'Warframe Mod') continue;
+    var c = norm(m.compat || '');
+    if (c !== base && c !== norm(frame.name)) continue;
+    var score = 1, txt = norm(m.name + ' ' + (m.effect || ''));
+    if (preferRe && preferRe.test(txt)) score += 2;
+    (frame.abilities || []).forEach(function (a) { if (txt.indexOf(norm(a.name)) !== -1) score += 1; });
+    if (score > bestScore) { bestScore = score; best = m; }
+  }
+  return best;
+}
+
 function genWarframeBuild(frame, purpose) {
+  purpose = purpose || {};
   var picks = [];
+  var arch = frameArchetype(frame);
   var armor = frame.armor || 0, energy = frame.energy || 150;
+  var sigAbility = (frame.abilities && frame.abilities[0] && frame.abilities[0].name) || frame.name;
+  var augName = null;
 
   function add(name, reason) {
     if (picks.length >= 8) return;
     var p = pick(name, reason);
     if (p && !picks.some(function (x) { return x.mod.name === p.mod.name; })) picks.push(p);
   }
-
-  /* core survivability */
-  add('Vitality', 'Core survivability — more health keeps you alive through burst damage.');
-  if (armor >= 150) add('Steel Fiber', 'Your ' + armor + ' base armor makes this huge — armor scales your effective health.');
-  else add('Redirection', 'Boosts shields since your base armor is low.');
-
-  /* ability stats */
-  add('Intensify', 'Ability Strength powers up everything ' + frame.name + ' does.');
-  add(purpose.beginner ? 'Continuity' : 'Primed Continuity', 'Ability Duration — longer buffs, longer CC, less recasting.');
-  if (energy <= 175) add(purpose.beginner ? 'Flow' : 'Primed Flow', 'Bigger energy pool so you can actually cast.');
-  add('Stretch', 'Ability Range — hits more enemies, covers more ground.');
-
-  /* purpose-specific */
-  if (purpose.steelPath) {
-    add('Adaptation', 'Steel Path essential — stacking damage resistance keeps you alive at high levels.');
-    add('Rolling Guard', 'Brief invulnerability on dodge — dodges one-shots in Steel Path.');
+  function addAugment(preferRe) {
+    var aug = frameAugment(frame, preferRe);
+    if (aug) { augName = aug.name; add(aug.name, 'Signature augment for ' + frame.name + '\'s kit.' + (aug.effect ? ' ' + aug.effect : '')); }
   }
+  function ensureMod(name, reason) {
+    if (picks.some(function (x) { return x.mod.name === name; })) return;
+    var p = pick(name, reason);
+    if (!p) return;
+    if (picks.length < 8) { picks.push(p); return; }
+    for (var i = picks.length - 1; i >= 0; i--) {
+      if (picks[i].mod.name !== augName && picks[i].mod.name !== 'Vitality') { picks[i] = p; return; }
+    }
+  }
+  var P = function (primed, base) { return (purpose.budget || purpose.beginner) ? base : primed; };
+
+  if (arch === 'caster') {
+    add('Blind Rage', '+99% Ability Strength — ' + frame.name + '\'s damage abilities scale directly with it.');
+    add('Transient Fortitude', '+55% more strength — the nuke stat.');
+    add(P('Primed Continuity', 'Continuity'), 'Ability Duration — damage-over-time effects and debuffs tick longer.');
+    add('Stretch', '+45% Ability Range — ' + sigAbility + ' and the rest of the kit cover the whole room.');
+    add('Overextended', '+60% range for a strength cost the strength stack already covers — maximum coverage.');
+    add('Vitality', 'A real health pool for the moments between casts.');
+    addAugment(/spore|miasma|regenerat|ability|detonat|spread|toxin/);
+    add('Fleeting Expertise', 'Efficiency — run the rotation more often.');
+    add('Augur Reach', 'More range plus shield-gating from the Augur set.');
+    add('Streamline', 'Efficiency — cheaper casts.');
+  } else if (arch === 'support') {
+    add('Vitality', 'Support frames play in the line of fire — and health pools synergize with healing kits.');
+    add('Umbral Intensify', '+44% Ability Strength — buffs and heals scale with it.');
+    add(P('Primed Continuity', 'Continuity'), 'Ability Duration — buffs stay up longer.');
+    add(P('Primed Flow', 'Flow'), 'A deep energy pool — supports cast constantly.');
+    add('Stretch', '+45% Ability Range — your buffs reach the whole squad.');
+    addAugment(/heal|allies|mote|reservoir|support/);
+    add('Adaptation', 'Stacking damage resistance — a dead support helps nobody.');
+    add('Augur Message', 'More duration plus shield-gating from the Augur set.');
+    add('Natural Talent', 'Faster casting — get the support abilities out sooner.');
+    add('Blind Rage', 'Raw strength for bigger buff numbers.');
+  } else if (arch === 'tank') {
+    add('Vitality', 'Core health pool — the tank\'s foundation.');
+    if (armor >= 150) add('Steel Fiber', 'Your ' + armor + ' base armor makes this huge — armor multiplies effective health.');
+    else add('Redirection', 'Shield bulk, since base armor is low.');
+    add('Intensify', 'Ability Strength — defensive abilities (and any damage buff in the kit) scale with it.');
+    add(P('Primed Continuity', 'Continuity'), 'Ability Duration — defensive buffs stay up longer.');
+    if (energy <= 175) add(P('Primed Flow', 'Flow'), 'Bigger energy pool — the base pool is small and recasts need headroom.');
+    add('Stretch', '+45% Ability Range — defensive auras and crowd control cover more ground.');
+    addAugment(/iron skin|armor|charge|overguard|stomp|skin/);
+    add('Adaptation', 'Stacking damage resistance — the tank keeps stacking.');
+    add('Streamline', 'Efficiency — recasting defenses stays cheap.');
+    add('Augur Secrets', 'Extra strength plus shield-gating synergy.');
+  } else { /* platform */
+    add('Blind Rage', '+99% Ability Strength — the weapon buff scales directly with it.');
+    add('Transient Fortitude', '+55% more strength — bigger buff numbers.');
+    add('Umbral Intensify', '+44% strength with no downside.');
+    add(P('Primed Continuity', 'Continuity'), 'Ability Duration — the buff stays up longer.');
+    add('Narrow Minded', '+99% duration — maximum buff uptime; range rarely matters on a self-buff.');
+    addAugment(/roar|eclipse|weapon|damage|buff/);
+    add('Vitality', 'A real health pool — weapon platforms still get shot at.');
+    add('Adaptation', 'Stacking damage resistance while you shoot.');
+    add('Augur Secrets', 'Extra strength plus shield-gating synergy.');
+  }
+
   if (purpose.oneShot) {
-    add('Blind Rage', 'Massive Ability Strength for one-shot ability damage (watch the efficiency hit).');
-    add('Transient Fortitude', 'More strength for the nuke — pair with Fleeting Expertise if energy suffers.');
+    ensureMod('Blind Rage', 'Massive Ability Strength for one-shot ability damage (watch the efficiency hit).');
+    ensureMod('Transient Fortitude', 'More strength for the nuke.');
   }
-  /* fill remaining */
-  add('Augur Secrets', 'Extra strength plus shield-gating synergy.');
-  add('Fleeting Expertise', 'Efficiency for spamming abilities.');
-  add('Natural Talent', 'Faster casting — less time vulnerable mid-animation.');
-  add('Cunning Drift', 'Slide + range in one slot.');
-  add('Constitution', 'Duration plus faster knockdown recovery.');
+  if (purpose.steelPath) {
+    ensureMod('Adaptation', 'Steel Path essential — stacking damage resistance keeps you alive at high levels.');
+    ensureMod('Rolling Guard', 'Brief invulnerability on dodge — dodges one-shots in Steel Path.');
+  }
 
+  var swapsNote = '';
+  if (purpose.budget || purpose.beginner) {
+    var qp = qualifyPicks(picks, 'warframe', frame.name, purpose);
+    picks = qp.picks;
+    if (qp.swaps.length) swapsNote = ' Swaps to fit your ask: ' + qp.swaps.map(function (s) { return s.from + ' &rarr; ' + s.to; }).join(' · ') + '.';
+  }
+
+  var archLabel = { caster: 'ability-damage (caster/nuke)', support: 'support', tank: 'tank', platform: 'weapons-platform' }[arch];
   var notes = purpose.steelPath
     ? 'Steel Path tip: shield-gating (brief shield regen = invulnerability) matters more than raw health at high levels. Rolling Guard + Adaptation is the standard survival package.'
-    : 'Level the mods as you get Endo — even rank 6-8 mods carry you through the star chart.';
+    : purpose.beginner
+    ? 'Starter-friendly: no Primed, Galvanized or Arbitration mods — everything here is earnable early. Level the mods as you get Endo.'
+    : 'Generated around ' + frame.name + '\'s ' + archLabel + ' kit, not a generic skeleton — the hand-made library builds for this frame are listed below too.';
   return renderLoadout(frame.name + ' build', frame.name, picks,
-    notes + ' Shard/arcane picks depend on your focus school — check the full page.', 'warframes.html', purpose);
+    notes + swapsNote + ' Shard/arcane picks depend on your focus school — check the full page.', 'warframes.html', purpose);
 }
 
 /* ===== WEAPON BUILD GENERATOR ===== */
@@ -687,7 +1020,8 @@ function genWeaponBuild(weapon, purpose) {
   var cls = weaponClass(weapon);
   var cc = parseFloat(weapon.criticalChance) || 0;
   var sc = parseFloat(weapon.statusChance) || 0;
-  var isCrit = cc >= 18, isStatus = sc >= 18;
+  var isCrit = cc >= 18 || !!purpose.crit, isStatus = sc >= 18 || !!purpose.status;
+  var plainBase = purpose.budget || purpose.beginner;
 
   function add(name, reason) {
     if (picks.length >= 8) return;
@@ -695,7 +1029,18 @@ function genWeaponBuild(weapon, purpose) {
     if (p && !picks.some(function (x) { return x.mod.name === p.mod.name; })) picks.push(p);
   }
 
-  if (cls === 'melee') {
+  if (cls === 'melee' && purpose.status) {
+    /* v2.19.6: status melee — combo-scaled status chance + dual combos */
+    add(plainBase ? 'Pressure Point' : (purpose.steelPath ? 'Primed Pressure Point' : 'Pressure Point'), 'Base damage — the foundation of every melee build.');
+    add('Condition Overload', '+Damage per status type on the enemy — the status melee payoff.');
+    add('Weeping Wounds', 'Status chance that scales with your combo counter.');
+    add('Virulent Scourge', 'Toxin 60/60 — half of Viral.');
+    add('Vicious Frost', 'Cold 60/60 — completes Viral (Toxin + Cold).');
+    add('Voltaic Strike', 'Electric 60/60 — pairs with Fever Strike for Corrosive.');
+    add('Fever Strike', 'Toxin damage — completes Corrosive (Electric + Toxin), the anti-armor combo.');
+    add('Drifting Contact', 'Combo duration — keeps Weeping Wounds stacked between packs.');
+    add('Fury', 'Attack speed — more hits, more procs per second.');
+  } else if (cls === 'melee') {
     add(purpose.steelPath ? 'Primed Pressure Point' : 'Pressure Point', 'Base damage — the foundation of every melee build.');
     if (isCrit) {
       add('Blood Rush', 'Your ' + cc + '% crit chance makes this scale insanely with your combo counter.');
@@ -712,6 +1057,17 @@ function genWeaponBuild(weapon, purpose) {
     add('Virulent Scourge', 'Toxin 60/60 — completes Corrosive (Electric + Toxin), the Steel Path anti-armor combo.');
     add('Gladiator Might', 'Crit damage + combo duration backup.');
     add('Drifting Contact', 'Combo duration — keeps your counter alive between packs.');
+  } else if (cls === 'shotgun' && purpose.status) {
+    /* v2.19.6: status shotgun — every pellet rolls status, so stack it */
+    add(purpose.steelPath && !plainBase ? 'Primed Point Blank' : 'Point Blank', 'Base damage — the shotgun foundation.');
+    add(purpose.steelPath && !plainBase ? 'Galvanized Hell' : "Hell's Chamber", 'Multishot — more pellets per shot, and every pellet rolls its own status proc.');
+    add('Toxic Barrage', 'Toxin 60/60 — half of Viral, plus status chance.');
+    add('Frigid Blast', 'Cold 60/60 — completes Viral (Toxin + Cold).');
+    add('Shell Shock', 'Electric 60/60 — pairs with Scattering Inferno for Radiation, a second combo element.');
+    add('Scattering Inferno', 'Heat 60/60 — completes Radiation (Electric + Heat).');
+    add('Shotgun Savvy', 'Flat status chance — on a pellet weapon this multiplies fast.');
+    add('Seeking Fury', 'Reload speed + punch-through — keeps the proc hose flowing.');
+    add('Vigilante Armaments', 'More multishot — more pellets, more procs.');
   } else if (cls === 'shotgun') {
     /* v2.12.51: shotguns get shotgun mods — NOT rifle mods. Serration /
        Split Chamber / Point Strike do not fit shotguns. */
@@ -749,6 +1105,38 @@ function genWeaponBuild(weapon, purpose) {
     var critC = cls === 'secondary' ? 'Primed Pistol Gambit' : 'Point Strike';
     var critD = cls === 'secondary' ? 'Primed Target Cracker' : 'Vital Sense';
 
+    if (purpose.status) {
+      /* v2.19.6: status guns — dual 60/60 combos (Viral + Radiation) and
+         flat status chance; crit mods and Hunter Munitions stay out */
+      add(dmgMod, 'Base damage — every gun build starts here.');
+      add(purpose.steelPath && !plainBase ? galvMs : msMod, 'Multishot — more projectiles per shot, and every one rolls its own status proc.');
+      add(cls === 'secondary' ? 'Pistol Pestilence' : 'Malignant Force', 'Toxin 60/60 — half of Viral, plus status chance.');
+      add(cls === 'secondary' ? 'Frostbite' : 'Rime Rounds', 'Cold 60/60 — completes Viral (Toxin + Cold).');
+      add(cls === 'secondary' ? 'Scorch' : 'Thermite Rounds', 'Heat 60/60 — pairs with Electric for Radiation, a second combo element.');
+      add(cls === 'secondary' ? 'Jolt' : 'High Voltage', 'Electric 60/60 — completes Radiation (Heat + Electric).');
+      add(cls === 'secondary' ? 'Sure Shot' : 'Rifle Aptitude', 'Flat status chance — the whole build is about proccing more.');
+      add(cls === 'secondary' ? 'Lethal Torrent' : 'Vigilante Armaments', 'More shots per second = more status stacks.');
+      add('Hammer Shot', 'Status chance plus crit damage — the hybrid filler.');
+    } else if (purpose.crit) {
+      /* v2.19.6: crit guns — crit chance/damage weighted, whatever the
+         weapon's base stats say */
+      add(dmgMod, 'Base damage — every gun build starts here.');
+      add(purpose.steelPath && !plainBase ? galvMs : msMod, purpose.steelPath && !plainBase
+        ? 'Galvanized multishot — stacks on kill, the Steel Path standard.'
+        : 'Multishot — more projectiles, more crit rolls per shot.');
+      add(critC, 'Crit chance — a crit build lives or dies on this.');
+      add(critD, 'Crit damage to cash in on those crits.');
+      var hmc = pick('Hunter Munitions', 'Crits apply Slash procs that bypass armor — the crit build\'s armor answer.');
+      if (hmc) picks.push(hmc);
+      add(cls === 'secondary' ? 'Pathogen Rounds' : 'Infected Clip', 'Toxin damage — half of Viral.');
+      add(cls === 'secondary' ? 'Deep Freeze' : 'Cryo Rounds', 'Cold damage — completes Viral (Toxin + Cold), which multiplies damage to health.');
+      if (purpose.steelPath && !plainBase) {
+        var banec = pick('Primed Bane of Grineer', 'Faction damage — the biggest Steel Path multiplier, swap per faction.');
+        if (banec) picks.push(banec);
+      }
+      add(cls === 'secondary' ? 'Lethal Torrent' : 'Vigilante Armaments', 'Fire rate or more multishot — pick your feel.');
+      add('Hammer Shot', 'Crit damage plus status chance — solid hybrid filler.');
+    } else {
     add(dmgMod, 'Base damage — every gun build starts here.');
     add(purpose.steelPath ? galvMs : msMod, purpose.steelPath
       ? 'Galvanized multishot — stacks on kill, the Steel Path standard.'
@@ -778,21 +1166,41 @@ function genWeaponBuild(weapon, purpose) {
       else add(cls === 'secondary' ? 'Lethal Torrent' : 'Shred', 'Fire rate / punch-through utility.');
     }
     add(cls === 'secondary' ? 'Lethal Torrent' : 'Vigilante Armaments', 'Fire rate or more multishot — pick your feel.');
+    }
   }
 
-  var notes = purpose.steelPath
-    ? 'Steel Path notes: Viral + Hunter Munitions slash procs bypass armor — that\'s the one-shot formula. Swap the faction Bane mod per mission.'
-    : 'Level these gradually — a half-ranked core build beats a wishlist of unranked mods.';
-  return renderLoadout(weapon.name + ' build', weapon.name, picks, notes, 'weapons.html', purpose);
+  /* v2.19.6: never ship a short build (a status-leaning rifle used to
+     come back with 5 mods) — top up from class staples */
+  var FILL_CANDS = {
+    primary: ['Infected Clip', 'Cryo Rounds', 'Stormbringer', 'Hellfire', 'Shred', 'Vigilante Armaments', 'Hammer Shot', 'Point Strike', 'Vital Sense', 'Hunter Munitions'],
+    secondary: ['Heated Charge', 'Convulsion', 'Deep Freeze', 'Pathogen Rounds', 'Lethal Torrent', 'Augur Pact', 'Ice Storm'],
+    shotgun: ['Chilling Reload', 'Seeking Fury', 'Scattering Inferno', 'Blaze', 'Contagious Spread', 'Shell Shock', 'Vigilante Armaments'],
+    melee: ['Fury', 'Reach', 'Drifting Contact', 'Gladiator Might', 'Berserker Fury', 'Fever Strike', 'Shocking Touch']
+  };
+  (FILL_CANDS[cls] || []).forEach(function (n) { add(n, 'Solid staple — fills out the build.'); });
+
+  var swapsNote = '';
+  if (plainBase) {
+    var qcls = cls === 'primary' ? 'rifle' : cls === 'secondary' ? 'pistol' : cls;
+    var qp2 = qualifyPicks(picks, qcls, weapon.name, purpose);
+    picks = qp2.picks;
+    if (qp2.swaps.length) swapsNote = ' Swaps to fit your ask: ' + qp2.swaps.map(function (s) { return s.from + ' &rarr; ' + s.to; }).join(' · ') + '.';
+  }
+
+  var notes = purpose.status
+    ? 'Status build: two combo elements (Viral + Radiation) stack procs fast, and every projectile rolls its own — proc first, melt second.' + swapsNote
+    : purpose.steelPath
+    ? 'Steel Path notes: Viral + Hunter Munitions slash procs bypass armor — that\'s the one-shot formula. Swap the faction Bane mod per mission.' + swapsNote
+    : 'Level these gradually — a half-ranked core build beats a wishlist of unranked mods.' + swapsNote;
+  var wTitle = weapon.name + (purpose.status ? ' status build' : purpose.crit ? ' crit build' : ' build');
+  return renderLoadout(wTitle, weapon.name, picks, notes, 'weapons.html', purpose);
 }
 
-/* extract item name + purpose from a build question */
+/* extract item name + purpose from a build question.
+   v2.19.6: purpose is the full qualifier set (parseQualifiers), and the
+   qualifier words are stripped from the name so item lookup still works. */
 function parseBuildQ(t) {
-  var purpose = {
-    steelPath: /steel\s?path/.test(t),
-    oneShot: /one[\s-]?shot/.test(t),
-    beginner: /beginner|starter|early|new player/.test(t)
-  };
+  var purpose = parseQualifiers(t);
   /* strip build-related words to isolate the item name */
   var q = t
     .replace(/^(can you |please |hey |hi )?make( me)?/,'')
@@ -803,6 +1211,11 @@ function parseBuildQ(t) {
     .replace(/\bsteel\s?path\b/g,' ')
     .replace(/\bone[\s-]?shot\b/g,' ')
     .replace(/\bbeginner|starter|early\b/g,' ')
+    .replace(/\bbudget\b/g,' ')
+    .replace(/\bno primed( mods)?\b/g,' ')
+    .replace(/\bwithout primed\b/g,' ')
+    .replace(/\bstatus\b/g,' ')
+    .replace(/\bcrit(ical)?\b/g,' ')
     .replace(/\?+$/,'')
     .replace(/\s+/g,' ').trim();
   return { name: q, purpose: purpose };
@@ -1162,10 +1575,12 @@ function spFrameBuildAnswer(key) {
     arcanesText: t.arcanes || '',
     note: t.play || ''
   });
+  var spItemName = (findByName(D.warframes, key) || {}).name || key;
   return '<b>' + esc(t.title) + '</b>' +
     '<p class="muted small">Riven-less Steel Path build — aura, exilus, and arcanes included. Every mod has a WHY.</p>' +
     card +
     rows +
+    alternativesHtml(spItemName, null) +
     '<p><a href="builds.html">More builds &rarr;</a></p>';
 }
 
@@ -1188,8 +1603,10 @@ function oneShotTemplateAnswer(key) {
     arcanes: [],
     note: t.notes || ''
   });
+  var tplItemName = (findByName(D.weapons, key) || {}).name || key;
   return '<b>' + esc(t.title) + '</b><p class="muted small">Riven-less. Every mod below has a WHY — ' +
     'this is the reasoning, not just a list.</p>' + card + rows +
+    alternativesHtml(tplItemName, null) +
     '<p>Want the theory behind it? Ask <i>"one-shot formula"</i>. Need a primer? Ask <i>"primer"</i>.</p>';
 }
 
@@ -1225,6 +1642,7 @@ function oneShotBuildAnswer(t) {
   });
   return '<b>' + esc(best.name) + '</b><p class="muted small">' + esc(best.description) +
     ' Riven-less — every mod has a WHY.</p>' + card + rows +
+    alternativesHtml(best.item, best) +
     '<p>Full build also on the <a href="builds.html#build-' + esc(best.id) + '">builds page</a>. ' +
     'Want the theory? Ask <i>"one-shot formula"</i>.</p>';
 }
@@ -1522,6 +1940,23 @@ function oneShotBuildAnswer(t) {
       var spItem = findItemInText(D.warframes, t) || findItemInText(D.weapons, t);
       if (!spItem) return STEEL_PATH_GENERAL;
     }
+    /* v2.19.6: qualifiers are enforced, not decorative. A budget / beginner /
+       status / crit ask for a named item is answered by qualifiedBuildAnswer
+       BEFORE the one-shot templates and library interception below, which
+       know nothing of qualifiers and would serve the default build. */
+    var quals = parseQualifiers(t);
+    if (anyQualifier(quals) && /\b(build|setup|loadout|steel\s?path|one[\s-]?shot)\b/.test(t)) {
+      var qFrame = findItemInText(D.warframes, t);
+      var qFound = qFrame ? { kind: 'warframe', e: qFrame } : null;
+      if (!qFound) {
+        var qWpn = findItemInText(D.weapons, t);
+        if (qWpn) qFound = { kind: 'weapon', e: qWpn };
+      }
+      if (qFound) {
+        var qAns = qualifiedBuildAnswer(qFound, quals, t);
+        if (qAns) return qAns;
+      }
+    }
     /* curated 8-mod templates for meta one-shot weapons (with WHY for each mod) */
     var templateKeys = Object.keys(ONE_SHOT_TEMPLATES);
     for (var ti = 0; ti < templateKeys.length; ti++) {
@@ -1563,10 +1998,10 @@ function oneShotBuildAnswer(t) {
           var fw2Hit = spFrameBuildAnswer(norm(fw2.name).replace(/\s+prime$/, ''));
           if (fw2Hit) return fw2Hit;
         }
-        return genWarframeBuild(fw2, { steelPath: /steel/.test(t), oneShot: /one/.test(t) });
+        return genWarframeBuild(fw2, parseQualifiers(t));
       }
       var wp2 = findItemInText(D.weapons, t);
-      if (wp2) return genWeaponBuild(wp2, { steelPath: /steel/.test(t), oneShot: /one/.test(t) });
+      if (wp2) return genWeaponBuild(wp2, parseQualifiers(t));
       /* v2.19.5: "how do I make platinum/credits" names no item — that's the
          trading answer, not a build request (the word "make" used to hijack it) */
       if (/\b(platinum|plat|credits?)\b/.test(t)) return sellAnswer();
