@@ -1,5 +1,16 @@
 [
  {
+  "version": "2.24.0",
+  "date": "2026-10-26",
+  "notify": true,
+  "notes": [
+   "🧪 NEW: MOD MIXER — mix your own build. Pick any warframe or weapon, then slot mods yourself from the Vault's real 1,756-mod list: 8 slots plus aura (frames) or stance (melee), your own slot polarities, and a Copy build button so you can slot it in your Arsenal in the same order. Capacity is checked against live drain data (warframestat.us) with polarity discounts applied — a matching polarity halves a mod's drain, a matching aura/stance polarity doubles its capacity bonus — and if a drain can't be fetched the check says so instead of guessing.",
+   "⚗️ ELEMENTS COMBINE THE WAY THE GAME PAIRS THEM: elemental mods in slot order — the first two different elements make a combined element (Heat + Cold = Blast, Heat + Toxin = Gas, and so on), a third stays single unless a fourth pairs with it. The panel names each combined element and the mods feeding it.",
+   "📏 HONEST LIMITS, STATED ON THE PAGE: modded stat totals are NOT shown yet, on purpose — the Vault's mod lines don't carry verified max-rank values (its Serration line says +40%, the real max is +165%), so totals computed from them would be wrong numbers. Capacity, elements and the build itself are real. Rivens are left out (rolled per weapon, not plannable from a list) and Exilus is not in this version.",
+   "🔎 PICKER RULES: frame augments only ever show for their own frame; weapons show every mod in their family with its compat tag, because the Vault records no weapon subclass (rifle vs bow) — check the tag before slotting. A compat filter and search narrow the list. Mixer opens from the sidebar under Upgrades, and mixer.html?item=Name deep-links straight to an item."
+  ]
+ },
+ {
   "version": "2.23.3",
   "date": "2026-10-23",
   "notify": true,

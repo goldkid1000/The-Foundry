@@ -33,6 +33,7 @@
     { id: 'arcanes', label: 'Arcanes', sub: 'Bonus powers for warframes & weapons', icon: '✨', file: 'arcanes.html', group: 'Upgrades' },
     { id: 'shards', label: 'Shards', sub: 'Stat boosts you slot into your warframe', icon: '💠', file: 'shards.html', group: 'Upgrades' },
     { id: 'builds', label: 'Builds', sub: 'Ready-made setups — copy & play', icon: '⚔️', file: 'builds.html', group: 'Upgrades' },
+    { id: 'mixer', label: 'Mod Mixer', sub: 'Build your own setup — slot mods yourself', icon: '🧪', file: 'mixer.html', group: 'Upgrades' },
     { id: 'helminth', label: 'Helminth', sub: 'Swap abilities between warframes', icon: '🧬', file: 'helminth.html', group: 'Upgrades' },
     { id: 'focus', label: 'Focus', sub: 'Power up your operator — 5 schools explained', icon: '🔮', file: 'focus.html', group: 'Upgrades' },
     { id: 'incarnon', label: 'Incarnon Guide', sub: 'Weapons that transform mid-mission', icon: '🔥', file: 'incarnon.html', group: 'Upgrades' },

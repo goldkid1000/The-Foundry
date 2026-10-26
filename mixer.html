@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mod Mixer — The Foundry</title>
+<meta name="description" content="Mix your own Warframe build: pick a warframe or weapon, slot real mods yourself, check capacity and elements, then copy the build.">
+<link rel="stylesheet" href="css/style.css?v=2.24.0">
+<link rel="icon" href="images/favicon-32.png" type="image/png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0e1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Foundry">
+<style>
+.mix-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:8px;}
+.mix-slot{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;background:rgba(255,255,255,.03);}
+.mix-slot-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;}
+.mix-capnum{font-size:28px;font-weight:700;margin:4px 0;}
+</style>
+</head>
+<body data-page="mixer" data-crumb="Home,Mod Mixer">
+<div id="site-header"></div>
+<div class="layout">
+<aside id="sidebar"></aside>
+<main id="main">
+<div id="breadcrumbs"></div>
+<h1>Mod Mixer</h1>
+<div class="notice"><b>Mix your own build.</b> Pick a warframe or weapon, then slot mods yourself — every mod comes from the Vault's real mod list, nothing invented. Capacity uses live drain data, and elements combine in slot order the way the game pairs them. When the build fits, copy it and slot it in your Arsenal in the same order.</div>
+<p class="muted small">Honest limits, stated up front: capacity assumes a max-rank item and checks live drain data (warframestat.us) — if a drain can't be fetched, the check says so instead of guessing. Modded stat totals are NOT shown yet: the Vault's mod lines don't carry verified max-rank values (its Serration line says +40%, the real max is +165%), so totals computed from them would be wrong numbers. Capacity + elements + the build itself are real. Rivens are left out — their stats are rolled per weapon, so they can't be planned from a list. Exilus is not in this version.</p>
+
+<h2>1. Pick your item</h2>
+<div class="field"><input id="mix-q" type="search" placeholder="Search warframes & weapons…"></div>
+<div class="field" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+  <button class="btn small" data-mixfam="all">All</button>
+  <button class="btn small" data-mixfam="warframe">Warframes</button>
+  <button class="btn small" data-mixfam="primary">Primary</button>
+  <button class="btn small" data-mixfam="shotgun">Shotgun</button>
+  <button class="btn small" data-mixfam="secondary">Secondary</button>
+  <button class="btn small" data-mixfam="melee">Melee</button>
+</div>
+<p class="muted small" id="mix-count"></p>
+<div id="mix-items" class="item-list"></div>
+
+<div id="mix-builder">
+<h2>2. Mix your mods</h2>
+<div id="mix-builder-head"><p class="muted">Pick an item above to start mixing.</p></div>
+<div id="mix-cap"></div>
+<div id="mix-slots" class="mix-slots"></div>
+<div id="mix-elements"></div>
+</div>
+
+<div id="mix-picker"></div>
+<p class="muted small">Weapon note: the Vault records no weapon subclass (rifle vs bow vs sniper), so the picker shows every mod in the weapon's family with its compat tag — check the tag before slotting. Frame augments only ever show for their own frame. Tap a slot's polarity button to cycle it: a matching polarity halves that mod's drain (rounded up), and a matching aura/stance polarity doubles the capacity bonus.</p>
+<div id="related"></div>
+</main>
+</div>
+<nav id="tabbar"></nav>
+<footer id="site-footer"></footer>
+<script src="js/app.js?v=2.24.0"></script>
+<script src="js/presence.js?v=2.24.0"></script>
+<script src="js/vaulty-social.js?v=2.24.0"></script>
+<script src="js/ai-fallback.js?v=2.24.0"></script>
+<script src="js/vaulty-live.js?v=2.24.0"></script>
+<script src="js/vaulty-watch.js?v=2.24.0"></script>
+<script src="js/vaulty-memory.js?v=2.24.0"></script>
+<script src="js/vaulty-learn.js?v=2.24.0"></script>
+<script src="js/vaulty-research.js?v=2.24.0"></script>
+<script src="js/vaulty-workshop.js?v=2.24.0"></script>
+<script src="js/vaulty-chips.js?v=2.24.0"></script>
+<script src="js/vaulty-voice.js?v=2.24.0"></script>
+<script src="js/ai.js?v=2.24.0"></script>
+<script src="js/mixer.js?v=2.24.0"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}</script>
+</body>
+</html>
