@@ -199,6 +199,8 @@
     var tabs = [
       { id: 'home', label: 'Home', icon: '🏠', file: 'index.html' },
       { id: 'builds', label: 'Builds', icon: '⚔️', file: 'builds.html' },
+      /* v2.24.2: Mixer as a bottom tab too, not just the sidebar */
+      { id: 'mixer', label: 'Mixer', icon: '🧪', file: 'mixer.html' },
       { id: 'news', label: 'News', icon: '📰', file: 'news.html' },
       { id: 'live', label: 'Live', icon: '📡', file: 'live.html' },
       { id: 'more', label: 'More', icon: '☰', file: 'index.html#sections' },

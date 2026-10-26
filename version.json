@@ -1,8 +1,9 @@
 {
- "version": "2.24.1",
+ "version": "2.24.2",
  "updated": "2026-10-26",
  "notify": true,
  "notes": [
+  "🧪 MOD MIXER IS A BOTTOM TAB NOW: it sits in the phone tab bar (Home, Builds, Mixer, News, Live, More) as well as in the sidebar under Upgrades, so it's one tap away anywhere in the app.",
   "🐛 FIXED: the update loop — the app's built-in version stamp was still 2.23.3 while the published version was 2.24.0, so every open showed 'Update available' and updating never cleared it. The stamp now matches the release, so the popup is gone once this update loads.",
   "🧪 NEW: MOD MIXER — mix your own build. Pick any warframe or weapon, then slot mods yourself from the Vault's real 1,756-mod list: 8 slots plus aura (frames) or stance (melee), your own slot polarities, and a Copy build button so you can slot it in your Arsenal in the same order. Capacity is checked against live drain data (warframestat.us) with polarity discounts applied — a matching polarity halves a mod's drain, a matching aura/stance polarity doubles its capacity bonus — and if a drain can't be fetched the check says so instead of guessing.",
   "⚗️ ELEMENTS COMBINE THE WAY THE GAME PAIRS THEM: elemental mods in slot order — the first two different elements make a combined element (Heat + Cold = Blast, Heat + Toxin = Gas, and so on), a third stays single unless a fourth pairs with it. The panel names each combined element and the mods feeding it.",
