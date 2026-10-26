@@ -1,6 +1,6 @@
 {
- "notes": "🧪 MOD MIXER IS A BOTTOM TAB NOW: it sits in the phone tab bar (Home, Builds, Mixer, News, Live, More) as well as in the sidebar under Upgrades, so it's one tap away anywhere in the app.",
+ "notes": "🐛 FIXED: update notes no longer shred into fragments — the popup split notes at every comma, chopping sentences into pieces. Each note is now one clean bullet.",
  "notify": true,
  "updated": "2026-10-26",
- "version": "2.24.2"
+ "version": "2.24.3"
 }

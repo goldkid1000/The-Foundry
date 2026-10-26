@@ -20,7 +20,7 @@
   /* v2.24.1: this stamp was missed by the 2.23.5/2.23.6/2.24.0 pushes — that stale
      stamp caused the update loop. It MUST move on every release, together with
      version.json, data/site/version.json, sw.js CACHE_NAME and the ?v= stamps. */
-  var TV_BUILD_VERSION = '2.24.2';
+  var TV_BUILD_VERSION = '2.24.3';
 
   /* v2.17.0 — BOOT SELF-HEAL (the permanent stale-cache fix).
      Problem it ends: Safari's HTTP cache can serve an old index.html, which
@@ -122,13 +122,16 @@
 
     var notesHTML = '';
     if (data.notes) {
-      var items = String(data.notes).split(/,\s*/);
-      if (items.length > 1) {
+      /* v2.24.3: notes is an ARRAY — one bullet per note. The old code turned
+         the array into one string and split it on commas, which chopped at
+         every comma INSIDE the sentences too, shredding each note into
+         fragment bullets ("the Vault's real 1" / "756-mod"). */
+      if (Array.isArray(data.notes)) {
         notesHTML = '<ul class="tv-upd-list">' +
-          items.map(function (n) { return '<li>' + escapeHtml(n.trim()) + '</li>'; }).join('') +
+          data.notes.map(function (n) { return '<li>' + escapeHtml(String(n).trim()) + '</li>'; }).join('') +
           '</ul>';
       } else {
-        notesHTML = '<p class="tv-upd-notes">' + escapeHtml(data.notes) + '</p>';
+        notesHTML = '<p class="tv-upd-notes">' + escapeHtml(String(data.notes)) + '</p>';
       }
     }
 

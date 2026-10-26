@@ -1,5 +1,13 @@
 [
  {
+  "version": "2.24.3",
+  "date": "2026-10-26",
+  "notify": true,
+  "notes": [
+   "🐛 FIXED: update notes no longer shred into fragments — the popup split notes at every comma, chopping sentences into pieces. Each note is now one clean bullet."
+  ]
+ },
+ {
   "version": "2.24.2",
   "date": "2026-10-26",
   "notify": true,
