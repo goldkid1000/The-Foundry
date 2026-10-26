@@ -997,5 +997,14 @@
   "description": "Ranks every Warframe for the new 6-player Icebind content, helping players pick frames and build priorities for the current endgame meta. (Upload ~Oct 17, 2026.)",
   "item": "Icebind",
   "type": "build"
+ },
+ {
+  "id": "rpVvTXBemJg",
+  "title": "This Week In Warframe - FULL Weekly Reset Overview Week Of 10/25/2026",
+  "channel": "Gaz TTV",
+  "category": "Farming",
+  "description": "Gaz TTV's weekly reset roundup for the week of Oct 25, 2026 — Tau Devstream #198 preview, Nidus/Saryn resurgence, Sobek augment nerf discussion and DE's follow-up, Teshin, Dormizone, Descendia, ETA/EDA, Archon Hunt, Normal/Steel Path Circuit, Steel Path Incarnon, Nightwave. (Upload ~Oct 24, 2026.)",
+  "item": "Weekly Reset",
+  "type": "guide"
  }
 ]
