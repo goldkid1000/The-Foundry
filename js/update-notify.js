@@ -20,7 +20,7 @@
   /* v2.24.1: this stamp was missed by the 2.23.5/2.23.6/2.24.0 pushes — that stale
      stamp caused the update loop. It MUST move on every release, together with
      version.json, data/site/version.json, sw.js CACHE_NAME and the ?v= stamps. */
-  var TV_BUILD_VERSION = '2.24.3';
+  var TV_BUILD_VERSION = '2.24.4';
 
   /* v2.17.0 — BOOT SELF-HEAL (the permanent stale-cache fix).
      Problem it ends: Safari's HTTP cache can serve an old index.html, which

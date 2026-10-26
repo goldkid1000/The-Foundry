@@ -1,5 +1,13 @@
 [
  {
+  "version": "2.24.4",
+  "date": "2026-10-26",
+  "notify": true,
+  "notes": [
+   "🧪 MIXER TAB RENAMED: the bottom tab now reads 'Upgrades Mix'."
+  ]
+ },
+ {
   "version": "2.24.3",
   "date": "2026-10-26",
   "notify": true,

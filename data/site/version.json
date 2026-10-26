@@ -1,6 +1,6 @@
 {
- "notes": "🐛 FIXED: update notes no longer shred into fragments — the popup split notes at every comma, chopping sentences into pieces. Each note is now one clean bullet.",
+ "notes": "🧪 MIXER TAB RENAMED: the bottom tab now reads 'Upgrades Mix'.",
  "notify": true,
  "updated": "2026-10-26",
- "version": "2.24.3"
+ "version": "2.24.4"
 }
