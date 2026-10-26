@@ -1,5 +1,13 @@
 [
  {
+  "version": "2.24.1",
+  "date": "2026-10-26",
+  "notify": true,
+  "notes": [
+   "🐛 FIXED: the update loop — the app's built-in version stamp was still 2.23.3 while the published version was 2.24.0, so every open showed 'Update available' and updating never cleared it. The stamp now matches the release, so the popup is gone once this update loads."
+  ]
+ },
+ {
   "version": "2.24.0",
   "date": "2026-10-26",
   "notify": true,

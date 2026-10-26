@@ -1,6 +1,6 @@
 {
- "notes": "Vaulty answers in general now — not just from the Vault's database. Farm questions work in every phrasing ('where would be the best place to farm X', 'where does X drop', 'how can I get X'): the natural best-place wording used to hit the don't-know card, and that failure is fixed at the root. If the Vault's data doesn't have a factual answer, Vaulty no longer hands you research buttons — he researches it himself, automatically: live game data, the Warframe Wiki's drop info, Wikipedia — and answers with the real farm spot and a citation. And with the AI downloaded, a question neither the Vault nor research covers gets a general-knowledge answer clearly labeled 'From my general knowledge (not Vault data)': Vault data, Researched, and General knowledge are three separate labels, never blurred. Builds still come only from the verified engine.",
+ "notes": "🐛 FIXED: the update loop — the app's built-in version stamp was still 2.23.3 while the published version was 2.24.0, so every open showed 'Update available' and updating never cleared it. The stamp now matches the release, so the popup is gone once this update loads.",
  "notify": true,
- "updated": "2026-10-23",
- "version": "2.23.3"
+ "updated": "2026-10-26",
+ "version": "2.24.1"
 }
