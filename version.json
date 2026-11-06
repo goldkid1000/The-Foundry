@@ -1,15 +1,9 @@
 {
- "version": "2.24.4",
- "updated": "2026-10-26",
+ "version": "2.24.10",
+ "updated": "2026-11-03",
  "notify": true,
  "notes": [
-  "🧪 MIXER TAB RENAMED: the bottom tab now reads 'Upgrades Mix'.",
-  "🐛 FIXED: update notes no longer shred into fragments — the popup split notes at every comma, chopping sentences into pieces. Each note is now one clean bullet.",
-  "🧪 MOD MIXER IS A BOTTOM TAB NOW: it sits in the phone tab bar (Home, Builds, Mixer, News, Live, More) as well as in the sidebar under Upgrades, so it's one tap away anywhere in the app.",
-  "🐛 FIXED: the update loop — the app's built-in version stamp was still 2.23.3 while the published version was 2.24.0, so every open showed 'Update available' and updating never cleared it. The stamp now matches the release, so the popup is gone once this update loads.",
-  "🧪 NEW: MOD MIXER — mix your own build. Pick any warframe or weapon, then slot mods yourself from the Vault's real 1,756-mod list: 8 slots plus aura (frames) or stance (melee), your own slot polarities, and a Copy build button so you can slot it in your Arsenal in the same order. Capacity is checked against live drain data (warframestat.us) with polarity discounts applied — a matching polarity halves a mod's drain, a matching aura/stance polarity doubles its capacity bonus — and if a drain can't be fetched the check says so instead of guessing.",
-  "⚗️ ELEMENTS COMBINE THE WAY THE GAME PAIRS THEM: elemental mods in slot order — the first two different elements make a combined element (Heat + Cold = Blast, Heat + Toxin = Gas, and so on), a third stays single unless a fourth pairs with it. The panel names each combined element and the mods feeding it.",
-  "📏 HONEST LIMITS, STATED ON THE PAGE: modded stat totals are NOT shown yet, on purpose — the Vault's mod lines don't carry verified max-rank values (its Serration line says +40%, the real max is +165%), so totals computed from them would be wrong numbers. Capacity, elements and the build itself are real. Rivens are left out (rolled per weapon, not plannable from a list) and Exilus is not in this version.",
-  "🔎 PICKER RULES: frame augments only ever show for their own frame; weapons show every mod in their family with its compat tag, because the Vault records no weapon subclass (rifle vs bow) — check the tag before slotting. A compat filter and search narrow the list. Mixer opens from the sidebar under Upgrades, and mixer.html?item=Name deep-links straight to an item."
+  "🛒 BARO COUNTDOWN: next visit Fri Nov 6, 9 AM ET -> Sun Nov 8, 9 AM ET (EvilBaroWeek4, Kronia Relay, Saturn) — replaces the stale Oct 23 entry so the homepage shows an upcoming visit again.",
+  "🐛 FIXED: mixer.html still carried ?v=2.24.0 cache stamps on all 15 asset references while every other page was at 2.24.4 — returning visitors could get stale Mixer CSS/JS. All page stamps now match the release."
  ]
 }

@@ -1,5 +1,14 @@
 [
  {
+  "version": "2.24.10",
+  "date": "2026-11-03",
+  "notify": true,
+  "notes": [
+   "🛒 BARO COUNTDOWN: next visit Fri Nov 6, 9 AM ET -> Sun Nov 8, 9 AM ET (EvilBaroWeek4, Kronia Relay, Saturn) — replaces the stale Oct 23 entry so the homepage shows an upcoming visit again.",
+   "🐛 FIXED: mixer.html still carried ?v=2.24.0 cache stamps on all 15 asset references while every other page was at 2.24.4 — returning visitors could get stale Mixer CSS/JS. All page stamps now match the release."
+  ]
+ },
+ {
   "version": "2.24.4",
   "date": "2026-10-26",
   "notify": true,
