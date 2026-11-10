@@ -1,5 +1,14 @@
 [
  {
+  "version": "2.24.16",
+  "date": "2026-11-10",
+  "notify": false,
+  "notes": [
+   "🛒 BARO COUNTDOWN: next visit Fri Nov 13, 9 AM ET -> Sun Nov 15, 9 AM ET (Orcus Relay, Pluto) — replaces the Nov 6-8 visit that ended, so the homepage shows an upcoming visit again.",
+   "👻 GHOUL PURGE COUNTDOWN: a new Ghoul Purge started Nov 6 — bounties run through Fri Nov 27. Replaces the stale Nov 9 end date."
+  ]
+ },
+ {
   "version": "2.24.10",
   "date": "2026-11-03",
   "notify": true,
