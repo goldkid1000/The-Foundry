@@ -1,5 +1,15 @@
 [
  {
+  "version": "2.24.18",
+  "date": "2026-11-14",
+  "notify": false,
+  "notes": [
+   "🎬 2 NEW VIDEOS: TheKengineer — “Narin - Speed skating to put foes on ice!” (Oct 24, 2026) — 3 Narin builds (High Density, High Efficiency, Brightbonnet subsume); SaltPrime — “Narin - How to Build & Gameplay” (Nov 5, 2026) — full build + gameplay walkthrough. Video library now at 116 total.",
+   "No new hotfix since Hotfix 44.1.4 + 44.1.4.1.",
+   "⏳ EPOCH OPERATION: TAUBOUND ends Mon Nov 17 — Praghasa’s wares leave with it. Last chance for Taubound rewards."
+  ]
+ },
+ {
   "version": "2.24.17",
   "date": "2026-11-13",
   "notify": false,
