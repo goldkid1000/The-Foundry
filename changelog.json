@@ -1,5 +1,15 @@
 [
  {
+  "version": "2.24.20",
+  "date": "2026-11-15",
+  "notify": false,
+  "notes": [
+   "🎬 1 NEW VIDEO: PlayWarframe (official DE) — “Prime Warframes Guide: What They Are & How To Earn Them” (Dec 18, 2025) — beginner crash course on Primes, Void Relics/Fissures, Prime Access and Prime Resurgence. Video library now at 119 total.",
+   "No new hotfix since Hotfix 44.1.4 + 44.1.4.1.",
+   "⏳ EPOCH OPERATION: TAUBOUND ends Mon Nov 17 — Praghasa’s wares leave with it. Last chance for Taubound rewards."
+  ]
+ },
+ {
   "version": "2.24.19",
   "date": "2026-11-14",
   "notify": false,
