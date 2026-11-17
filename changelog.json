@@ -1,5 +1,27 @@
 [
  {
+  "version": "2.24.23",
+  "date": "2026-11-17",
+  "notify": false,
+  "notes": [
+   "🏆 Warframe is nominated for Best Community Support at The Game Awards 2026! Vote for Warframe at thegameawards.com/categories/best-community-support — announced Nov 17.",
+   "🎬 3 NEW VIDEOS: Pupskar — “Taubound Ends Tuesday! Warframe Weekly Reset November 15 - 22” (~Nov 15) — weekly reset roundup; Grind Hard Squad — Vauban rework build (Vortex + Pyrochnics nuke) and Inaros build saved by the Old Peace update. Video library now at 122 total.",
+   "🛒 Black Friday Sale live Nov 16–30: up to 50% off select packs & bundles; featured TennoGen 50% off. 📺 Devstream #199: Tau Part Two — Fri Nov 27, 2 PM ET; Baro Ki'Teer returns Nov 27–29 (Strata Relay).",
+   "No new hotfix since Hotfix 44.1.4 + 44.1.4.1."
+  ]
+ },
+ {
+  "version": "2.24.21",
+  "date": "2026-11-17",
+  "notify": false,
+  "notes": [
+   "⌛ Epoch Operation: Taubound ended Mon Nov 17 — Praghasa's wares have left with it. Ghoul Purge bounties have also ended (no longer in the live worldstate).",
+   "🛒 Black Friday Sale live Nov 16–30: up to 50% off select packs & bundles; featured TennoGen 50% off. Old Peace + Shadowgrapher bundles retire after the sale.",
+   "📺 Devstream #199: Tau Part Two — Fri Nov 27, 2 PM ET. Baro Ki'Teer returns the same weekend (Strata Relay, Earth, Nov 27–29).",
+   "No new hotfix since Hotfix 44.1.4 + 44.1.4.1."
+  ]
+ },
+ {
   "version": "2.24.20",
   "date": "2026-11-15",
   "notify": false,

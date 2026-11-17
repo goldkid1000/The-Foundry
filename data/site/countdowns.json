@@ -1,9 +1,9 @@
 [
  {
-  "date": "2026-11-17",
-  "description": "One-time community event: fuel Praghasa's journey to Tau. Collect Moonflesh on Eris and trade it for event rewards before the Operation closes. Source: warframe.com.",
-  "kind": "ends",
-  "name": "Epoch Operation: Taubound ends"
+  "name": "Devstream #199: Tau Part Two",
+  "date": "2026-11-27T14:00:00-05:00",
+  "kind": "launch",
+  "description": "Second Tau showcase devstream, Fri Nov 27 at 2 PM ET on twitch.tv/warframe. Game modes, Portau, Lastbloom Lounge, next Prime reveal. Source: warframe.com."
  },
  {
   "date": "2026-10-30T14:00:00-04:00",
@@ -19,14 +19,8 @@
  },
  {
   "name": "Baro Ki'Teer returns",
-  "date": "2026-11-13T14:00:00.000Z",
+  "date": "2026-11-27T14:00:00.000Z",
   "kind": "launch",
-  "description": "Baro Ki'Teer at Orcus Relay, Pluto. Fri Nov 13, 9 AM ET -> Sun Nov 15, 9 AM ET. Source: warframestat.us voidTrader."
- },
- {
-  "name": "Ghoul Purge ends",
-  "date": "2026-11-27T18:44:19.583Z",
-  "kind": "ends",
-  "description": "Ghoul Purge bounties: help Konzu rid the Plains of Eidolon of Grineer Ghouls. Ends Fri Nov 27. Source: warframestat.us events."
+  "description": "Baro Ki'Teer at Strata Relay, Earth. Fri Nov 27, 9 AM ET -> Sun Nov 29, 9 AM ET. Source: warframestat.us voidTrader."
  }
 ]

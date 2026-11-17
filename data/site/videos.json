@@ -1069,5 +1069,32 @@
   "description": "Official DE crash course on Prime Warframes, weapons and accessories: what Primes are, earning them through Void Relics and Fissures, refining relics, Prime Access packs, and Prime Resurgence with Varzia. (Upload Dec 18, 2025; 97K views; 6:43.)",
   "item": "",
   "type": "beginner"
+ },
+ {
+  "id": "Zun_NywTKMQ",
+  "title": "Taubound Ends Tuesday! Warframe Weekly Reset November 15 - 22",
+  "channel": "Pupskar",
+  "category": "Farming",
+  "description": "Pupskar's weekly reset roundup for Nov 15 – 22, 2026 — Taubound ends Tuesday (final armor piece + last chance to hand in event loot), Incarnon picks (Furis, Latron, Strun, Bo, Furax), Archon Hunt (Nira), Descendia, Nightwave, Bird 3 Crimson Archon Shard, Acrithis Exilus Adapters, 1999 Calendar. (Upload ~Nov 15, 2026.)",
+  "item": "Weekly Reset",
+  "type": "guide"
+ },
+ {
+  "id": "3I6fezEFOaw",
+  "title": "INSTA-DELETE EVERYTHING with This NEW INSANE BUILD | VAUBAN REWORK Warframe 2026",
+  "channel": "Grind Hard Squad",
+  "category": "Builds",
+  "description": "Grind Hard Squad's Vauban rework build: Vortex + Pyrochnics (Temple subsume) heat-inherit nuke, plus a second Photon Strike/Repeater build; Nautilus Cordon sentinel pick. (Upload ~Nov 3, 2026.)",
+  "item": "Vauban",
+  "type": "build"
+ },
+ {
+  "id": "a03aS99gDm4",
+  "title": "THIS WARFRAME IS FINALLY SAVED BY THE OLD PEACE UPDATE...",
+  "channel": "Grind Hard Squad",
+  "category": "Builds",
+  "description": "Grind Hard Squad's Inaros build after the Old Peace update: Roar-subsume tank build plus a Wrathful Advance melee variant, Arcane Grace/Persistence, Scarab Shell status immunity. (Upload ~Nov 10, 2026.)",
+  "item": "Inaros",
+  "type": "build"
  }
 ]
